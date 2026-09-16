@@ -1,0 +1,33 @@
+# IDE & Editors
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+
+# Build artifacts & logs
+*.log
+build/
+dist/
+
+# Flutter / Dart
+bike_tracker_app/.dart_tool/
+bike_tracker_app/.flutter-plugins
+bike_tracker_app/.flutter-plugins-dependencies
+bike_tracker_app/.pub/
+bike_tracker_app/.pub-cache/
+bike_tracker_app/build/
+
+# Android
+bike_tracker_app/android/.gradle/
+bike_tracker_app/android/local.properties
+android/.gradle/
+android/local.properties
+android/**/build/
+
+# Assistant / Agent caches
+.agents/
+.pi/
+skills-lock.json

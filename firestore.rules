@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Rides collection
+    match /rides/{rideId} {
+      // Public read (for GitHub Pages frontend)
+      allow read: if true;
+      
+      // Only authenticated user can create their own ride
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Only the owner can update or delete
+      allow update, delete: if request.auth != null 
+                            && resource.data.userId == request.auth.uid;
+      
+      // Details subcollection (e.g. /rides/{rideId}/details/gpx)
+      match /details/{detailId} {
+        allow read: if true;
+        
+        // In batch writes, parent rides/{rideId} is created concurrently,
+        // so we check request.resource.data.userId or getAfter()
+        allow create: if request.auth != null 
+                      && (
+                        (request.resource.data.userId != null && request.resource.data.userId == request.auth.uid)
+                        || (existsAfter(/databases/$(database)/documents/rides/$(rideId)) 
+                            && getAfter(/databases/$(database)/documents/rides/$(rideId)).data.userId == request.auth.uid)
+                        || (exists(/databases/$(database)/documents/rides/$(rideId)) 
+                            && get(/databases/$(database)/documents/rides/$(rideId)).data.userId == request.auth.uid)
+                      );
+        
+        allow update, delete: if request.auth != null 
+                              && (
+                                (resource.data.userId != null && resource.data.userId == request.auth.uid)
+                                || (exists(/databases/$(database)/documents/rides/$(rideId)) 
+                                    && get(/databases/$(database)/documents/rides/$(rideId)).data.userId == request.auth.uid)
+                              );
+      }
+    }
+    
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

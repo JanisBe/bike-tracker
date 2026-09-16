@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Bike Tracker</string>
+    <string name="notification_channel_name">Bike Ride Tracking</string>
+    <string name="notification_channel_desc">Active recording of bike rides</string>
+    <string name="notification_title">🚴 Ride in Progress</string>
+    <string name="notification_text">Recording your bike ride...</string>
+</resources>

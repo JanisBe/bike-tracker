@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bike Tracker • Cycling Routes & GPX Telemetry</title>
+  <meta name="description" content="Personal bike ride tracker and interactive route explorer with GPX downloads powered by Firebase.">
+  <meta name="theme-color" content="#0B0B1A">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Bike Tracker • Cycling Routes">
+  <meta property="og:description" content="Explore bike rides on an interactive dark-mode map and download GPX tracks.">
+  <meta property="og:type" content="website">
+
+  <!-- Google Fonts: Outfit (headings) & Inter (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Sidebar: Journey Log -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M15.5,5.5c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM5,12c-2.8,0 -5,2.2 -5,5s2.2,5 5,5 5,-2.2 5,-5 -2.2,-5 -5,-5zM5,20.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5 3.5,1.6 3.5,3.5 -1.6,3.5 -3.5,3.5zM10.8,10.5l2.4,-2.4 1.8,1.8c1.3,1.3 3,2.1 4.9,2.1v-2c-1.4,0 -2.6,-0.6 -3.5,-1.5l-1.9,-1.9c-0.4,-0.4 -0.9,-0.6 -1.5,-0.6s-1.1,0.2 -1.5,0.6l-3.2,3.2c-0.4,0.4 -0.6,0.9 -0.6,1.4 0,0.6 0.2,1.1 0.6,1.5l3.2,3.2V20h2v-4.8l-2.7,-2.7zM19,12c-2.8,0 -5,2.2 -5,5s2.2,5 5,5 5,-2.2 5,-5 -2.2,-5 -5,-5zM19,20.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5 3.5,1.6 3.5,3.5 -1.6,3.5 -3.5,3.5z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="brand-title">Bike Tracker</h1>
+            <p class="brand-subtitle">Personal Cycling Logs</p>
+          </div>
+        </div>
+
+        <!-- Overall Telemetry Banner -->
+        <div class="stats-banner">
+          <div class="stat-item">
+            <div class="stat-value" id="stat-total-distance">0.0 km</div>
+            <div class="stat-label">Total Dist</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-total-rides">0</div>
+            <div class="stat-label">Rides</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="stat-total-hours">0.0 h</div>
+            <div class="stat-label">Time</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls & Filter Bar -->
+      <div class="controls-bar">
+        <input type="text" id="search-input" class="search-input" placeholder="Search rides..." aria-label="Search rides">
+        <button id="btn-overview" class="btn-overview" title="Show all routes on map">All Routes</button>
+      </div>
+
+      <!-- Rides List -->
+      <div class="rides-list" id="rides-list" role="region" aria-label="Ride logs">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </aside>
+
+    <!-- Map Area -->
+    <main class="map-container">
+      <div id="map"></div>
+
+      <!-- Floating Detail Panel (Active on selection) -->
+      <div class="floating-detail-panel" id="floating-detail">
+        <h2 class="detail-title" id="detail-title">Selected Ride</h2>
+        <div class="detail-subtitle" id="detail-date">—</div>
+
+        <div class="detail-grid">
+          <div class="detail-item-box">
+            <div class="detail-item-label">Distance</div>
+            <div class="detail-item-val" id="detail-dist">—</div>
+          </div>
+          <div class="detail-item-box">
+            <div class="detail-item-label">Duration</div>
+            <div class="detail-item-val" id="detail-dur">—</div>
+          </div>
+          <div class="detail-item-box">
+            <div class="detail-item-label">Avg Speed</div>
+            <div class="detail-item-val" id="detail-avg">—</div>
+          </div>
+          <div class="detail-item-box">
+            <div class="detail-item-label">Elevation</div>
+            <div class="detail-item-val" id="detail-ele">—</div>
+          </div>
+        </div>
+
+        <button class="btn-download-gpx" id="btn-detail-gpx" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
+          <span>⬇</span> Download Full GPX Track
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Controller -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
