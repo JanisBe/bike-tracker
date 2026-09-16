@@ -1,9 +1,11 @@
 import { fetchAllRides, downloadGpx } from './ride-service.js';
 import { initMap, displaySingleRoute, displayAllRoutesOverview } from './map-renderer.js';
 import { calculateOverallStats, formatDate, formatDuration } from './stats.js';
+import { CalendarWidget } from './calendar-widget.js';
 
 let allRides = [];
 let selectedRideId = null;
+let calendarWidget = null;
 
 // DOM Elements
 const ridesListContainer = document.getElementById("rides-list");
@@ -12,6 +14,7 @@ const statTotalRides = document.getElementById("stat-total-rides");
 const statTotalHours = document.getElementById("stat-total-hours");
 const searchInput = document.getElementById("search-input");
 const btnOverview = document.getElementById("btn-overview");
+const calendarContainer = document.getElementById("calendar-widget-container");
 
 const floatingDetail = document.getElementById("floating-detail");
 const detailTitle = document.getElementById("detail-title");
@@ -40,10 +43,25 @@ async function initApp() {
     // 3. Update Overall Stats
     updateStatsBanner(allRides);
 
-    // 4. Render Ride List
+    // 4. Initialize Calendar Widget
+    if (calendarContainer) {
+      calendarWidget = new CalendarWidget(calendarContainer, {
+        onSelectRide: (rideId) => {
+          selectRide(rideId);
+          // Also scroll to the card in the list
+          const card = document.getElementById(`card-${rideId}`);
+          if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }
+      });
+      calendarWidget.setRides(allRides);
+    }
+
+    // 5. Render Ride List
     renderRidesList(allRides);
 
-    // 5. Select first ride by default or show overview
+    // 6. Select first ride by default or show overview
     if (allRides.length > 0) {
       selectRide(allRides[0].id);
     }
