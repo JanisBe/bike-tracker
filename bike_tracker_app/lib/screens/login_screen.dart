@@ -305,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
                 const Center(
                   child: Text(
-                    '100% Free & Open-Source • Spark Tier',
+                    '100% Free & Open-Source',
                     style: TextStyle(fontSize: 11, color: AppConstants.textMuted),
                   ),
                 ),

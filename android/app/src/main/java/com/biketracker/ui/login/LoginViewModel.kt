@@ -93,6 +93,29 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun signInWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val result = authRepository.signInWithGoogle(idToken)
+            if (result.isSuccess) {
+                _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = result.exceptionOrNull()?.localizedMessage ?: "Google sign in failed"
+                    )
+                }
+            }
+        }
+    }
+
+    fun onGoogleSignInError(message: String) {
+        _uiState.update {
+            it.copy(isLoading = false, errorMessage = message)
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

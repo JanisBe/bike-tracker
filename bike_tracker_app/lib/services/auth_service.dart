@@ -25,7 +25,9 @@ class AuthService extends ChangeNotifier {
   Future<void> _ensureGoogleInitialized() async {
     if (!_initializedGoogle) {
       try {
-        await _googleSignIn.initialize();
+        await _googleSignIn.initialize(
+          serverClientId: '654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com',
+        );
       } catch (e) {
         debugPrint('GoogleSignIn initialize warning: $e');
       }
@@ -60,13 +62,21 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Sign in anonymously for testing and guest access
+  /// Sign in anonymously for testing and guest access.
+  /// Reuses existing anonymous session if already active to prevent creating duplicate ghost users.
   Future<UserCredential?> signInAnonymously() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      final current = _auth.currentUser;
+      if (current != null && current.isAnonymous) {
+        _isLoading = false;
+        notifyListeners();
+        return null; // Already logged in as this guest
+      }
+
       final UserCredential userCredential = await _auth.signInAnonymously();
       _isLoading = false;
       notifyListeners();
@@ -133,10 +143,24 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: cleanEmail,
-        password: password,
-      );
+      final current = _auth.currentUser;
+      UserCredential credential;
+
+      // If user is already anonymous guest, link their existing account with email credentials
+      // so all their recorded guest rides are preserved under their new email identity!
+      if (current != null && current.isAnonymous) {
+        final emailCredential = EmailAuthProvider.credential(
+          email: cleanEmail,
+          password: password,
+        );
+        credential = await current.linkWithCredential(emailCredential);
+      } else {
+        credential = await _auth.createUserWithEmailAndPassword(
+          email: cleanEmail,
+          password: password,
+        );
+      }
+
       _isLoading = false;
       notifyListeners();
       return credential;

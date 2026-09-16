@@ -185,7 +185,8 @@ body {
 .rides-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 24px 24px;
+  overflow-x: hidden;
+  padding: 6px 24px 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -207,16 +208,15 @@ body {
   border-radius: 16px;
   padding: 16px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
 
 .ride-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .ride-card.selected {
@@ -678,6 +678,8 @@ body {
   gap: 6px;
   max-height: 200px;
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px;
 }
 
 .popover-ride-item {
@@ -686,12 +688,16 @@ body {
   border-radius: 8px;
   padding: 8px 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .popover-ride-item:hover {
-  background: rgba(255, 107, 53, 0.15);
+  background: rgba(255, 107, 53, 0.18);
   border-color: var(--accent-orange);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.popover-ride-item:hover .popover-arrow {
   transform: translateX(3px);
 }
 

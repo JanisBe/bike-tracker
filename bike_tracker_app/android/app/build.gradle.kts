@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.biketracker"
+    namespace = "com.biketracker.bike_tracker"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.biketracker"
+        applicationId = "com.biketracker.flutter"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION

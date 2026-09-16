@@ -12,7 +12,20 @@
           "package_name": "com.biketracker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "654235244168-7c04dc2ei9rp11cnf5pfumlegfhau94v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.biketracker",
+            "certificate_hash": "90e027f94881419e3a769a6022af34e45fe2f6af"
+          }
+        },
+        {
+          "client_id": "654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDs-6wzyTCe08CYYuw5LkEumMKcOlWnpSk"
@@ -20,7 +33,41 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654235244168:android:02054ebdfe9c88da1cf13d",
+        "android_client_info": {
+          "package_name": "com.biketracker.flutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDs-6wzyTCe08CYYuw5LkEumMKcOlWnpSk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

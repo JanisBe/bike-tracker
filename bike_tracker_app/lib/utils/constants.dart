@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppConstants {
-  static const String appName = 'Bike Tracker';
+  static const String appName = 'Bike Tracker F';
 
   // OpenStreetMap tile template
   static const String mapTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
