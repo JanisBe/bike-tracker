@@ -112,7 +112,46 @@
           <span>⬇</span> Pobierz pełny plik GPX
         </button>
       </div>
+
+        <!-- Ride Profile Chart Panel (Speed & Elevation) -->
+        <section aria-label="Profil trasy: prędkość i wysokość" class="profile-chart-panel" id="profile-chart-panel">
+            <div class="profile-chart-header">
+                <div class="profile-chart-title-group">
+                    <h3 class="profile-chart-title">Profil trasy</h3>
+                    <!-- Live Scrub Tooltip Banner -->
+                    <div class="profile-scrub-tooltip" id="profile-scrub-tooltip" style="display: none;">
+                        <span class="scrub-badge scrub-dist" id="scrub-dist">0.0 km</span>
+                        <span class="scrub-badge scrub-speed" id="scrub-speed">⚡ 0.0 km/h</span>
+                        <span class="scrub-badge scrub-ele" id="scrub-ele">⛰️ 0 m</span>
+                    </div>
+                </div>
+
+                <!-- Interactive Clickable Legend -->
+                <div aria-label="Przełączniki serii wykresu" class="profile-legend" role="toolbar">
+                    <button aria-pressed="true" class="legend-btn active" id="btn-toggle-speed"
+                            title="Kliknij, aby ukryć/pokazać prędkość" type="button">
+                        <span class="legend-dot speed-dot"></span>
+                        <span class="legend-label">Prędkość</span>
+                    </button>
+                    <button aria-pressed="true" class="legend-btn active" id="btn-toggle-elevation"
+                            title="Kliknij, aby ukryć/pokazać wysokość" type="button">
+                        <span class="legend-dot ele-dot"></span>
+                        <span class="legend-label">Wysokość</span>
+                    </button>
+                    <button aria-label="Zwiń lub rozwiń wykres profilu" class="btn-toggle-panel"
+                            id="btn-toggle-chart-collapse"
+                            title="Zwiń / Rozwiń wykres" type="button">
+                        <span id="collapse-icon">▾</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="profile-chart-body" id="profile-chart-body">
+                <canvas height="150" id="profile-canvas"></canvas>
+            </div>
+        </section>
     </main>
+
   </div>
 
   <!-- Leaflet JS -->

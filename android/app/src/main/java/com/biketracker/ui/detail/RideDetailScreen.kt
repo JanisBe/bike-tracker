@@ -57,12 +57,15 @@ import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
+import android.graphics.drawable.GradientDrawable
+import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -75,6 +78,7 @@ fun RideDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedProfilePoint by remember { mutableStateOf<RouteProfilePoint?>(null) }
 
     Scaffold(
         topBar = {
@@ -141,9 +145,12 @@ fun RideDetailScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(280.dp)
+                            .height(260.dp)
                     ) {
-                        DetailOsmMapView(coordinates = uiState.routeCoordinates)
+                        DetailOsmMapView(
+                            coordinates = uiState.routeCoordinates,
+                            selectedPoint = selectedProfilePoint?.let { Pair(it.latitude, it.longitude) }
+                        )
                     }
 
                     // Content details
@@ -156,7 +163,18 @@ fun RideDetailScreen(
                             color = TextSecondary
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Interactive Elevation & Speed Chart
+                        if (uiState.profilePoints.isNotEmpty()) {
+                            RideProfileChart(
+                                points = uiState.profilePoints,
+                                onPointSelected = { pt ->
+                                    selectedProfilePoint = pt
+                                }
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
 
                         // Big Stats Cards
                         Row(modifier = Modifier.fillMaxWidth()) {
@@ -335,9 +353,12 @@ fun DetailMetricCard(
     }
 }
 
+private class ScrubMarker(mapView: MapView) : Marker(mapView)
+
 @Composable
 fun DetailOsmMapView(
-    coordinates: List<Pair<Double, Double>>
+    coordinates: List<Pair<Double, Double>>,
+    selectedPoint: Pair<Double, Double>? = null
 ) {
     val polylineColor = OrangeAccent.toArgb()
 
@@ -351,26 +372,46 @@ fun DetailOsmMapView(
         },
         update = { mapView ->
             if (coordinates.isNotEmpty()) {
-                mapView.overlays.clear()
+                val hasPolyline = mapView.overlays.any { it is Polyline }
+                if (!hasPolyline) {
+                    mapView.overlays.removeAll { it is Polyline }
 
-                val geoPoints = coordinates.map { GeoPoint(it.first, it.second) }
-                val polyline = Polyline(mapView).apply {
-                    setPoints(geoPoints)
-                    outlinePaint.color = polylineColor
-                    outlinePaint.strokeWidth = 10f
+                    val geoPoints = coordinates.map { GeoPoint(it.first, it.second) }
+                    val polyline = Polyline(mapView).apply {
+                        setPoints(geoPoints)
+                        outlinePaint.color = polylineColor
+                        outlinePaint.strokeWidth = 10f
+                    }
+                    mapView.overlays.add(0, polyline)
+
+                    // Zoom to fit bounding box
+                    val minLat = coordinates.minOf { it.first }
+                    val maxLat = coordinates.maxOf { it.first }
+                    val minLng = coordinates.minOf { it.second }
+                    val maxLng = coordinates.maxOf { it.second }
+
+                    val boundingBox = BoundingBox(maxLat, maxLng, minLat, minLng)
+                    mapView.post {
+                        mapView.zoomToBoundingBox(boundingBox, true, 60)
+                    }
                 }
-                mapView.overlays.add(polyline)
 
-                // Zoom to fit bounding box
-                val minLat = coordinates.minOf { it.first }
-                val maxLat = coordinates.maxOf { it.first }
-                val minLng = coordinates.minOf { it.second }
-                val maxLng = coordinates.maxOf { it.second }
-
-                val boundingBox = BoundingBox(maxLat, maxLng, minLat, minLng)
-                mapView.post {
-                    mapView.zoomToBoundingBox(boundingBox, true, 50)
+                // Handle selectedPoint marker from chart scrubbing
+                mapView.overlays.removeAll { it is ScrubMarker }
+                if (selectedPoint != null) {
+                    val scrubMarker = ScrubMarker(mapView).apply {
+                        position = GeoPoint(selectedPoint.first, selectedPoint.second)
+                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                        icon = GradientDrawable().apply {
+                            shape = GradientDrawable.OVAL
+                            setColor(android.graphics.Color.parseColor("#FF6B35"))
+                            setStroke(5, android.graphics.Color.WHITE)
+                            setSize(44, 44)
+                        }
+                    }
+                    mapView.overlays.add(scrubMarker)
                 }
+
                 mapView.invalidate()
             }
         },

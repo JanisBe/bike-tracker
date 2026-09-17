@@ -1,12 +1,13 @@
 import {db} from './firebase-config.js';
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import {decodePolyline} from './polyline-decoder.js';
 
 // Demo rides provided as high-quality fallback if no rides are recorded in Firestore yet
 const MOCK_RIDES = [
@@ -146,3 +147,182 @@ function generateDemoGpx(ride) {
   </trk>
 </gpx>`;
 }
+
+/**
+ * Calculates Haversine distance in meters between two lat/lon points.
+ */
+function haversineDistanceM(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+/**
+ * Parses GPX XML content and returns an array of route profile points.
+ */
+export function parseGpxXml(gpxXml) {
+    if (!gpxXml || typeof gpxXml !== 'string') return [];
+    try {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(gpxXml, "text/xml");
+        const trkpts = xmlDoc.querySelectorAll("trkpt");
+        if (!trkpts || trkpts.length === 0) return [];
+
+        const rawPoints = [];
+        trkpts.forEach(pt => {
+            const lat = Number.parseFloat(pt.getAttribute("lat"));
+            const lon = Number.parseFloat(pt.getAttribute("lon"));
+            const eleNode = pt.querySelector("ele");
+            const timeNode = pt.querySelector("time");
+            const ele = eleNode ? Number.parseFloat(eleNode.textContent) : null;
+            const time = timeNode ? new Date(timeNode.textContent).getTime() : null;
+
+            if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+                rawPoints.push({lat, lon, ele, time});
+            }
+        });
+
+        if (rawPoints.length < 2) return [];
+
+        let cumDistKm = 0;
+        const count = rawPoints.length;
+        const rawSpeeds = [];
+        const distances = [];
+        const elevations = [];
+        let lastEle = rawPoints[0].ele != null ? rawPoints[0].ele : 100;
+
+        for (let i = 0; i < count; i++) {
+            const p = rawPoints[i];
+            if (p.ele != null && !Number.isNaN(p.ele)) lastEle = p.ele;
+            elevations.push(lastEle);
+
+            if (i === 0) {
+                distances.push(0);
+                rawSpeeds.push(0);
+            } else {
+                const prev = rawPoints[i - 1];
+                const stepM = haversineDistanceM(prev.lat, prev.lon, p.lat, p.lon);
+                cumDistKm += stepM / 1000;
+                distances.push(cumDistKm);
+
+                let speedKmh = 0;
+                if (p.time && prev.time) {
+                    const deltaSec = (p.time - prev.time) / 1000;
+                    if (deltaSec >= 0.5 && deltaSec <= 120 && stepM > 0.5) {
+                        speedKmh = Math.min(95, Math.max(0, (stepM / deltaSec) * 3.6));
+                    } else if (i > 1) {
+                        speedKmh = rawSpeeds[i - 1];
+                    }
+                }
+                rawSpeeds.push(speedKmh);
+            }
+        }
+
+        // Smooth speed with rolling window (radius = 2)
+        const smoothedSpeeds = [];
+        for (let i = 0; i < count; i++) {
+            let sum = 0;
+            let samples = 0;
+            const start = Math.max(0, i - 2);
+            const end = Math.min(count - 1, i + 2);
+            for (let j = start; j <= end; j++) {
+                sum += rawSpeeds[j];
+                samples++;
+            }
+            smoothedSpeeds.push(samples > 0 ? sum / samples : rawSpeeds[i]);
+        }
+
+        return rawPoints.map((pt, i) => ({
+            distanceKm: distances[i],
+            elevationM: elevations[i],
+            speedKmh: smoothedSpeeds[i],
+            lat: pt.lat,
+            lon: pt.lon
+        }));
+    } catch (err) {
+        console.error("Failed to parse GPX XML:", err);
+        return [];
+    }
+}
+
+/**
+ * Generates realistic profile points from polyline coordinates and ride metrics.
+ */
+export function generateProfileFromPolyline(coords, ride) {
+    if (!coords || coords.length < 2) return [];
+
+    const count = coords.length;
+    const distances = [0];
+    let totalDistM = 0;
+
+    for (let i = 1; i < count; i++) {
+        const prev = coords[i - 1];
+        const curr = coords[i];
+        const stepM = haversineDistanceM(prev[0], prev[1], curr[0], curr[1]);
+        totalDistM += stepM;
+        distances.push(totalDistM / 1000);
+    }
+
+    const targetDistKm = ride.distanceKm > 0 ? ride.distanceKm : totalDistM / 1000;
+    const distScale = totalDistM > 0 ? targetDistKm / (totalDistM / 1000) : 1;
+
+    const baseEle = 105;
+    const eleGain = ride.elevationGain != null && ride.elevationGain > 0 ? ride.elevationGain : 60;
+    const avgSpeed = ride.avgSpeedKmh > 0 ? ride.avgSpeedKmh : 20.0;
+    const maxSpeed = ride.maxSpeedKmh > 0 ? ride.maxSpeedKmh : avgSpeed * 1.5;
+
+    const points = [];
+    for (let i = 0; i < count; i++) {
+        const frac = count > 1 ? i / (count - 1) : 0;
+        const dKm = distances[i] * distScale;
+
+        // Realistic natural elevation wave based on ride elevation gain
+        const wave = Math.sin(frac * Math.PI * 3.5) * 0.5 + Math.cos(frac * Math.PI * 7.2) * 0.25;
+        const ele = baseEle + (eleGain * 0.45) * (wave + 0.5);
+
+        // Speed curve (slower on uphill, faster on descent/flats)
+        const speedVariation = (Math.sin(frac * Math.PI * 5 + 1.2) * 0.2) - (wave * 0.15);
+        const speed = Math.min(maxSpeed, Math.max(5, avgSpeed * (1 + speedVariation)));
+
+        points.push({
+            distanceKm: dKm,
+            elevationM: ele,
+            speedKmh: speed,
+            lat: coords[i][0],
+            lon: coords[i][1]
+        });
+    }
+
+    return points;
+}
+
+/**
+ * Fetches or generates route profile data for the chart.
+ */
+export async function fetchRideProfile(ride) {
+    if (!ride) return [];
+
+    // If real Firestore ride, attempt to load gpxContent
+    if (!ride.isDemo) {
+        try {
+            const gpxDocRef = doc(db, "rides", ride.id, "details", "gpx");
+            const snap = await getDoc(gpxDocRef);
+            if (snap.exists() && snap.data().gpxContent) {
+                const parsed = parseGpxXml(snap.data().gpxContent);
+                if (parsed && parsed.length >= 2) return parsed;
+            }
+        } catch (e) {
+            console.warn("Could not load Firestore GPX details:", e);
+        }
+    }
+
+    // Fallback to decoded polyline
+    const coords = decodePolyline(ride.encodedPolyline);
+    return generateProfileFromPolyline(coords, ride);
+}
+

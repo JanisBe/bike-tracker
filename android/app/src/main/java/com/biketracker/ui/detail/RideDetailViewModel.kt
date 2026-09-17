@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.biketracker.data.model.RouteProfilePoint
+import com.biketracker.domain.util.GpxParser
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -25,6 +27,8 @@ data class RideDetailUiState(
     val isLoading: Boolean = true,
     val ride: Ride? = null,
     val routeCoordinates: List<Pair<Double, Double>> = emptyList(),
+    val profilePoints: List<RouteProfilePoint> = emptyList(),
+    val isLoadingProfile: Boolean = false,
     val errorMessage: String? = null,
     val isSharing: Boolean = false,
     val isDeleted: Boolean = false
@@ -57,9 +61,11 @@ class RideDetailViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             ride = ride,
-                            routeCoordinates = coords
+                            routeCoordinates = coords,
+                            isLoadingProfile = true
                         )
                     }
+                    loadProfileData(ride, coords)
                 } else if (_uiState.value.ride == null) {
                     _uiState.update {
                         it.copy(
@@ -68,6 +74,30 @@ class RideDetailViewModel @Inject constructor(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    private fun loadProfileData(ride: Ride, coords: List<Pair<Double, Double>>) {
+        viewModelScope.launch {
+            val result = rideRepository.getGpxContent(rideId)
+            val parsedPoints = if (result.isSuccess) {
+                val xml = result.getOrNull().orEmpty()
+                val points = GpxParser.parse(xml)
+                if (points.isNotEmpty()) points else GpxParser.fromCoordinates(
+                    coords,
+                    ride.elevationGain ?: 0.0,
+                    ride.avgSpeedKmh
+                )
+            } else {
+                GpxParser.fromCoordinates(coords, ride.elevationGain ?: 0.0, ride.avgSpeedKmh)
+            }
+
+            _uiState.update {
+                it.copy(
+                    profilePoints = parsedPoints,
+                    isLoadingProfile = false
+                )
             }
         }
     }

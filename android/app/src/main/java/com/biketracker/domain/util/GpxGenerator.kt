@@ -30,12 +30,12 @@ object GpxGenerator {
             appendLine("    <name>$rideName</name>")
             appendLine("    <trkseg>")
 
-            for (point in points) {
-                appendLine("""      <trkpt lat="${point.latitude}" lon="${point.longitude}">""")
-                if (point.elevation != null) {
-                    appendLine("        <ele>${"%.1f".format(Locale.US, point.elevation)}</ele>")
+            for ((latitude, longitude, elevation, timestamp) in points) {
+                appendLine("""      <trkpt lat="$latitude" lon="$longitude">""")
+                if (elevation != null) {
+                    appendLine("        <ele>${"%.1f".format(Locale.US, elevation)}</ele>")
                 }
-                appendLine("        <time>${isoFormat.format(Date(point.timestamp))}</time>")
+                appendLine("        <time>${isoFormat.format(Date(timestamp))}</time>")
                 appendLine("      </trkpt>")
             }
 

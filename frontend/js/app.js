@@ -1,11 +1,19 @@
-import {downloadGpx, fetchAllRides} from './ride-service.js';
-import {displayAllRoutesOverview, displaySingleRoute, initMap} from './map-renderer.js';
+import {downloadGpx, fetchAllRides, fetchRideProfile} from './ride-service.js';
+import {
+    clearScrubMarker,
+    displayAllRoutesOverview,
+    displaySingleRoute,
+    initMap,
+    setScrubMarker
+} from './map-renderer.js';
 import {calculateOverallStats, formatDate, formatDuration} from './stats.js';
 import {CalendarWidget} from './calendar-widget.js';
+import {ProfileChart} from './profile-chart.js';
 
 let allRides = [];
 let selectedRideId = null;
 let calendarWidget = null;
+let profileChart = null;
 
 // DOM Elements
 const ridesListContainer = document.getElementById("rides-list");
@@ -28,6 +36,32 @@ const btnDetailGpx = document.getElementById("btn-detail-gpx");
 async function initApp() {
   // 1. Initialize Map
   initMap("map");
+
+    // Initialize Profile Chart
+    const profileContainer = document.getElementById("profile-chart-panel");
+    const profileCanvas = document.getElementById("profile-canvas");
+    if (profileContainer && profileCanvas) {
+        profileChart = new ProfileChart({
+            container: profileContainer,
+            canvas: profileCanvas,
+            btnSpeed: document.getElementById("btn-toggle-speed"),
+            btnElevation: document.getElementById("btn-toggle-elevation"),
+            btnCollapse: document.getElementById("btn-toggle-chart-collapse"),
+            chartBody: document.getElementById("profile-chart-body"),
+            tooltipContainer: document.getElementById("profile-scrub-tooltip"),
+            scrubDist: document.getElementById("scrub-dist"),
+            scrubSpeed: document.getElementById("scrub-speed"),
+            scrubEle: document.getElementById("scrub-ele"),
+            collapseIcon: document.getElementById("collapse-icon"),
+            onPointHover: (point) => {
+                if (point && point.lat != null && point.lon != null) {
+                    setScrubMarker(point.lat, point.lon);
+                } else {
+                    clearScrubMarker();
+                }
+            }
+        });
+    }
 
   // 2. Fetch Rides from Firestore (with fallback)
   try {
@@ -146,7 +180,7 @@ function renderRidesList(rides) {
   });
 }
 
-function selectRide(rideId) {
+async function selectRide(rideId) {
   selectedRideId = rideId;
 
   // Update card highlighting
@@ -164,6 +198,19 @@ function selectRide(rideId) {
 
   // Update floating detail panel
   showFloatingDetail(ride);
+
+    // Fetch and display route profile chart
+    if (profileChart) {
+        try {
+            const points = await fetchRideProfile(ride);
+            if (selectedRideId === rideId) {
+                profileChart.setData(points);
+            }
+        } catch (err) {
+            console.warn("Failed to load profile points for ride:", err);
+            profileChart.hide();
+        }
+    }
 }
 
 function showFloatingDetail(ride) {
@@ -204,10 +251,13 @@ function setupEventListeners() {
       document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
       selectedRideId = null;
       if (floatingDetail) floatingDetail.classList.remove("active");
+        if (profileChart) profileChart.hide();
+        clearScrubMarker();
       displayAllRoutesOverview(allRides);
     });
   }
 }
+
 
 // Add spinning animation for loading spinner
 const style = document.createElement("style");

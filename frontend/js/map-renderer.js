@@ -83,6 +83,7 @@ export function displaySingleRoute(ride) {
     currentRouteLayer = null;
   }
   markersLayer.clearLayers();
+  clearScrubMarker();
 
   const coords = decodePolyline(ride.encodedPolyline);
   if (coords.length < 2) {
@@ -124,7 +125,7 @@ export function displaySingleRoute(ride) {
   markersLayer.addLayer(startMarker);
 
   // Finish Marker (Red Pin)
-  const finishPt = coords[coords.length - 1];
+  const finishPt = coords.at(-1);
   const finishMarker = L.marker(finishPt, {
     icon: createCustomMarkerIcon('finish'),
     title: 'Meta'
@@ -174,5 +175,43 @@ export function displayAllRoutesOverview(rides) {
   if (allPoints.length > 0) {
     const polyline = L.polyline(allPoints);
     mapInstance.flyToBounds(polyline.getBounds(), { padding: [50, 50], duration: 1.0 });
+  }
+}
+
+let scrubMarker = null;
+
+/**
+ * Places or updates a pulsing synchronized marker on the map during chart scrubbing.
+ * @param {number} lat
+ * @param {number} lon
+ */
+export function setScrubMarker(lat, lon) {
+  if (!mapInstance || lat == null || lon == null) return;
+
+  if (!scrubMarker) {
+    const icon = L.divIcon({
+      html: `
+        <div class="scrub-pulsing-wrapper">
+          <div class="scrub-pulsing-glow"></div>
+          <div class="scrub-pulsing-dot"></div>
+        </div>
+      `,
+      className: 'scrub-marker-icon',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    scrubMarker = L.marker([lat, lon], {icon, zIndexOffset: 2000}).addTo(mapInstance);
+  } else {
+    scrubMarker.setLatLng([lat, lon]);
+  }
+}
+
+/**
+ * Removes the scrub marker from the map.
+ */
+export function clearScrubMarker() {
+  if (scrubMarker && mapInstance) {
+    mapInstance.removeLayer(scrubMarker);
+    scrubMarker = null;
   }
 }
