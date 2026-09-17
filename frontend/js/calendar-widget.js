@@ -3,7 +3,7 @@
  * Displays a monthly calendar grid with activity dots, popover on hover/click with rides list,
  * and allows navigating to ride details or filtering.
  */
-import { formatDate, formatDuration } from './stats.js';
+import {formatDuration} from './stats.js';
 
 export class CalendarWidget {
   /**
@@ -67,16 +67,16 @@ export class CalendarWidget {
       <div class="calendar-header">
         <div class="calendar-title-group">
           <span class="calendar-icon">📅</span>
-          <span class="calendar-month-label" id="cal-month-label">Month Year</span>
+          <span class="calendar-month-label" id="cal-month-label">Miesiąc Rok</span>
         </div>
         <div class="calendar-nav-buttons">
-          <button class="cal-nav-btn" id="cal-prev-month" title="Previous Month" aria-label="Previous Month">‹</button>
-          <button class="cal-today-btn" id="cal-today-btn" title="Today">Today</button>
-          <button class="cal-nav-btn" id="cal-next-month" title="Next Month" aria-label="Next Month">›</button>
+          <button class="cal-nav-btn" id="cal-prev-month" title="Poprzedni miesiąc" aria-label="Poprzedni miesiąc">‹</button>
+          <button class="cal-today-btn" id="cal-today-btn" title="Dziś">Dziś</button>
+          <button class="cal-nav-btn" id="cal-next-month" title="Następny miesiąc" aria-label="Następny miesiąc">›</button>
         </div>
       </div>
       <div class="calendar-weekdays">
-        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+        <span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>So</span><span>Nd</span>
       </div>
       <div class="calendar-grid" id="cal-days-grid"></div>
     `;
@@ -112,7 +112,7 @@ export class CalendarWidget {
     // Jump to the latest ride's month if available
     if (this.rides.length > 0) {
       const latestRide = this.rides[0];
-      if (latestRide.startTime instanceof Date && !isNaN(latestRide.startTime)) {
+      if (latestRide.startTime instanceof Date && !Number.isNaN(latestRide.startTime)) {
         this.currentDate = new Date(latestRide.startTime);
       }
     }
@@ -124,7 +124,7 @@ export class CalendarWidget {
     this.ridesByDate.clear();
     this.rides.forEach(ride => {
       const d = ride.startTime instanceof Date ? ride.startTime : new Date(ride.startTime);
-      if (isNaN(d)) return;
+      if (Number.isNaN(d)) return;
       const key = this.getDateKey(d);
       if (!this.ridesByDate.has(key)) {
         this.ridesByDate.set(key, []);
@@ -145,7 +145,8 @@ export class CalendarWidget {
     const month = this.currentDate.getMonth();
 
     // Month Label
-    const monthName = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(this.currentDate);
+    let monthName = new Intl.DateTimeFormat('pl-PL', {month: 'long', year: 'numeric'}).format(this.currentDate);
+    monthName = monthName.charAt(0).toUpperCase() + monthName.slice(1);
     this.monthLabelEl.textContent = monthName;
 
     this.gridEl.innerHTML = "";
@@ -190,7 +191,8 @@ export class CalendarWidget {
         dot.className = "cal-day-dot";
         if (ridesOnDay.length > 1) {
           dot.classList.add("multi-ride");
-          dot.title = `${ridesOnDay.length} rides`;
+          const c = ridesOnDay.length;
+          dot.title = c >= 2 && c <= 4 ? `${c} treningi` : `${c} treningów`;
         }
         cell.appendChild(dot);
 
@@ -227,7 +229,7 @@ export class CalendarWidget {
   }
 
   showPopover(cellEl, dateKey, rides) {
-    const formattedDate = new Intl.DateTimeFormat('en-US', {
+    const formattedDate = new Intl.DateTimeFormat('pl-PL', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -238,10 +240,10 @@ export class CalendarWidget {
 
     let listHtml = rides.map(ride => {
       const dur = formatDuration(ride.durationSeconds);
-      const timeStr = ride.startTime instanceof Date 
-        ? ride.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      const timeStr = ride.startTime instanceof Date
+          ? ride.startTime.toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit', hour12: false})
         : '';
-      const title = ride.title || `Cycling Activity`;
+      const title = ride.title || `Trening rowerowy`;
 
       return `
         <div class="popover-ride-item" data-ride-id="${ride.id}">
@@ -259,10 +261,13 @@ export class CalendarWidget {
       `;
     }).join("");
 
+    const count = rides.length;
+    const ridesPlural = count === 1 ? 'trening' : (count >= 2 && count <= 4 ? 'treningi' : 'treningów');
+
     this.popoverEl.innerHTML = `
       <div class="popover-header">
         <div class="popover-date">${formattedDate}</div>
-        <div class="popover-badge">${rides.length} ${rides.length === 1 ? 'ride' : 'rides'} • ${totalDist} km</div>
+        <div class="popover-badge">${count} ${ridesPlural} • ${totalDist} km</div>
       </div>
       <div class="popover-rides-list">
         ${listHtml}

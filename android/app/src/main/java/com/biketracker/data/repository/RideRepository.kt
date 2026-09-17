@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,8 +37,7 @@ class RideRepositoryImpl @Inject constructor(
 
     override suspend fun saveRide(points: List<TrackPoint>): Result<String> = runCatching {
         val user = auth.currentUser ?: throw IllegalStateException("User not authenticated")
-        if (points.size < 2) throw IllegalArgumentException("At least 2 GPS points are required")
-
+        require(points.size >= 2) { "At least 2 GPS points are required" }
         val rideRef = ridesCollection.document()
         val rideId = rideRef.id
 
@@ -47,7 +48,9 @@ class RideRepositoryImpl @Inject constructor(
         val encodedPolyline = PolylineEncoder.encode(points)
 
         // 3. Generate GPX 1.1 XML string
-        val gpxXml = GpxGenerator.generate(points, "Ride on ${Date(points.first().timestamp)}")
+        val gpxDateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("pl", "PL"))
+        val rideTitle = "Trening ${gpxDateFormat.format(Date(points.first().timestamp))}"
+        val gpxXml = GpxGenerator.generate(points, rideTitle)
 
         // 4. Create Ride model
         val ride = Ride(

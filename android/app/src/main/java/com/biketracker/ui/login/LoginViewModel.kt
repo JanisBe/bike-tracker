@@ -42,7 +42,8 @@ class LoginViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.localizedMessage ?: "Sign in failed"
+                        errorMessage = result.exceptionOrNull()?.localizedMessage
+                            ?: "Logowanie nie powiodło się"
                     )
                 }
             }
@@ -51,7 +52,7 @@ class LoginViewModel @Inject constructor(
 
     fun signInWithEmail(email: String, pass: String) {
         if (email.isBlank() || pass.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "Email and password cannot be empty") }
+            _uiState.update { it.copy(errorMessage = "Adres e-mail i hasło nie mogą być puste") }
             return
         }
 
@@ -64,7 +65,8 @@ class LoginViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.localizedMessage ?: "Sign in failed"
+                        errorMessage = result.exceptionOrNull()?.localizedMessage
+                            ?: "Logowanie nie powiodło się"
                     )
                 }
             }
@@ -73,7 +75,7 @@ class LoginViewModel @Inject constructor(
 
     fun signUpWithEmail(email: String, pass: String) {
         if (email.isBlank() || pass.length < 6) {
-            _uiState.update { it.copy(errorMessage = "Password must be at least 6 characters") }
+            _uiState.update { it.copy(errorMessage = "Hasło musi mieć co najmniej 6 znaków") }
             return
         }
 
@@ -86,7 +88,8 @@ class LoginViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.localizedMessage ?: "Sign up failed"
+                        errorMessage = result.exceptionOrNull()?.localizedMessage
+                            ?: "Rejestracja nie powiodła się"
                     )
                 }
             }
@@ -103,7 +106,8 @@ class LoginViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        errorMessage = result.exceptionOrNull()?.localizedMessage ?: "Google sign in failed"
+                        errorMessage = result.exceptionOrNull()?.localizedMessage
+                            ?: "Logowanie przez Google nie powiodło się"
                     )
                 }
             }

@@ -64,7 +64,7 @@ class RideDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = "Ride not found"
+                            errorMessage = "Nie znaleziono treningu"
                         )
                     }
                 }
@@ -95,18 +95,18 @@ class RideDetailViewModel @Inject constructor(
                 val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/gpx+xml"
                     putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_SUBJECT, "Bike Ride GPX")
+                    putExtra(Intent.EXTRA_SUBJECT, "Plik GPX z treningu")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
 
-                val chooser = Intent.createChooser(shareIntent, "Share GPX File").apply {
+                val chooser = Intent.createChooser(shareIntent, "Udostępnij plik GPX").apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(chooser)
             } else {
                 _uiState.update {
-                    it.copy(errorMessage = "Failed to load GPX: ${result.exceptionOrNull()?.message}")
+                    it.copy(errorMessage = "Nie udało się załadować pliku GPX: ${result.exceptionOrNull()?.message}")
                 }
             }
         }
@@ -120,7 +120,7 @@ class RideDetailViewModel @Inject constructor(
                 onSuccess()
             } else {
                 _uiState.update {
-                    it.copy(errorMessage = "Failed to delete ride: ${result.exceptionOrNull()?.message}")
+                    it.copy(errorMessage = "Nie udało się usunąć treningu: ${result.exceptionOrNull()?.message}")
                 }
             }
         }

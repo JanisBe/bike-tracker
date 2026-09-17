@@ -81,7 +81,7 @@ fun RideDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Ride Details",
+                        text = "Szczegóły treningu",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -91,7 +91,7 @@ fun RideDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = "Wróć",
                             tint = TextPrimary
                         )
                     }
@@ -100,7 +100,7 @@ fun RideDetailScreen(
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
+                            contentDescription = "Usuń",
                             tint = ErrorRed
                         )
                     }
@@ -128,7 +128,7 @@ fun RideDetailScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Ride not found", color = TextSecondary)
+                    Text("Nie znaleziono treningu", color = TextSecondary)
                 }
             } else {
                 Column(
@@ -149,7 +149,7 @@ fun RideDetailScreen(
                     // Content details
                     Column(modifier = Modifier.padding(16.dp)) {
                         val dateFormat =
-                            SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm", Locale.getDefault())
+                            SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm", Locale("pl", "PL"))
                         Text(
                             text = dateFormat.format(ride.startTime),
                             style = MaterialTheme.typography.bodyMedium,
@@ -162,7 +162,7 @@ fun RideDetailScreen(
                         Row(modifier = Modifier.fillMaxWidth()) {
                             DetailMetricCard(
                                 modifier = Modifier.weight(1f),
-                                label = "Distance",
+                                label = "Dystans",
                                 value = "%.2f km".format(ride.distanceKm),
                                 icon = Icons.Default.Straighten,
                                 tint = OrangeAccent
@@ -172,7 +172,7 @@ fun RideDetailScreen(
                             val seconds = ride.durationSeconds % 60
                             DetailMetricCard(
                                 modifier = Modifier.weight(1f),
-                                label = "Duration",
+                                label = "Czas trwania",
                                 value = "%02d:%02d".format(minutes, seconds),
                                 icon = Icons.Default.Schedule,
                                 tint = TealAccent
@@ -184,7 +184,7 @@ fun RideDetailScreen(
                         Row(modifier = Modifier.fillMaxWidth()) {
                             DetailMetricCard(
                                 modifier = Modifier.weight(1f),
-                                label = "Avg Speed",
+                                label = "Śr. prędkość",
                                 value = "%.1f km/h".format(ride.avgSpeedKmh),
                                 icon = Icons.Default.Speed,
                                 tint = TextPrimary
@@ -192,7 +192,7 @@ fun RideDetailScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             DetailMetricCard(
                                 modifier = Modifier.weight(1f),
-                                label = "Max Speed",
+                                label = "Maks. prędkość",
                                 value = "%.1f km/h".format(ride.maxSpeedKmh),
                                 icon = Icons.Default.Speed,
                                 tint = TextPrimary
@@ -203,8 +203,8 @@ fun RideDetailScreen(
                             Spacer(modifier = Modifier.height(12.dp))
                             DetailMetricCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                label = "Elevation Gain",
-                                value = "↑ %.0f meters".format(ele),
+                                label = "Przewyższenie",
+                                value = "↑ %.0f m".format(ele),
                                 icon = Icons.AutoMirrored.Filled.TrendingUp,
                                 tint = TealAccent
                             )
@@ -235,7 +235,7 @@ fun RideDetailScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Share / Export GPX File",
+                                    text = "Udostępnij / Eksportuj plik GPX",
                                     color = DarkBackground,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 16.sp
@@ -251,10 +251,10 @@ fun RideDetailScreen(
         if (showDeleteDialog) {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Delete Ride?", color = TextPrimary) },
+                title = { Text("Usunąć trening?", color = TextPrimary) },
                 text = {
                     Text(
-                        "This will permanently delete this ride and its GPX data.",
+                        "Spowoduje to trwałe usunięcie tego treningu oraz jego danych GPX.",
                         color = TextSecondary
                     )
                 },
@@ -266,12 +266,12 @@ fun RideDetailScreen(
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
                     ) {
-                        Text("Delete", color = TextPrimary, fontWeight = FontWeight.Bold)
+                        Text("Usuń", color = TextPrimary, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel", color = TextSecondary)
+                        Text("Anuluj", color = TextSecondary)
                     }
                 },
                 containerColor = DarkSurface
@@ -282,7 +282,7 @@ fun RideDetailScreen(
         uiState.errorMessage?.let { err ->
             AlertDialog(
                 onDismissRequest = { viewModel.clearError() },
-                title = { Text("Error", color = TextPrimary) },
+                title = { Text("Błąd", color = TextPrimary) },
                 text = { Text(err, color = TextSecondary) },
                 confirmButton = {
                     Button(onClick = { viewModel.clearError() }) {

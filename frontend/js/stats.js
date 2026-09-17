@@ -44,14 +44,15 @@ export function calculateOverallStats(rides) {
  * @returns {string}
  */
 export function formatDate(date) {
-  if (!(date instanceof Date) || isNaN(date)) return "Unknown date";
-  return new Intl.DateTimeFormat("en-US", {
+    if (!(date instanceof Date) || Number.isNaN(date)) return "Nieznana data";
+    return new Intl.DateTimeFormat("pl-PL", {
     weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "2-digit",
-    minute: "2-digit"
+        minute: "2-digit",
+        hour12: false
   }).format(date);
 }
 

@@ -1,6 +1,8 @@
 package com.biketracker.ui.login
 
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -54,11 +55,12 @@ import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
-private const val WEB_CLIENT_ID = "654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com"
+private const val WEB_CLIENT_ID =
+    "654235244168-o39f6i330rnqiqd1pkma4ua8ht014usc.apps.googleusercontent.com"
 
 @Composable
 fun LoginScreen(
@@ -109,13 +111,13 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Bike Tracker K",
+                text = "Bike Tracker",
                 style = MaterialTheme.typography.headlineLarge,
                 color = TextPrimary
             )
 
             Text(
-                text = "Log rides • Generate GPX • Track progress",
+                text = "Rejestruj treningi • Generuj GPX • Śledź postępy",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
@@ -129,7 +131,7 @@ fun LoginScreen(
                     email = it
                     viewModel.clearError()
                 },
-                label = { Text("Email") },
+                label = { Text("E-mail") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -150,7 +152,7 @@ fun LoginScreen(
                     password = it
                     viewModel.clearError()
                 },
-                label = { Text("Password") },
+                label = { Text("Hasło") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
@@ -193,7 +195,7 @@ fun LoginScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent)
                 ) {
                     Text(
-                        text = if (isSignUpMode) "Sign Up" else "Sign In",
+                        text = if (isSignUpMode) "Zarejestruj się" else "Zaloguj się",
                         color = MaterialTheme.colorScheme.background,
                         fontWeight = FontWeight.Bold
                     )
@@ -204,7 +206,7 @@ fun LoginScreen(
                 // Toggle Sign in / Sign up
                 TextButton(onClick = { isSignUpMode = !isSignUpMode }) {
                     Text(
-                        text = if (isSignUpMode) "Already have an account? Sign In" else "Don't have an account? Sign Up",
+                        text = if (isSignUpMode) "Masz już konto? Zaloguj się" else "Nie masz konta? Zarejestruj się",
                         color = TealAccent
                     )
                 }
@@ -218,7 +220,7 @@ fun LoginScreen(
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f), color = CardBorder)
                     Text(
-                        text = "or",
+                        text = "lub",
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(horizontal = 12.dp)
@@ -245,7 +247,7 @@ fun LoginScreen(
                     )
                 ) {
                     Text(
-                        text = "G  Sign in with Google",
+                        text = "G  Zaloguj się przez Google",
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -261,7 +263,7 @@ fun LoginScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary)
                 ) {
-                    Text(text = "Quick Start (Guest Mode)")
+                    Text(text = "Szybki start (Tryb gościa)")
                 }
             }
         }
@@ -270,17 +272,24 @@ fun LoginScreen(
 
 private suspend fun launchGoogleSignIn(context: Context, viewModel: LoginViewModel) {
     try {
-        val credentialManager = CredentialManager.create(context)
-        
-        // GetSignInWithGoogleOption is specifically designed for explicit button clicks (Sign in with Google)
-        val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(serverClientId = WEB_CLIENT_ID)
+        val activity = context.findActivity() ?: run {
+            viewModel.onGoogleSignInError("Activity context required for Google Sign-In")
+            return
+        }
+
+        val credentialManager = CredentialManager.create(activity)
+
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(WEB_CLIENT_ID)
+            .setAutoSelectEnabled(false)
             .build()
 
         val request = GetCredentialRequest.Builder()
-            .addCredentialOption(signInWithGoogleOption)
+            .addCredentialOption(googleIdOption)
             .build()
 
-        val result = credentialManager.getCredential(context = context, request = request)
+        val result = credentialManager.getCredential(context = activity, request = request)
         val credential = result.credential
 
         if (credential is androidx.credentials.CustomCredential &&
@@ -296,4 +305,13 @@ private suspend fun launchGoogleSignIn(context: Context, viewModel: LoginViewMod
     } catch (e: Exception) {
         viewModel.onGoogleSignInError(e.localizedMessage ?: e.message ?: "Google Sign-In failed")
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }

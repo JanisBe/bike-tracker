@@ -1,11 +1,11 @@
-import { db } from './firebase-config.js';
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  orderBy, 
-  doc, 
-  getDoc 
+import {db} from './firebase-config.js';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 // Demo rides provided as high-quality fallback if no rides are recorded in Firestore yet
@@ -13,8 +13,8 @@ const MOCK_RIDES = [
   {
     id: "demo-ride-kampinos",
     userId: "demo-user",
-    title: "Kampinos Forest Trail 🌲",
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), // Yesterday
+    title: "Puszcza Kampinoska 🌲",
+    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), // Wczoraj
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 85),
     distanceKm: 28.4,
     durationSeconds: 5100,
@@ -28,8 +28,8 @@ const MOCK_RIDES = [
   {
     id: "demo-ride-vistula",
     userId: "demo-user",
-    title: "Vistula River Boulevards 🚴",
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 days ago
+    title: "Bulwary Wiślane 🚴",
+    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 dni temu
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 45),
     distanceKm: 16.2,
     durationSeconds: 2700,
@@ -104,7 +104,7 @@ export async function downloadGpx(rideId, fileNamePrefix = "ride") {
     triggerFileDownload(gpxXml, `${fileNamePrefix}_${rideId}.gpx`);
   } catch (error) {
     console.error("Failed to download GPX:", error);
-    alert(`Could not download GPX: ${error.message}`);
+    alert(`Nie udało się pobrać pliku GPX: ${error.message}`);
   }
 }
 
@@ -116,7 +116,7 @@ function triggerFileDownload(content, filename) {
   link.download = filename;
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
   URL.revokeObjectURL(url);
 }
 

@@ -2,11 +2,14 @@ package com.biketracker.ui.tracking
 
 import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.service.LocationTrackingService
+import com.google.android.gms.location.LocationServices
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 data class TrackingUiState(
@@ -30,19 +34,60 @@ class TrackingViewModel @Inject constructor(
 
     val isTracking = LocationTrackingService.isTracking
     val isPaused = LocationTrackingService.isPaused
+    val isWaitingForGps = LocationTrackingService.isWaitingForGps
+    val satelliteInfo: StateFlow<SatelliteInfo> = LocationTrackingService.satelliteInfo
     val trackPoints: StateFlow<List<TrackPoint>> = LocationTrackingService.trackPoints
     val currentDistanceKm = LocationTrackingService.currentDistanceKm
     val currentSpeedKmh = LocationTrackingService.currentSpeedKmh
     val elapsedSeconds = LocationTrackingService.elapsedSeconds
 
+    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+
     private val _uiState = MutableStateFlow(TrackingUiState())
     val uiState: StateFlow<TrackingUiState> = _uiState.asStateFlow()
 
-    fun startTracking() {
+    fun isLocationServiceEnabled(): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        return locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
+                locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
+    }
+
+    @Suppress("MissingPermission")
+    suspend fun checkHasGpsFix(): Boolean {
+        if (!isLocationServiceEnabled()) return false
+        if (satelliteInfo.value.used >= 4) return true
+
+        return try {
+            val location = fusedLocationClient.lastLocation.await()
+            if (location != null) {
+                val isGps = location.provider?.equals(
+                    LocationManager.GPS_PROVIDER,
+                    ignoreCase = true
+                ) == true
+                val ageMs = System.currentTimeMillis() - location.time
+                // Only consider it a genuine GPS fix if it came directly from GPS provider, is fresh (<10s) and accurate
+                isGps && ageMs < 10_000L && location.accuracy <= 20.0f
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun startTracking(waitForGps: Boolean = false) {
         val intent = Intent(context, LocationTrackingService::class.java).apply {
             action = LocationTrackingService.ACTION_START
+            putExtra(LocationTrackingService.EXTRA_WAIT_FOR_GPS, waitForGps)
         }
         context.startForegroundService(intent)
+    }
+
+    fun forceStartTracking() {
+        val intent = Intent(context, LocationTrackingService::class.java).apply {
+            action = LocationTrackingService.ACTION_FORCE_START
+        }
+        context.startService(intent)
     }
 
     fun pauseTracking() {
@@ -69,7 +114,7 @@ class TrackingViewModel @Inject constructor(
         context.startService(stopIntent)
 
         if (pointsToSave.size < 2) {
-            _uiState.update { it.copy(saveError = "Ride too short to save (need at least 2 points)") }
+            _uiState.update { it.copy(saveError = "Trening za krótki do zapisania (wymagane są co najmniej 2 punkty)") }
             return
         }
 
@@ -83,7 +128,7 @@ class TrackingViewModel @Inject constructor(
                     it.copy(
                         isSaving = false,
                         saveError = result.exceptionOrNull()?.localizedMessage
-                            ?: "Failed to save ride"
+                            ?: "Nie udało się zapisać treningu"
                     )
                 }
             }

@@ -1,7 +1,7 @@
-import { fetchAllRides, downloadGpx } from './ride-service.js';
-import { initMap, displaySingleRoute, displayAllRoutesOverview } from './map-renderer.js';
-import { calculateOverallStats, formatDate, formatDuration } from './stats.js';
-import { CalendarWidget } from './calendar-widget.js';
+import {downloadGpx, fetchAllRides} from './ride-service.js';
+import {displayAllRoutesOverview, displaySingleRoute, initMap} from './map-renderer.js';
+import {calculateOverallStats, formatDate, formatDuration} from './stats.js';
+import {CalendarWidget} from './calendar-widget.js';
 
 let allRides = [];
 let selectedRideId = null;
@@ -34,7 +34,7 @@ async function initApp() {
     ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--text-muted);">
         <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--accent-orange); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <p style="margin-top: 12px; font-size: 13px;">Loading cycling journeys...</p>
+        <p style="margin-top: 12px; font-size: 13px;">Wczytywanie treningów rowerowych...</p>
       </div>
     `;
 
@@ -69,7 +69,7 @@ async function initApp() {
     console.error("Initialization error:", error);
     ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 30px; color: var(--accent-red);">
-        Failed to load rides. Please check console.
+        Nie udało się wczytać treningów. Sprawdź konsolę.
       </div>
     `;
   }
@@ -91,7 +91,7 @@ function renderRidesList(rides) {
   if (rides.length === 0) {
     ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px;">
-        No rides match your filter.
+        Brak treningów pasujących do filtra.
       </div>
     `;
     return;
@@ -122,7 +122,7 @@ function renderRidesList(rides) {
           <span>⚡</span> ${ride.avgSpeedKmh.toFixed(1)} km/h
           ${elevationStr ? `&nbsp;&nbsp;<span>⛰️</span> ${elevationStr}` : ''}
         </div>
-        <button class="btn-download-gpx" data-ride-id="${ride.id}" title="Download GPX file">
+        <button class="btn-download-gpx" data-ride-id="${ride.id}" title="Pobierz plik GPX">
           <span>⬇</span> GPX
         </button>
       </div>
@@ -169,7 +169,7 @@ function selectRide(rideId) {
 function showFloatingDetail(ride) {
   if (!floatingDetail) return;
 
-  detailTitle.textContent = ride.title || `Ride on ${formatDate(ride.startTime)}`;
+  detailTitle.textContent = ride.title || `Trening z dnia ${formatDate(ride.startTime)}`;
   detailDate.textContent = formatDate(ride.startTime);
   detailDist.textContent = `${ride.distanceKm.toFixed(2)} km`;
   detailDur.textContent = formatDuration(ride.durationSeconds);

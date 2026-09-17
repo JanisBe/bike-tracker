@@ -1,4 +1,4 @@
-import { decodePolyline } from './polyline-decoder.js';
+import {decodePolyline} from './polyline-decoder.js';
 
 let mapInstance = null;
 let currentRouteLayer = null;
@@ -120,15 +120,15 @@ export function displaySingleRoute(ride) {
   const startMarker = L.marker(startPt, {
     icon: createCustomMarkerIcon('start'),
     title: 'Start'
-  }).bindPopup(`<b>Start</b><br>${ride.distanceKm.toFixed(1)} km total`);
+  }).bindPopup(`<b>Start</b><br>Łącznie: ${ride.distanceKm.toFixed(1)} km`);
   markersLayer.addLayer(startMarker);
 
   // Finish Marker (Red Pin)
   const finishPt = coords[coords.length - 1];
   const finishMarker = L.marker(finishPt, {
     icon: createCustomMarkerIcon('finish'),
-    title: 'Finish'
-  }).bindPopup(`<b>Finish</b><br>Avg Speed: ${ride.avgSpeedKmh.toFixed(1)} km/h`);
+    title: 'Meta'
+  }).bindPopup(`<b>Meta</b><br>Śr. prędkość: ${ride.avgSpeedKmh.toFixed(1)} km/h`);
   markersLayer.addLayer(finishMarker);
 
   // Smooth camera pan & zoom

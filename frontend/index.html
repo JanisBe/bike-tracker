@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Bike Tracker • Cycling Routes & GPX Telemetry</title>
-  <meta name="description" content="Personal bike ride tracker and interactive route explorer with GPX downloads powered by Firebase.">
+  <title>Bike Tracker • Trasy rowerowe i telemetria GPX</title>
+  <meta content="Aplikacja do śledzenia treningów rowerowych i interaktywna mapa tras z pobieraniem plików GPX."
+        name="description">
   <meta name="theme-color" content="#0B0B1A">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="Bike Tracker • Cycling Routes">
-  <meta property="og:description" content="Explore bike rides on an interactive dark-mode map and download GPX tracks.">
+  <meta content="Bike Tracker • Trasy rowerowe" property="og:title">
+  <meta content="Odkrywaj trasy rowerowe na interaktywnej ciemnej mapie i pobieraj ślady GPX."
+        property="og:description">
   <meta property="og:type" content="website">
 
   <!-- Google Fonts: Outfit (headings) & Inter (body) -->
@@ -37,7 +39,7 @@
           </div>
           <div>
             <h1 class="brand-title">Bike Tracker</h1>
-            <p class="brand-subtitle">Personal Cycling Logs</p>
+            <p class="brand-subtitle">Dziennik treningów</p>
           </div>
         </div>
 
@@ -45,23 +47,26 @@
         <div class="stats-banner">
           <div class="stat-item">
             <div class="stat-value" id="stat-total-distance">0.0 km</div>
-            <div class="stat-label">Total Dist</div>
+            <div class="stat-label">Dystans</div>
           </div>
           <div class="stat-item">
             <div class="stat-value" id="stat-total-rides">0</div>
-            <div class="stat-label">Rides</div>
+            <div class="stat-label">Treningi</div>
           </div>
           <div class="stat-item">
             <div class="stat-value" id="stat-total-hours">0.0 h</div>
-            <div class="stat-label">Time</div>
+            <div class="stat-label">Czas</div>
           </div>
         </div>
       </div>
 
       <!-- Controls & Filter Bar -->
       <div class="controls-bar">
-        <input type="text" id="search-input" class="search-input" placeholder="Search rides..." aria-label="Search rides">
-        <button id="btn-overview" class="btn-overview" title="Show all routes on map">All Routes</button>
+        <input aria-label="Szukaj treningów" class="search-input" id="search-input"
+               placeholder="Szukaj treningów..." type="text">
+        <button class="btn-overview" id="btn-overview" title="Pokaż wszystkie trasy na mapie">
+          Wszystkie trasy
+        </button>
       </div>
 
       <!-- Activity Calendar Widget -->
@@ -70,7 +75,7 @@
       </div>
 
       <!-- Rides List -->
-      <div class="rides-list" id="rides-list" role="region" aria-label="Ride logs">
+      <div aria-label="Lista treningów" class="rides-list" id="rides-list" role="region">
         <!-- Rendered dynamically by app.js -->
       </div>
     </aside>
@@ -81,30 +86,30 @@
 
       <!-- Floating Detail Panel (Active on selection) -->
       <div class="floating-detail-panel" id="floating-detail">
-        <h2 class="detail-title" id="detail-title">Selected Ride</h2>
+        <h2 class="detail-title" id="detail-title">Wybrany trening</h2>
         <div class="detail-subtitle" id="detail-date">—</div>
 
         <div class="detail-grid">
           <div class="detail-item-box">
-            <div class="detail-item-label">Distance</div>
+            <div class="detail-item-label">Dystans</div>
             <div class="detail-item-val" id="detail-dist">—</div>
           </div>
           <div class="detail-item-box">
-            <div class="detail-item-label">Duration</div>
+            <div class="detail-item-label">Czas trwania</div>
             <div class="detail-item-val" id="detail-dur">—</div>
           </div>
           <div class="detail-item-box">
-            <div class="detail-item-label">Avg Speed</div>
+            <div class="detail-item-label">Śr. prędkość</div>
             <div class="detail-item-val" id="detail-avg">—</div>
           </div>
           <div class="detail-item-box">
-            <div class="detail-item-label">Elevation</div>
+            <div class="detail-item-label">Przewyższenie</div>
             <div class="detail-item-val" id="detail-ele">—</div>
           </div>
         </div>
 
         <button class="btn-download-gpx" id="btn-detail-gpx" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
-          <span>⬇</span> Download Full GPX Track
+          <span>⬇</span> Pobierz pełny plik GPX
         </button>
       </div>
     </main>

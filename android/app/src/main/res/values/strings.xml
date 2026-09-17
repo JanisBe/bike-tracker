@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">Bike Tracker K</string>
-    <string name="notification_channel_name">Bike Ride Tracking</string>
-    <string name="notification_channel_desc">Active recording of bike rides</string>
-    <string name="notification_title">🚴 Ride in Progress</string>
-    <string name="notification_text">Recording your bike ride...</string>
+    <string name="app_name">Bike Tracker</string>
+    <string name="notification_channel_name">Rejestrowanie tras rowerowych</string>
+    <string name="notification_channel_desc">Aktywne rejestrowanie treningów rowerowych</string>
+    <string name="notification_title">🚴 Trening w toku</string>
+    <string name="notification_text">Rejestrowanie Twojego treningu rowerowego...</string>
 </resources>

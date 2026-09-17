@@ -99,7 +99,7 @@ fun HomeScreen(
                     IconButton(onClick = { viewModel.signOut(onLoggedOut) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Sign Out",
+                            contentDescription = "Wyloguj się",
                             tint = TextSecondary
                         )
                     }
@@ -117,7 +117,7 @@ fun HomeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Start Ride",
+                    contentDescription = "Rozpocznij trening",
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -155,13 +155,13 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No rides recorded yet",
+                            text = "Brak zarejestrowanych tras",
                             style = MaterialTheme.typography.titleMedium,
                             color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Tap the + button to start your first bike ride",
+                            text = "Dotknij przycisku +, aby rozpocząć swój pierwszy trening rowerowy",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -169,7 +169,7 @@ fun HomeScreen(
                 }
             } else {
                 Text(
-                    text = "Recent Rides",
+                    text = "Ostatnie treningi",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,
@@ -210,16 +210,16 @@ fun StatsHeaderCard(
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             HeaderStatItem(
-                label = "Rides", value = totalRides.toString(),
+                label = "Treningi", value = totalRides.toString(),
                 icon = Icons.AutoMirrored.Filled.DirectionsBike
             )
             HeaderStatItem(
-                label = "Distance",
+                label = "Dystans",
                 value = "%.1f km".format(totalDistanceKm),
                 icon = Icons.Default.Straighten
             )
             HeaderStatItem(
-                label = "Time",
+                label = "Czas",
                 value = "%.1f h".format(totalHours),
                 icon = Icons.Default.Schedule
             )
@@ -261,7 +261,7 @@ fun RideCard(
     ride: Ride,
     onClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy • HH:mm", Locale.getDefault())
+    val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy • HH:mm", Locale("pl", "PL"))
     val formattedDate = dateFormat.format(ride.startTime)
 
     val minutes = ride.durationSeconds / 60
@@ -343,7 +343,7 @@ fun RideCard(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Avg: %.1f km/h".format(ride.avgSpeedKmh),
+                        text = "Śr.: %.1f km/h".format(ride.avgSpeedKmh),
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         fontSize = 12.sp
