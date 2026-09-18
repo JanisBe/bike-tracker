@@ -211,7 +211,7 @@ export class CalendarWidget {
         cell.appendChild(dot);
 
         // Hover events
-        cell.addEventListener("mouseenter", (e) => {
+        cell.addEventListener("mouseenter", () => {
           if (this.popoverTimeout) clearTimeout(this.popoverTimeout);
           this.showPopover(cell, dateKey, ridesOnDay);
         });
@@ -223,7 +223,7 @@ export class CalendarWidget {
         });
 
         // Click event: on mobile or desktop click
-        cell.addEventListener("click", (e) => {
+        cell.addEventListener("click", () => {
           this.showPopover(cell, dateKey, ridesOnDay);
         });
       }

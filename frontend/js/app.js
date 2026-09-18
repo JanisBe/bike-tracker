@@ -123,8 +123,7 @@ async function initApp() {
                 if (user.photoURL) {
                     userAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" referrerpolicy="no-referrer">`;
                 } else {
-                    const initial = displayName.charAt(0).toUpperCase();
-                    userAvatarEl.textContent = initial;
+                    userAvatarEl.textContent = displayName.charAt(0).toUpperCase();
                 }
             }
 
