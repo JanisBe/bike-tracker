@@ -381,6 +381,7 @@ fun DetailOsmMapView(
                         setPoints(geoPoints)
                         outlinePaint.color = polylineColor
                         outlinePaint.strokeWidth = 10f
+                        infoWindow = null
                     }
                     mapView.overlays.add(0, polyline)
 
@@ -402,6 +403,7 @@ fun DetailOsmMapView(
                     val scrubMarker = ScrubMarker(mapView).apply {
                         position = GeoPoint(selectedPoint.first, selectedPoint.second)
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                        infoWindow = null
                         icon = GradientDrawable().apply {
                             shape = GradientDrawable.OVAL
                             setColor(android.graphics.Color.parseColor("#FF6B35"))

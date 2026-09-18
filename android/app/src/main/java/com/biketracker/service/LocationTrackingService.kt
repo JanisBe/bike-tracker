@@ -53,6 +53,7 @@ class LocationTrackingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var timerJob: Job? = null
+    private var gpsAlertDismissJob: Job? = null
     private var hadGpsFix = false
     private var lastLocationTimeMs = 0L
 
@@ -69,6 +70,9 @@ class LocationTrackingService : Service() {
             _satelliteInfo.value = SatelliteInfo(used = used, total = total)
             if (_isWaitingForGps.value) {
                 updateNotification()
+                if (used >= 4) {
+                    checkPendingGpsFix()
+                }
             } else if (_isTracking.value && !_isPaused.value && hadGpsFix) {
                 checkGpsSignalStatus()
             }
@@ -78,61 +82,87 @@ class LocationTrackingService : Service() {
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
             if (_isPaused.value) return
-
             for (location in result.locations) {
-                // Filter inaccurate readings
-                if (location.accuracy <= 25.0f) {
-                    val satellitesUsed = _satelliteInfo.value.used
-                    lastLocationTimeMs = System.currentTimeMillis()
-
-                    if (_isWaitingForGps.value) {
-                        // While waiting for GPS signal, we REQUIRE at least 4 satellites actually used in fix!
-                        // Wi-Fi or cellular network fixes (where satellitesUsed < 4) must NOT trigger workout start.
-                        if (satellitesUsed < 4) {
-                            continue
-                        }
-                        _isWaitingForGps.value = false
-                        hadGpsFix = true
-                        startTimer()
-                    } else {
-                        hadGpsFix = true
-                        if (_isGpsLost.value) {
-                            handleGpsRecovered()
-                        }
-                    }
-
-                    val speedKmh = if (location.hasSpeed()) {
-                        (location.speed * 3.6).coerceAtLeast(0.0)
-                    } else null
-
-                    val point = TrackPoint(
-                        latitude = location.latitude,
-                        longitude = location.longitude,
-                        elevation = if (location.hasAltitude()) location.altitude else null,
-                        timestamp = location.time,
-                        accuracy = location.accuracy,
-                        speedKmh = speedKmh
-                    )
-
-                    val currentList = _trackPoints.value
-                    if (currentList.isNotEmpty()) {
-                        val lastPoint = currentList.last()
-                        val distMeters = DistanceCalculator.distanceBetweenMeters(
-                            lastPoint.latitude, lastPoint.longitude,
-                            point.latitude, point.longitude
-                        )
-                        _currentDistanceKm.value += (distMeters / 1000.0)
-                    }
-
-                    if (speedKmh != null) {
-                        _currentSpeedKmh.value = speedKmh
-                    }
-
-                    _trackPoints.value = currentList + point
-                    updateNotification()
-                }
+                processLocation(location)
             }
         }
+    }
+
+    @Suppress("MissingPermission")
+    private fun checkPendingGpsFix() {
+        if (!_isWaitingForGps.value) return
+        try {
+            fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
+                if (loc != null && _isWaitingForGps.value) {
+                    val ageMs = System.currentTimeMillis() - loc.time
+                    val satellitesUsed = _satelliteInfo.value.used
+                    val isDirectGps = loc.provider?.equals(LocationManager.GPS_PROVIDER, ignoreCase = true) == true
+                    val hasGenuineGpsFix = satellitesUsed >= 4 || (isDirectGps && loc.accuracy <= 20.0f)
+                    if (ageMs < 10_000L && loc.accuracy <= 25.0f && hasGenuineGpsFix) {
+                        processLocation(loc)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Ignored if permission not ready
+        }
+    }
+
+    private fun processLocation(location: android.location.Location) {
+        if (_isPaused.value) return
+        // Filter inaccurate readings
+        if (location.accuracy > 25.0f) return
+
+        val satellitesUsed = _satelliteInfo.value.used
+        val isDirectGps = location.provider?.equals(LocationManager.GPS_PROVIDER, ignoreCase = true) == true
+        val hasGenuineGpsFix = satellitesUsed >= 4 || (isDirectGps && location.accuracy <= 20.0f)
+
+        lastLocationTimeMs = System.currentTimeMillis()
+
+        if (_isWaitingForGps.value) {
+            // While waiting for GPS signal, require genuine GPS fix (>=4 satellites or high-accuracy GPS provider)
+            if (!hasGenuineGpsFix) {
+                return
+            }
+            _isWaitingForGps.value = false
+            hadGpsFix = true
+            startTimer()
+        } else {
+            hadGpsFix = true
+            if (_isGpsLost.value) {
+                handleGpsRecovered()
+            }
+        }
+
+        val speedKmh = if (location.hasSpeed()) {
+            (location.speed * 3.6).coerceAtLeast(0.0)
+        } else null
+
+        val point = TrackPoint(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            elevation = if (location.hasAltitude()) location.altitude else null,
+            timestamp = location.time,
+            accuracy = location.accuracy,
+            speedKmh = speedKmh
+        )
+
+        val currentList = _trackPoints.value
+        if (currentList.isNotEmpty()) {
+            val lastPoint = currentList.last()
+            val distMeters = DistanceCalculator.distanceBetweenMeters(
+                lastPoint.latitude, lastPoint.longitude,
+                point.latitude, point.longitude
+            )
+            _currentDistanceKm.value += (distMeters / 1000.0)
+        }
+
+        if (speedKmh != null) {
+            _currentSpeedKmh.value = speedKmh
+        }
+
+        _trackPoints.value = currentList + point
+        updateNotification()
     }
 
     override fun onCreate() {
@@ -270,6 +300,8 @@ class LocationTrackingService : Service() {
         requestLocationUpdates()
         if (!waitForGps) {
             startTimer()
+        } else {
+            checkPendingGpsFix()
         }
     }
 
@@ -347,7 +379,7 @@ class LocationTrackingService : Service() {
             Priority.PRIORITY_HIGH_ACCURACY,
             3_000L // update every 3 seconds
         ).apply {
-            setMinUpdateDistanceMeters(5f) // or 5 meters
+            setMinUpdateDistanceMeters(0f)
             setMinUpdateIntervalMillis(1_500L)
             setWaitForAccurateLocation(true)
         }.build()
@@ -389,6 +421,11 @@ class LocationTrackingService : Service() {
             handleGpsLost()
         } else if (!isSignalLostNow && _isGpsLost.value && satellitesUsed >= 4 && timeSinceLocation <= 4000L) {
             handleGpsRecovered()
+        } else if (!isSignalLostNow && !_isGpsLost.value && satellitesUsed >= 4) {
+            // Gdy sygnał jest stabilny i silny, upewniamy się, że powiadomienie ostrzegawcze jest wyczyszczone
+            if (gpsAlertDismissJob == null || gpsAlertDismissJob?.isActive == false) {
+                clearGpsLostNotification()
+            }
         }
     }
 
@@ -424,6 +461,7 @@ class LocationTrackingService : Service() {
     }
 
     private fun showGpsLostNotification() {
+        gpsAlertDismissJob?.cancel()
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -447,11 +485,13 @@ class LocationTrackingService : Service() {
     }
 
     private fun clearGpsLostNotification() {
+        gpsAlertDismissJob?.cancel()
         val manager = getSystemService(NotificationManager::class.java)
         manager.cancel(GPS_ALERT_NOTIFICATION_ID)
     }
 
     private fun showGpsRecoveredNotification() {
+        gpsAlertDismissJob?.cancel()
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -466,12 +506,18 @@ class LocationTrackingService : Service() {
             .setSmallIcon(R.drawable.ic_bike)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
-            .setTimeoutAfter(6000L)
+            .setTimeoutAfter(3000L)
             .setContentIntent(pendingIntent)
             .build()
 
         val manager = getSystemService(NotificationManager::class.java)
         manager.notify(GPS_ALERT_NOTIFICATION_ID, notification)
+
+        // Aktywne wyczyszczenie powiadomienia po 3 sekundach
+        gpsAlertDismissJob = serviceScope.launch {
+            delay(3000L)
+            clearGpsLostNotification()
+        }
     }
 
     private fun acquireWakeLock() {

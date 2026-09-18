@@ -54,6 +54,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,11 +65,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biketracker.data.model.SignalQuality
 import com.biketracker.data.model.TrackPoint
@@ -154,7 +159,34 @@ fun TrackingScreen(
                 viewModel.startTracking(waitForGps = false)
             } else {
                 showGpsWarningDialog = true
+                if (viewModel.isLocationServiceEnabled()) {
+                    viewModel.startTracking(waitForGps = true)
+                }
             }
+        }
+    }
+
+    // Gdy sygnał GPS zostanie ustalony i rozpocznie się zapis trasy, okienko ostrzeżenia znika automatycznie
+    LaunchedEffect(isTracking, isWaitingForGps) {
+        if (isTracking && !isWaitingForGps && showGpsWarningDialog) {
+            showGpsWarningDialog = false
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (hasLocationPermission && !isTracking && !hasEverTracked && hasInitiatedStart && showGpsWarningDialog) {
+                    if (viewModel.isLocationServiceEnabled()) {
+                        viewModel.startTracking(waitForGps = true)
+                    }
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -164,8 +196,16 @@ fun TrackingScreen(
         }
     }
 
-    BackHandler(enabled = isTracking) {
-        showFinishDialog = true
+    BackHandler(enabled = isTracking || showGpsWarningDialog) {
+        if (showGpsWarningDialog) {
+            showGpsWarningDialog = false
+            if (isTracking) {
+                viewModel.stopTrackingWithoutSaving()
+            }
+            onNavigateBack()
+        } else {
+            showFinishDialog = true
+        }
     }
 
     Scaffold(
@@ -542,11 +582,14 @@ fun TrackingScreen(
             AlertDialog(
                 onDismissRequest = {
                     showGpsWarningDialog = false
+                    if (isTracking) {
+                        viewModel.stopTrackingWithoutSaving()
+                    }
                     onNavigateBack()
                 },
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.LocationOff,
+                        imageVector = if (!isLocationEnabled) Icons.Default.LocationOff else Icons.Default.Sensors,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(36.dp)
@@ -554,29 +597,78 @@ fun TrackingScreen(
                 },
                 title = {
                     Text(
-                        text = "Brak sygnału GPS",
+                        text = if (!isLocationEnabled) "Lokalizacja wyłączona" else "Oczekiwanie na sygnał GPS",
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
                 },
                 text = {
-                    Text(
-                        text = if (!isLocationEnabled) {
-                            "Lokalizacja w urządzeniu jest wyłączona. Włącz usługi lokalizacji w telefonie, aby poprawnie rejestrować trasę treningu."
-                        } else {
-                            "Brak sygnału GPS. Czy chcesz kontynuować?"
-                        },
-                        color = TextSecondary,
-                        fontSize = 15.sp
-                    )
+                    if (!isLocationEnabled) {
+                        Text(
+                            text = "Lokalizacja w urządzeniu jest wyłączona. Włącz usługi lokalizacji w telefonie, aby poprawnie rejestrować trasę treningu.",
+                            color = TextSecondary,
+                            fontSize = 15.sp
+                        )
+                    } else {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = OrangeAccent,
+                                    strokeWidth = 2.5.dp
+                                )
+                                Text(
+                                    text = "Szukanie satelitów GPS...",
+                                    color = OrangeAccent,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "Gdy sygnał GPS zostanie ustalony, to okno zamknie się automatycznie i natychmiast rozpocznie się zapis trasy.",
+                                color = TextSecondary,
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                color = DarkSurfaceVariant,
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Sensors,
+                                        contentDescription = null,
+                                        tint = if (satelliteInfo.used >= 4) SuccessGreen else OrangeAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "Satelity: ${satelliteInfo.used} w użyciu (${satelliteInfo.total} widocznych)",
+                                        color = if (satelliteInfo.used >= 4) SuccessGreen else TextPrimary,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                    }
                 },
                 confirmButton = {
                     if (!isLocationEnabled) {
                         Button(
                             onClick = {
-                                showGpsWarningDialog = false
                                 context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                                onNavigateBack()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
                             shape = RoundedCornerShape(12.dp)
@@ -592,11 +684,10 @@ fun TrackingScreen(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // Option 3: Czekaj na sygnał GPS
+                            // Opcja 1: Ukryj okno i czekaj na mapie
                             Button(
                                 onClick = {
                                     showGpsWarningDialog = false
-                                    viewModel.startTracking(waitForGps = true)
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
@@ -610,33 +701,40 @@ fun TrackingScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Czekaj na sygnał GPS",
+                                    text = "Czekaj na sygnał na mapie",
                                     color = DarkBackground,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
-                            // Option 1: Tak (Rozpocznij mimo to)
+                            // Opcja 2: Rozpocznij mimo to
                             Button(
                                 onClick = {
                                     showGpsWarningDialog = false
-                                    viewModel.startTracking(waitForGps = false)
+                                    if (isWaitingForGps) {
+                                        viewModel.forceStartTracking()
+                                    } else if (!isTracking) {
+                                        viewModel.startTracking(waitForGps = false)
+                                    }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = "Tak, rozpocznij mimo to",
+                                    text = "Rozpocznij mimo to",
                                     color = TextPrimary,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
 
-                            // Option 2: Nie (Powrót do ekranu głównego)
+                            // Opcja 3: Anuluj i wróć
                             TextButton(
                                 onClick = {
                                     showGpsWarningDialog = false
+                                    if (isTracking) {
+                                        viewModel.stopTrackingWithoutSaving()
+                                    }
                                     onNavigateBack()
                                 },
                                 modifier = Modifier.fillMaxWidth()
@@ -654,6 +752,9 @@ fun TrackingScreen(
                     {
                         TextButton(onClick = {
                             showGpsWarningDialog = false
+                            if (isTracking) {
+                                viewModel.stopTrackingWithoutSaving()
+                            }
                             onNavigateBack()
                         }) {
                             Text("Anuluj", color = TextSecondary)
@@ -812,6 +913,7 @@ fun TrackingOsmMapView(
                     setPoints(geoPoints)
                     outlinePaint.color = polylineColor
                     outlinePaint.strokeWidth = 12f
+                    infoWindow = null
                 }
                 mapView.overlays.add(polyline)
 
