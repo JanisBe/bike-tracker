@@ -4,6 +4,12 @@
     "indexes": "firestore.indexes.json"
   },
   "auth": {
+    "authorizedDomains": [
+      "localhost",
+      "127.0.0.1",
+      "bike-tracker-97e13.firebaseapp.com",
+      "bike-tracker-97e13.web.app"
+    ],
     "providers": {
       "anonymous": true,
       "emailPassword": true

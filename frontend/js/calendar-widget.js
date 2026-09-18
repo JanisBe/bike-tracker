@@ -46,7 +46,9 @@ export class CalendarWidget {
       if (this.popoverTimeout) clearTimeout(this.popoverTimeout);
     });
     this.popoverEl.addEventListener("mouseleave", () => {
-      this.hidePopover();
+      this.popoverTimeout = setTimeout(() => {
+        this.hidePopover();
+      }, 200);
     });
   }
 
@@ -58,8 +60,20 @@ export class CalendarWidget {
       }
     });
 
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.hidePopover();
+      }
+    });
+
     window.addEventListener("resize", () => this.hidePopover());
-    window.addEventListener("scroll", () => this.hidePopover(), true);
+    window.addEventListener("scroll", (e) => {
+      // Don't hide if the scroll event occurred inside the popover itself
+      if (this.popoverEl && (this.popoverEl === e.target || this.popoverEl.contains(e.target))) {
+        return;
+      }
+      this.hidePopover();
+    }, true);
   }
 
   renderSkeleton() {
@@ -302,6 +316,7 @@ export class CalendarWidget {
     if (top + popRect.height > window.innerHeight - 10) {
       top = cellRect.top - popRect.height - 8;
     }
+    if (top < 10) top = 10;
 
     this.popoverEl.style.left = `${left}px`;
     this.popoverEl.style.top = `${top}px`;

@@ -5,9 +5,11 @@ import {
     getDoc,
     getDocs,
     orderBy,
-    query
+    query,
+    where
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import {decodePolyline} from './polyline-decoder.js';
+import {formatGpxFileName} from './stats.js';
 
 // Demo rides provided as high-quality fallback if no rides are recorded in Firestore yet
 const MOCK_RIDES = [
@@ -23,7 +25,7 @@ const MOCK_RIDES = [
     maxSpeedKmh: 36.5,
     elevationGain: 145,
     // Realistic polyline in Kampinos National Park near Warsaw
-    encodedPolyline: "_{_iIe{m`Bg@k@_Ag@qAo@uAe@eAm@mB}@mCe@yAs@kC_AkDu@kCy@kCe@kBu@}Bq@cBk@_Bi@eBs@iBy@qB_AiB}@iBy@iBs@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB",
+      encodedPolyline: "_{_iIe{m`Bg@k@_Ag@qAo@uAe@eAm@mB}@mCe@yAs@kC_AkDu@kCy@kCe@kBu@}Bq@cBk@_Bi@eBs@iBy@qB_AiB}@iBy@iBs@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB",
     isDemo: true
   },
   {
@@ -38,10 +40,53 @@ const MOCK_RIDES = [
     maxSpeedKmh: 32.1,
     elevationGain: 40,
     // Realistic route along Warsaw Vistula
-    encodedPolyline: "y~}hIk}f|Ue@fBg@`C_@~B_@~Bs@|Ci@~B_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC",
+      encodedPolyline: "y~}hIk}f|Ue@fBg@`C_@~B_@~Bs@|Ci@~B_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC",
     isDemo: true
   }
 ];
+
+/**
+ * Fetches all rides belonging to a specific user from Firestore.
+ * @param {string} userId
+ * @returns {Promise<Array<Object>>}
+ */
+export async function fetchUserRides(userId) {
+    if (!userId) {
+        return [];
+    }
+    try {
+        const q = query(
+            collection(db, "rides"),
+            where("userId", "==", userId),
+            orderBy("startTime", "desc")
+        );
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+            return [];
+        }
+
+        return snapshot.docs.map(docSnap => {
+            const data = docSnap.data();
+            return {
+                id: docSnap.id,
+                ...data,
+                startTime: data.startTime ? data.startTime.toDate() : new Date(),
+                endTime: data.endTime ? data.endTime.toDate() : new Date(),
+                distanceKm: Number(data.distanceKm) || 0,
+                durationSeconds: Number(data.durationSeconds) || 0,
+                avgSpeedKmh: Number(data.avgSpeedKmh) || 0,
+                maxSpeedKmh: Number(data.maxSpeedKmh) || 0,
+                elevationGain: data.elevationGain != null ? Number(data.elevationGain) : null,
+                encodedPolyline: data.encodedPolyline || "",
+                isDemo: false
+            };
+        });
+    } catch (error) {
+        console.error("Firestore fetch user rides error:", error);
+        throw error;
+    }
+}
 
 /**
  * Fetches all rides from Firestore. Falls back to demo rides if Firestore is empty or inaccessible.
@@ -80,16 +125,23 @@ export async function fetchAllRides() {
 }
 
 /**
- * Downloads the GPX file for a given ride ID from Firestore subcollection.
- * @param {string} rideId
- * @param {string} fileNamePrefix
+ * Downloads the GPX file for a given ride ID or ride object from Firestore subcollection.
+ * @param {string|Object} rideOrId
+ * @param {string|null} customFileName
  */
-export async function downloadGpx(rideId, fileNamePrefix = "ride") {
+export async function downloadGpx(rideOrId, customFileName = null) {
+    const isObj = rideOrId && typeof rideOrId === 'object';
+    const rideId = isObj ? rideOrId.id : rideOrId;
+    const rideDate = isObj ? rideOrId.startTime : null;
+
   // Check if it's a demo ride
   const demoRide = MOCK_RIDES.find(r => r.id === rideId);
+    const effectiveDate = rideDate || (demoRide ? demoRide.startTime : null);
+    const fileName = customFileName || (effectiveDate ? formatGpxFileName(effectiveDate) : `ride_${rideId}.gpx`);
+
   if (demoRide) {
     const demoGpx = generateDemoGpx(demoRide);
-    triggerFileDownload(demoGpx, `${demoRide.id}.gpx`);
+      triggerFileDownload(demoGpx, fileName);
     return;
   }
 
@@ -102,12 +154,13 @@ export async function downloadGpx(rideId, fileNamePrefix = "ride") {
     }
 
     const gpxXml = snap.data().gpxContent;
-    triggerFileDownload(gpxXml, `${fileNamePrefix}_${rideId}.gpx`);
+      triggerFileDownload(gpxXml, fileName);
   } catch (error) {
     console.error("Failed to download GPX:", error);
     alert(`Nie udało się pobrać pliku GPX: ${error.message}`);
   }
 }
+
 
 function triggerFileDownload(content, filename) {
   const blob = new Blob([content], { type: "application/gpx+xml;charset=utf-8;" });

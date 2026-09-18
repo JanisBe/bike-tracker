@@ -146,7 +146,7 @@ export function displaySingleRoute(ride) {
  * @param {Array<Object>} rides
  */
 export function displayAllRoutesOverview(rides) {
-  if (!mapInstance || !rides || rides.length === 0) return;
+  if (!mapInstance) return;
 
   allRoutesLayerGroup.clearLayers();
   if (currentRouteLayer) {
@@ -154,6 +154,8 @@ export function displayAllRoutesOverview(rides) {
     currentRouteLayer = null;
   }
   markersLayer.clearLayers();
+
+  if (!rides || rides.length === 0) return;
 
   const allPoints = [];
 

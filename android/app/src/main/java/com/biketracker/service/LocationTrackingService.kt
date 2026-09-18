@@ -8,10 +8,14 @@ import android.app.Service
 import android.content.Intent
 import android.location.GnssStatus
 import android.location.LocationManager
+import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import com.biketracker.MainActivity
 import com.biketracker.R
@@ -43,6 +47,9 @@ class LocationTrackingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private val serviceScope = CoroutineScope(Dispatchers.Default + Job())
     private var timerJob: Job? = null
+    private var hadGpsFix = false
+    private var lastLocationTimeMs = 0L
+
 
     private val gnssStatusCallback = object : GnssStatus.Callback() {
         override fun onSatelliteStatusChanged(status: GnssStatus) {
@@ -56,6 +63,8 @@ class LocationTrackingService : Service() {
             _satelliteInfo.value = SatelliteInfo(used = used, total = total)
             if (_isWaitingForGps.value) {
                 updateNotification()
+            } else if (_isTracking.value && !_isPaused.value && hadGpsFix) {
+                checkGpsSignalStatus()
             }
         }
     }
@@ -68,6 +77,7 @@ class LocationTrackingService : Service() {
                 // Filter inaccurate readings
                 if (location.accuracy <= 25.0f) {
                     val satellitesUsed = _satelliteInfo.value.used
+                    lastLocationTimeMs = System.currentTimeMillis()
 
                     if (_isWaitingForGps.value) {
                         // While waiting for GPS signal, we REQUIRE at least 4 satellites actually used in fix!
@@ -76,7 +86,13 @@ class LocationTrackingService : Service() {
                             continue
                         }
                         _isWaitingForGps.value = false
+                        hadGpsFix = true
                         startTimer()
+                    } else {
+                        hadGpsFix = true
+                        if (_isGpsLost.value) {
+                            handleGpsRecovered()
+                        }
                     }
 
                     val speedKmh = if (location.hasSpeed()) {
@@ -146,6 +162,10 @@ class LocationTrackingService : Service() {
         _isWaitingForGps.value = waitForGps
         _isPaused.value = false
 
+        hadGpsFix = !waitForGps && _satelliteInfo.value.used >= 4
+        lastLocationTimeMs = if (hadGpsFix) System.currentTimeMillis() else 0L
+        _isGpsLost.value = false
+
         acquireWakeLock()
 
         val initialSats = _satelliteInfo.value
@@ -171,6 +191,8 @@ class LocationTrackingService : Service() {
     private fun forceStartTracking() {
         if (_isTracking.value && _isWaitingForGps.value) {
             _isWaitingForGps.value = false
+            hadGpsFix = _satelliteInfo.value.used >= 4
+            lastLocationTimeMs = if (hadGpsFix) System.currentTimeMillis() else 0L
             startTimer()
             updateNotification()
         }
@@ -193,6 +215,11 @@ class LocationTrackingService : Service() {
         _isPaused.value = false
         _currentSpeedKmh.value = 0.0
 
+        hadGpsFix = false
+        lastLocationTimeMs = 0L
+        _isGpsLost.value = false
+        clearGpsLostNotification()
+
         timerJob?.cancel()
         unregisterGnssCallback()
         fusedLocationClient.removeLocationUpdates(locationCallback)
@@ -202,6 +229,7 @@ class LocationTrackingService : Service() {
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
+
 
     @Suppress("MissingPermission")
     private fun registerGnssCallback() {
@@ -253,9 +281,111 @@ class LocationTrackingService : Service() {
                 delay(1000.milliseconds)
                 if (_isTracking.value && !_isPaused.value) {
                     _elapsedSeconds.value += 1
+                    checkGpsSignalStatus()
                 }
             }
         }
+    }
+
+    private fun checkGpsSignalStatus() {
+        if (!_isTracking.value || _isWaitingForGps.value || _isPaused.value) return
+
+        val now = System.currentTimeMillis()
+        val satellitesUsed = _satelliteInfo.value.used
+        val timeSinceLocation =
+            if (lastLocationTimeMs > 0) now - lastLocationTimeMs else Long.MAX_VALUE
+
+        // GPS is lost if we previously had a fix, but now have < 4 satellites OR no location received for > 8 seconds
+        val isSignalLostNow =
+            hadGpsFix && (satellitesUsed < 4 || (lastLocationTimeMs > 0 && timeSinceLocation > 8000L))
+
+        if (isSignalLostNow && !_isGpsLost.value) {
+            handleGpsLost()
+        } else if (!isSignalLostNow && _isGpsLost.value && satellitesUsed >= 4 && timeSinceLocation <= 4000L) {
+            handleGpsRecovered()
+        }
+    }
+
+    private fun handleGpsLost() {
+        _isGpsLost.value = true
+        vibrate(longArrayOf(0, 400, 200, 400))
+        showGpsLostNotification()
+        updateNotification()
+    }
+
+    private fun handleGpsRecovered() {
+        _isGpsLost.value = false
+        clearGpsLostNotification()
+        showGpsRecoveredNotification()
+        vibrate(longArrayOf(0, 150))
+        updateNotification()
+    }
+
+    private fun vibrate(pattern: LongArray) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(VibratorManager::class.java)
+                val vibrator = vibratorManager.defaultVibrator
+                vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = getSystemService(VIBRATOR_SERVICE) as? Vibrator
+                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, -1))
+            }
+        } catch (e: Exception) {
+            // Ignored if device vibrator is unavailable
+        }
+    }
+
+    private fun showGpsLostNotification() {
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 1, openAppIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, GPS_ALERT_CHANNEL_ID)
+            .setContentTitle(getString(R.string.gps_lost_title))
+            .setContentText(getString(R.string.gps_lost_desc))
+            .setSmallIcon(R.drawable.ic_bike)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(GPS_ALERT_NOTIFICATION_ID, notification)
+    }
+
+    private fun clearGpsLostNotification() {
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.cancel(GPS_ALERT_NOTIFICATION_ID)
+    }
+
+    private fun showGpsRecoveredNotification() {
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 2, openAppIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, GPS_ALERT_CHANNEL_ID)
+            .setContentTitle(getString(R.string.gps_recovered_title))
+            .setContentText(getString(R.string.gps_recovered_desc))
+            .setSmallIcon(R.drawable.ic_bike)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setAutoCancel(true)
+            .setTimeoutAfter(6000L)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(GPS_ALERT_NOTIFICATION_ID, notification)
     }
 
     private fun acquireWakeLock() {
@@ -279,7 +409,9 @@ class LocationTrackingService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+        val manager = getSystemService(NotificationManager::class.java)
+
+        val trackingChannel = NotificationChannel(
             CHANNEL_ID,
             getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_LOW
@@ -287,8 +419,19 @@ class LocationTrackingService : Service() {
             description = getString(R.string.notification_channel_desc)
             setShowBadge(false)
         }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        manager.createNotificationChannel(trackingChannel)
+
+        val alertChannel = NotificationChannel(
+            GPS_ALERT_CHANNEL_ID,
+            getString(R.string.gps_alert_channel_name),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(R.string.gps_alert_channel_desc)
+            enableVibration(true)
+            vibrationPattern = longArrayOf(0, 400, 200, 400)
+            setShowBadge(true)
+        }
+        manager.createNotificationChannel(alertChannel)
     }
 
     private fun buildNotification(contentText: String): Notification {
@@ -330,8 +473,13 @@ class LocationTrackingService : Service() {
         val seconds = _elapsedSeconds.value % 60
         val time = "%02d:%02d".format(minutes, seconds)
 
-        val status = if (_isPaused.value) "WSTRZYMANY" else "AKTYWNY"
-        val text = "[$status] $dist • $time • $speed"
+        val status =
+            if (_isPaused.value) "WSTRZYMANY" else if (_isGpsLost.value) "BRAK GPS" else "AKTYWNY"
+        val text = if (_isGpsLost.value) {
+            "[$status] $dist • $time • Szukanie satelitów..."
+        } else {
+            "[$status] $dist • $time • $speed"
+        }
 
         val notification = buildNotification(text)
         val manager = getSystemService(NotificationManager::class.java)
@@ -340,9 +488,11 @@ class LocationTrackingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        clearGpsLostNotification()
         unregisterGnssCallback()
         releaseWakeLock()
     }
+
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -357,6 +507,8 @@ class LocationTrackingService : Service() {
 
         private const val NOTIFICATION_ID = 101
         private const val CHANNEL_ID = "bike_tracking_channel"
+        private const val GPS_ALERT_NOTIFICATION_ID = 102
+        private const val GPS_ALERT_CHANNEL_ID = "bike_gps_alert_channel"
 
         // Global state flows observable by UI ViewModels
         private val _isTracking = MutableStateFlow(false)
@@ -364,6 +516,10 @@ class LocationTrackingService : Service() {
 
         private val _isWaitingForGps = MutableStateFlow(false)
         val isWaitingForGps: StateFlow<Boolean> = _isWaitingForGps.asStateFlow()
+
+        private val _isGpsLost = MutableStateFlow(false)
+        val isGpsLost: StateFlow<Boolean> = _isGpsLost.asStateFlow()
+
 
         private val _satelliteInfo = MutableStateFlow(SatelliteInfo())
         val satelliteInfo: StateFlow<SatelliteInfo> = _satelliteInfo.asStateFlow()

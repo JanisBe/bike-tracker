@@ -35,16 +35,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,6 +64,8 @@ import com.biketracker.ui.theme.TealAccent
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,6 +81,21 @@ fun HomeScreen(
     val totalDistance = rides.sumOf { it.distanceKm }
     val totalSeconds = rides.sumOf { it.durationSeconds }
     val totalHours = totalSeconds / 3600.0
+
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    val filteredRides = remember(rides, selectedDate) {
+        if (selectedDate == null) {
+            rides
+        } else {
+            rides.filter { ride ->
+                val rideDate = ride.startTime.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                rideDate == selectedDate
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -124,65 +146,103 @@ fun HomeScreen(
         },
         containerColor = DarkBackground
     ) { paddingValues ->
-        Column(
+        LazyColumn(
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             // Summary Stats Header Card
-            StatsHeaderCard(
-                totalRides = rides.size,
-                totalDistanceKm = totalDistance,
-                totalHours = totalHours
-            )
+            item {
+                StatsHeaderCard(
+                    totalRides = rides.size,
+                    totalDistanceKm = totalDistance,
+                    totalHours = totalHours
+                )
+            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            // Activity Calendar Card
+            item {
+                ActivityCalendarCard(
+                    rides = rides,
+                    selectedDate = selectedDate,
+                    onDateSelected = { selectedDate = it }
+                )
+            }
+
+            // Section Header
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (selectedDate != null) "Treningi z wybranego dnia" else "Ostatnie treningi",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+
+                    if (selectedDate != null) {
+                        Surface(
+                            color = OrangeAccent.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { selectedDate = null }
+                        ) {
+                            Text(
+                                text = "Pokaż wszystkie (${rides.size})",
+                                color = OrangeAccent,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             // Rides List
-            if (rides.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
-                            contentDescription = null,
-                            tint = TextSecondary.copy(alpha = 0.4f),
-                            modifier = Modifier.size(72.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Brak zarejestrowanych tras",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Dotknij przycisku +, aby rozpocząć swój pierwszy trening rowerowy",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
+            if (filteredRides.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
+                                contentDescription = null,
+                                tint = TextSecondary.copy(alpha = 0.4f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Text(
+                                text = if (selectedDate != null) "Brak treningów w tym dniu" else "Brak zarejestrowanych tras",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = if (selectedDate != null) "Wybierz inny dzień w kalendarzu lub kliknij 'Pokaż wszystkie'" else "Dotknij przycisku +, aby rozpocząć swój pierwszy trening rowerowy",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             } else {
-                Text(
-                    text = "Ostatnie treningi",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-
-                LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(rides, key = { it.id }) { ride ->
-                        RideCard(ride = ride, onClick = { onRideSelected(ride.id) })
-                    }
+                items(filteredRides, key = { it.id }) { ride ->
+                    RideCard(ride = ride, onClick = { onRideSelected(ride.id) })
                 }
             }
         }
@@ -193,17 +253,18 @@ fun HomeScreen(
 fun StatsHeaderCard(
     totalRides: Int,
     totalDistanceKm: Double,
-    totalHours: Double
+    totalHours: Double,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
     ) {
-        Row(
+
+    Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),

@@ -4,4 +4,11 @@
     <string name="notification_channel_desc">Aktywne rejestrowanie treningów rowerowych</string>
     <string name="notification_title">🚴 Trening w toku</string>
     <string name="notification_text">Rejestrowanie Twojego treningu rowerowego...</string>
+    <string name="gps_alert_channel_name">Ostrzeżenia o sygnale GPS</string>
+    <string name="gps_alert_channel_desc">Powiadomienia o utracie lub odzyskaniu sygnału GPS podczas treningu</string>
+    <string name="gps_lost_title">⚠️ Utracono sygnał GPS!</string>
+    <string name="gps_lost_desc">Szukanie satelitów GPS. Zapis trasy może być niedokładny.</string>
+    <string name="gps_recovered_title">✅ Odzyskano sygnał GPS</string>
+    <string name="gps_recovered_desc">Sygnał powrócił. Rejestrowanie trasy jest kontynuowane.</string>
 </resources>
+

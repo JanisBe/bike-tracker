@@ -7,8 +7,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.biketracker.data.model.Ride
+import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.domain.util.GpxGenerator
+import com.biketracker.domain.util.GpxParser
 import com.biketracker.domain.util.PolylineEncoder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -17,8 +19,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import com.biketracker.data.model.RouteProfilePoint
-import com.biketracker.domain.util.GpxParser
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
@@ -112,8 +112,8 @@ class RideDetailViewModel @Inject constructor(
 
             if (result.isSuccess) {
                 val gpxContent = result.getOrNull() ?: return@launch
-                val dateFormat = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US)
-                val fileName = "ride_${dateFormat.format(currentRide.startTime)}.gpx"
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+                val fileName = "${dateFormat.format(currentRide.startTime)}.gpx"
 
                 val file = GpxGenerator.saveToCache(context.cacheDir, fileName, gpxContent)
                 val uri = FileProvider.getUriForFile(

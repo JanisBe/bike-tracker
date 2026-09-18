@@ -35,6 +35,7 @@ class TrackingViewModel @Inject constructor(
     val isTracking = LocationTrackingService.isTracking
     val isPaused = LocationTrackingService.isPaused
     val isWaitingForGps = LocationTrackingService.isWaitingForGps
+    val isGpsLost = LocationTrackingService.isGpsLost
     val satelliteInfo: StateFlow<SatelliteInfo> = LocationTrackingService.satelliteInfo
     val trackPoints: StateFlow<List<TrackPoint>> = LocationTrackingService.trackPoints
     val currentDistanceKm = LocationTrackingService.currentDistanceKm

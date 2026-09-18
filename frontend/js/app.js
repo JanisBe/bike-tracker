@@ -1,4 +1,4 @@
-import {downloadGpx, fetchAllRides, fetchRideProfile} from './ride-service.js';
+import {downloadGpx, fetchRideProfile, fetchUserRides} from './ride-service.js';
 import {
     clearScrubMarker,
     displayAllRoutesOverview,
@@ -9,11 +9,14 @@ import {
 import {calculateOverallStats, formatDate, formatDuration} from './stats.js';
 import {CalendarWidget} from './calendar-widget.js';
 import {ProfileChart} from './profile-chart.js';
+import {onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, signUpWithEmail} from './auth-service.js';
 
 let allRides = [];
 let selectedRideId = null;
 let calendarWidget = null;
 let profileChart = null;
+let currentUser = null;
+let authMode = 'login'; // 'login' | 'register'
 
 // DOM Elements
 const ridesListContainer = document.getElementById("rides-list");
@@ -33,11 +36,35 @@ const detailAvg = document.getElementById("detail-avg");
 const detailEle = document.getElementById("detail-ele");
 const btnDetailGpx = document.getElementById("btn-detail-gpx");
 
+// Auth DOM Elements
+const userInfoEl = document.getElementById("user-info");
+const userGuestEl = document.getElementById("user-guest");
+const userAvatarEl = document.getElementById("user-avatar");
+const userNameEl = document.getElementById("user-name");
+const userEmailEl = document.getElementById("user-email");
+const btnLogout = document.getElementById("btn-logout");
+const btnLoginOpen = document.getElementById("btn-login-open");
+
+const authModal = document.getElementById("auth-modal");
+const btnAuthClose = document.getElementById("btn-auth-close");
+const tabLogin = document.getElementById("tab-login");
+const tabRegister = document.getElementById("tab-register");
+const authModalSubtitle = document.getElementById("auth-modal-subtitle");
+const authAlert = document.getElementById("auth-alert");
+const authAlertMsg = document.getElementById("auth-alert-msg");
+const btnGoogleAuth = document.getElementById("btn-google-auth");
+const authForm = document.getElementById("auth-form");
+const authEmailInput = document.getElementById("auth-email");
+const authPasswordInput = document.getElementById("auth-password");
+const btnAuthSubmit = document.getElementById("btn-auth-submit");
+const authSubmitText = document.getElementById("auth-submit-text");
+const authSpinner = document.getElementById("auth-spinner");
+
 async function initApp() {
   // 1. Initialize Map
   initMap("map");
 
-    // Initialize Profile Chart
+    // 2. Initialize Profile Chart
     const profileContainer = document.getElementById("profile-chart-panel");
     const profileCanvas = document.getElementById("profile-canvas");
     if (profileContainer && profileCanvas) {
@@ -63,53 +90,116 @@ async function initApp() {
         });
     }
 
-  // 2. Fetch Rides from Firestore (with fallback)
-  try {
-    ridesListContainer.innerHTML = `
+    // 3. Setup UI & Auth Listeners
+    setupEventListeners();
+    setupAuthListeners();
+
+    // 4. Initialize Calendar Widget skeleton
+    if (calendarContainer) {
+        calendarWidget = new CalendarWidget(calendarContainer, {
+            onSelectRide: (rideId) => {
+                selectRide(rideId);
+                const card = document.getElementById(`card-${rideId}`);
+                if (card) {
+                    card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+                }
+            }
+        });
+    }
+
+    // 5. Watch Auth State
+    onAuthStateChange(async (user) => {
+        currentUser = user;
+        if (user) {
+            // User signed in
+            if (userInfoEl) userInfoEl.style.display = "flex";
+            if (userGuestEl) userGuestEl.style.display = "none";
+
+            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Użytkownik');
+            if (userNameEl) userNameEl.textContent = displayName;
+            if (userEmailEl) userEmailEl.textContent = user.email || '';
+
+            if (userAvatarEl) {
+                if (user.photoURL) {
+                    userAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" referrerpolicy="no-referrer">`;
+                } else {
+                    const initial = displayName.charAt(0).toUpperCase();
+                    userAvatarEl.textContent = initial;
+                }
+            }
+
+            closeAuthModal();
+            await loadUserRides(user.uid);
+        } else {
+            // User signed out
+            if (userInfoEl) userInfoEl.style.display = "none";
+            if (userGuestEl) userGuestEl.style.display = "flex";
+
+            allRides = [];
+            selectedRideId = null;
+
+            updateStatsBanner([]);
+            if (calendarWidget) {
+                calendarWidget.setRides([]);
+            }
+            if (floatingDetail) {
+                floatingDetail.classList.remove("active");
+            }
+            if (profileChart) {
+                profileChart.hide();
+            }
+            clearScrubMarker();
+            displayAllRoutesOverview([]);
+            renderRidesList([]);
+
+            openAuthModal('login');
+        }
+    });
+}
+
+/**
+ * Loads rides for authenticated user
+ * @param {string} userId
+ */
+async function loadUserRides(userId) {
+    try {
+        ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--text-muted);">
         <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--accent-orange); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-        <p style="margin-top: 12px; font-size: 13px;">Wczytywanie treningów rowerowych...</p>
+        <p style="margin-top: 12px; font-size: 13px;">Wczytywanie Twoich treningów...</p>
       </div>
     `;
 
-    allRides = await fetchAllRides();
+        allRides = await fetchUserRides(userId);
 
-    // 3. Update Overall Stats
-    updateStatsBanner(allRides);
+        // Update Overall Stats
+        updateStatsBanner(allRides);
 
-    // 4. Initialize Calendar Widget
-    if (calendarContainer) {
-      calendarWidget = new CalendarWidget(calendarContainer, {
-        onSelectRide: (rideId) => {
-          selectRide(rideId);
-          // Also scroll to the card in the list
-          const card = document.getElementById(`card-${rideId}`);
-          if (card) {
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }
-      });
+        // Update Calendar Widget
+        if (calendarWidget) {
       calendarWidget.setRides(allRides);
     }
 
-    // 5. Render Ride List
+        // Render Ride List
     renderRidesList(allRides);
 
-    // 6. Select first ride by default or show overview
+        // Select first ride or clear map
     if (allRides.length > 0) {
       selectRide(allRides[0].id);
+    } else {
+        if (floatingDetail) floatingDetail.classList.remove("active");
+        if (profileChart) profileChart.hide();
+        clearScrubMarker();
+        displayAllRoutesOverview([]);
     }
   } catch (error) {
-    console.error("Initialization error:", error);
+        console.error("Error loading user rides:", error);
     ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 30px; color: var(--accent-red);">
         Nie udało się wczytać treningów. Sprawdź konsolę.
       </div>
     `;
   }
-
-  // Setup Event Listeners
-  setupEventListeners();
 }
 
 function updateStatsBanner(rides) {
@@ -123,11 +213,32 @@ function renderRidesList(rides) {
   ridesListContainer.innerHTML = "";
 
   if (rides.length === 0) {
-    ridesListContainer.innerHTML = `
-      <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px;">
-        Brak treningów pasujących do filtra.
-      </div>
-    `;
+      if (!currentUser) {
+          ridesListContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13px;">
+          <p style="margin-bottom: 14px;">Zaloguj się, aby wyświetlić swoje treningi.</p>
+          <button class="btn-login-open" style="display: inline-flex; width: auto; margin: 0 auto;" id="btn-list-login">
+            Zaloguj się
+          </button>
+        </div>
+      `;
+          const btn = document.getElementById("btn-list-login");
+          if (btn) btn.addEventListener("click", () => openAuthModal('login'));
+      } else if (searchInput && searchInput.value.trim().length > 0) {
+          ridesListContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">
+          Brak treningów pasujących do wyszukiwania.
+        </div>
+      `;
+      } else {
+          ridesListContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; line-height: 1.6;">
+          <div style="font-size: 32px; margin-bottom: 10px;">🚴</div>
+          <strong style="color: var(--text-main); font-size: 14px; display: block; margin-bottom: 6px;">Brak zarejestrowanych treningów</strong>
+          <p>Uruchom aplikację mobilną Bike Tracker na telefonie i nagraj swój pierwszy przejazd!</p>
+        </div>
+      `;
+      }
     return;
   }
 
@@ -164,7 +275,6 @@ function renderRidesList(rides) {
 
     // Click on card selects route on map
     card.addEventListener("click", (e) => {
-      // Don't trigger selection if download button was clicked
       if (e.target.closest(".btn-download-gpx")) return;
       selectRide(ride.id);
     });
@@ -173,7 +283,7 @@ function renderRidesList(rides) {
     const downloadBtn = card.querySelector(".btn-download-gpx");
     downloadBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      downloadGpx(ride.id, `ride_${ride.id}`);
+        downloadGpx(ride);
     });
 
     ridesListContainer.appendChild(card);
@@ -224,7 +334,7 @@ function showFloatingDetail(ride) {
   detailEle.textContent = ride.elevationGain != null ? `+${ride.elevationGain} m` : '—';
 
   btnDetailGpx.onclick = () => {
-    downloadGpx(ride.id, `ride_${ride.id}`);
+      downloadGpx(ride);
   };
 
   floatingDetail.classList.add("active");
@@ -258,6 +368,152 @@ function setupEventListeners() {
   }
 }
 
+// ==========================================================================
+// Authentication Modal & UI Handlers
+// ==========================================================================
+
+function switchAuthMode(mode) {
+    authMode = mode;
+    hideAuthAlert();
+
+    if (mode === 'login') {
+        if (tabLogin) tabLogin.classList.add("active");
+        if (tabRegister) tabRegister.classList.remove("active");
+        if (authSubmitText) authSubmitText.textContent = "Zaloguj się";
+        if (authModalSubtitle) authModalSubtitle.textContent = "Zaloguj się, aby wyświetlić swoje treningi";
+    } else {
+        if (tabRegister) tabRegister.classList.add("active");
+        if (tabLogin) tabLogin.classList.remove("active");
+        if (authSubmitText) authSubmitText.textContent = "Utwórz konto";
+        if (authModalSubtitle) authModalSubtitle.textContent = "Zarejestruj się, aby zapisywać i przeglądać treningi";
+    }
+}
+
+function openAuthModal(mode = 'login') {
+    switchAuthMode(mode);
+    if (authModal) authModal.style.display = "flex";
+    if (authEmailInput) authEmailInput.focus();
+}
+
+function closeAuthModal() {
+    if (authModal) authModal.style.display = "none";
+    hideAuthAlert();
+    if (authForm) authForm.reset();
+    setAuthLoading(false);
+}
+
+function showAuthAlert(message) {
+    if (authAlert && authAlertMsg) {
+        authAlertMsg.textContent = message;
+        authAlert.style.display = "flex";
+    }
+}
+
+function hideAuthAlert() {
+    if (authAlert) {
+        authAlert.style.display = "none";
+    }
+}
+
+function setAuthLoading(isLoading) {
+    if (btnAuthSubmit) btnAuthSubmit.disabled = isLoading;
+    if (btnGoogleAuth) btnGoogleAuth.disabled = isLoading;
+    if (authSpinner) authSpinner.style.display = isLoading ? "inline-block" : "none";
+    if (authSubmitText) authSubmitText.style.display = isLoading ? "none" : "inline";
+}
+
+function setupAuthListeners() {
+    // Open / Close modal
+    if (btnLoginOpen) {
+        btnLoginOpen.addEventListener("click", () => openAuthModal('login'));
+    }
+
+    if (btnAuthClose) {
+        btnAuthClose.addEventListener("click", () => closeAuthModal());
+    }
+
+    if (authModal) {
+        authModal.addEventListener("click", (e) => {
+            if (e.target === authModal) {
+                closeAuthModal();
+            }
+        });
+    }
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && authModal && authModal.style.display !== "none") {
+            closeAuthModal();
+        }
+    });
+
+    // Tab switching
+    if (tabLogin) {
+        tabLogin.addEventListener("click", () => switchAuthMode('login'));
+    }
+    if (tabRegister) {
+        tabRegister.addEventListener("click", () => switchAuthMode('register'));
+    }
+
+    // Logout button
+    if (btnLogout) {
+        btnLogout.addEventListener("click", async () => {
+            try {
+                await signOutUser();
+            } catch (err) {
+                console.error("Sign out error:", err);
+            }
+        });
+    }
+
+    // Email/password form submission
+    if (authForm) {
+        authForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = authEmailInput ? authEmailInput.value.trim() : '';
+            const password = authPasswordInput ? authPasswordInput.value : '';
+
+            if (!email || !password) {
+                showAuthAlert("Wypełnij wszystkie pola formularza.");
+                return;
+            }
+
+            setAuthLoading(true);
+            hideAuthAlert();
+
+            try {
+                if (authMode === 'login') {
+                    await signInWithEmail(email, password);
+                } else {
+                    await signUpWithEmail(email, password);
+                }
+                // onAuthStateChange callback handles UI update & modal close
+            } catch (err) {
+                console.error("Auth error:", err);
+                showAuthAlert(err.message || "Wystąpił błąd autoryzacji.");
+            } finally {
+                setAuthLoading(false);
+            }
+        });
+    }
+
+    // Google sign in button
+    if (btnGoogleAuth) {
+        btnGoogleAuth.addEventListener("click", async () => {
+            setAuthLoading(true);
+            hideAuthAlert();
+
+            try {
+                await signInWithGoogle();
+                // onAuthStateChange callback handles UI update & modal close
+            } catch (err) {
+                console.error("Google auth error:", err);
+                showAuthAlert(err.message || "Błąd logowania przez Google.");
+            } finally {
+                setAuthLoading(false);
+            }
+        });
+    }
+}
 
 // Add spinning animation for loading spinner
 const style = document.createElement("style");
