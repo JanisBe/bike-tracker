@@ -10,5 +10,14 @@
     <string name="gps_lost_desc">Szukanie satelitów GPS. Zapis trasy może być niedokładny.</string>
     <string name="gps_recovered_title">✅ Odzyskano sygnał GPS</string>
     <string name="gps_recovered_desc">Sygnał powrócił. Rejestrowanie trasy jest kontynuowane.</string>
+    <string name="action_pause">Wstrzymaj</string>
+    <string name="action_resume">Wznów</string>
+    <string name="action_stop">Zakończ</string>
+    <string name="notification_title_active">🚴 Rejestrowanie treningu</string>
+    <string name="notification_title_paused">⏸️ Trening wstrzymany</string>
+    <string name="notification_title_waiting_gps">🛰️ Oczekiwanie na sygnał GPS</string>
+    <string name="notification_ride_saved_title">✅ Trening zapisany</string>
+    <string name="notification_ride_saved_desc">Twój trening rowerowy został pomyślnie zapisany w chmurze.</string>
+    <string name="notification_ride_save_failed">❌ Nie udało się zapisać treningu.</string>
 </resources>
 

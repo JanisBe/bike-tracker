@@ -16,18 +16,34 @@ import com.biketracker.ui.theme.DarkBackground
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
+import android.content.Intent
+import androidx.compose.runtime.LaunchedEffect
+import com.biketracker.service.LocationTrackingService
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
 
+    private var onNewIntentAction: (() -> Unit)? = null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        onNewIntentAction?.invoke()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         val startDestination = if (authRepository.currentUser != null) {
-            Screen.Home.route
+            if (LocationTrackingService.isTracking.value) {
+                Screen.Tracking.route
+            } else {
+                Screen.Home.route
+            }
         } else {
             Screen.Login.route
         }
@@ -39,6 +55,17 @@ class MainActivity : ComponentActivity() {
                     color = DarkBackground
                 ) {
                     val navController = rememberNavController()
+
+                    LaunchedEffect(Unit) {
+                        onNewIntentAction = {
+                            if (LocationTrackingService.isTracking.value) {
+                                navController.navigate(Screen.Tracking.route) {
+                                    launchSingleTop = true
+                                }
+                            }
+                        }
+                    }
+
                     NavGraph(
                         navController = navController,
                         startDestination = startDestination

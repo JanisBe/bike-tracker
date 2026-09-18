@@ -37,9 +37,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.time.Duration.Companion.milliseconds
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import com.biketracker.data.repository.RideRepository
 
+@AndroidEntryPoint
 class LocationTrackingService : Service() {
+
+    @Inject
+    lateinit var rideRepository: RideRepository
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
@@ -147,8 +153,97 @@ class LocationTrackingService : Service() {
             ACTION_PAUSE -> pauseTracking()
             ACTION_RESUME -> resumeTracking()
             ACTION_STOP -> stopTracking()
+            ACTION_STOP_AND_SAVE -> stopAndSaveTracking()
         }
         return START_STICKY
+    }
+
+    private fun stopAndSaveTracking() {
+        val pointsToSave = _trackPoints.value
+        val distanceKm = _currentDistanceKm.value
+
+        _isTracking.value = false
+        _isWaitingForGps.value = false
+        _isPaused.value = false
+        _currentSpeedKmh.value = 0.0
+
+        hadGpsFix = false
+        lastLocationTimeMs = 0L
+        _isGpsLost.value = false
+        clearGpsLostNotification()
+
+        timerJob?.cancel()
+        unregisterGnssCallback()
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+        _satelliteInfo.value = SatelliteInfo()
+
+        if (pointsToSave.size < 2) {
+            releaseWakeLock()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
+
+        val savingNotification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.notification_title_active))
+            .setContentText("Zapisywanie treningu...")
+            .setSmallIcon(R.drawable.ic_bike)
+            .setOngoing(true)
+            .build()
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID, savingNotification)
+
+        serviceScope.launch {
+            try {
+                val result = rideRepository.saveRide(pointsToSave)
+                if (result.isSuccess) {
+                    showRideSavedNotification(distanceKm)
+                } else {
+                    showRideSaveFailedNotification()
+                }
+            } catch (e: Exception) {
+                showRideSaveFailedNotification()
+            } finally {
+                releaseWakeLock()
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
+        }
+    }
+
+    private fun showRideSavedNotification(distanceKm: Double) {
+        val openAppIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 3, openAppIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val text = "Zapisano %.2f km treningu".format(distanceKm)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.notification_ride_saved_title))
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_bike)
+            .setAutoCancel(true)
+            .setTimeoutAfter(8000L)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_SAVED_ID, notification)
+    }
+
+    private fun showRideSaveFailedNotification() {
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle(getString(R.string.notification_ride_save_failed))
+            .setSmallIcon(R.drawable.ic_bike)
+            .setAutoCancel(true)
+            .setTimeoutAfter(8000L)
+            .build()
+
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_SAVED_ID, notification)
     }
 
     private fun startTracking(waitForGps: Boolean = false) {
@@ -168,17 +263,7 @@ class LocationTrackingService : Service() {
 
         acquireWakeLock()
 
-        val initialSats = _satelliteInfo.value
-        val notificationText = if (waitForGps) {
-            if (initialSats.total > 0) {
-                "Oczekiwanie na sygnał GPS (Satelity: ${initialSats.used}/${initialSats.total})..."
-            } else {
-                "Oczekiwanie na sygnał GPS..."
-            }
-        } else {
-            "Starting GPS tracking..."
-        }
-        val notification = buildNotification(notificationText)
+        val notification = buildTrackingNotification()
         startForeground(NOTIFICATION_ID, notification)
 
         registerGnssCallback()
@@ -278,10 +363,11 @@ class LocationTrackingService : Service() {
         timerJob?.cancel()
         timerJob = serviceScope.launch {
             while (isActive) {
-                delay(1000.milliseconds)
+                delay(1000L)
                 if (_isTracking.value && !_isPaused.value) {
                     _elapsedSeconds.value += 1
                     checkGpsSignalStatus()
+                    updateNotification()
                 }
             }
         }
@@ -434,54 +520,129 @@ class LocationTrackingService : Service() {
         manager.createNotificationChannel(alertChannel)
     }
 
-    private fun buildNotification(contentText: String): Notification {
+    private fun buildTrackingNotification(): Notification {
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, openAppIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.notification_title))
-            .setContentText(contentText)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_bike)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
-            .build()
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        if (_isWaitingForGps.value) {
+            val sats = _satelliteInfo.value
+            val statusText = if (sats.total > 0) {
+                "Satelity: ${sats.used}/${sats.total} • Oczekiwanie na sygnał GPS..."
+            } else {
+                "Szukanie sygnału GPS..."
+            }
+
+            builder.setContentTitle(getString(R.string.notification_title_waiting_gps))
+                .setContentText(statusText)
+
+            // Akcja: Wymuś start
+            val forceStartIntent = Intent(this, LocationTrackingService::class.java).apply {
+                action = ACTION_FORCE_START
+            }
+            val forceStartPendingIntent = PendingIntent.getService(
+                this, 12, forceStartIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                R.drawable.ic_play_arrow,
+                "Start teraz",
+                forceStartPendingIntent
+            )
+
+            // Akcja: Zakończ
+            val stopIntent = Intent(this, LocationTrackingService::class.java).apply {
+                action = ACTION_STOP
+            }
+            val stopPendingIntent = PendingIntent.getService(
+                this, 11, stopIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                R.drawable.ic_stop,
+                getString(R.string.action_stop),
+                stopPendingIntent
+            )
+
+            return builder.build()
+        }
+
+        // Aktywny lub wstrzymany trening
+        val hours = _elapsedSeconds.value / 3600
+        val minutes = (_elapsedSeconds.value % 3600) / 60
+        val seconds = _elapsedSeconds.value % 60
+        val timeStr = if (hours > 0) {
+            "%02d:%02d:%02d".format(hours, minutes, seconds)
+        } else {
+            "%02d:%02d".format(minutes, seconds)
+        }
+        val distStr = "%.2f km".format(_currentDistanceKm.value)
+        val speedStr = "%.1f km/h".format(_currentSpeedKmh.value)
+
+        val title = when {
+            _isPaused.value -> getString(R.string.notification_title_paused)
+            _isGpsLost.value -> "⚠️ Utrata sygnału GPS"
+            else -> getString(R.string.notification_title_active)
+        }
+
+        val contentText = when {
+            _isPaused.value -> "Dystans: $distStr • Czas: $timeStr"
+            _isGpsLost.value -> "Dystans: $distStr • Czas: $timeStr (szukanie GPS)"
+            else -> "Dystans: $distStr • Czas: $timeStr ($speedStr)"
+        }
+
+        builder.setContentTitle(title)
+            .setContentText(contentText)
+
+        // Akcja 1: Pauza / Wznów
+        val pauseResumeIntent = Intent(this, LocationTrackingService::class.java).apply {
+            action = if (_isPaused.value) ACTION_RESUME else ACTION_PAUSE
+        }
+        val pauseResumePendingIntent = PendingIntent.getService(
+            this,
+            10,
+            pauseResumeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val pauseResumeIcon = if (_isPaused.value) R.drawable.ic_play_arrow else R.drawable.ic_pause
+        val pauseResumeTitle =
+            if (_isPaused.value) getString(R.string.action_resume) else getString(R.string.action_pause)
+        builder.addAction(pauseResumeIcon, pauseResumeTitle, pauseResumePendingIntent)
+
+        // Akcja 2: Stop (Zakończ i zapisz)
+        val stopIntent = Intent(this, LocationTrackingService::class.java).apply {
+            action = ACTION_STOP_AND_SAVE
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            11,
+            stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.addAction(
+            R.drawable.ic_stop,
+            getString(R.string.action_stop),
+            stopPendingIntent
+        )
+
+        return builder.build()
     }
 
     private fun updateNotification() {
-        if (_isWaitingForGps.value) {
-            val sats = _satelliteInfo.value
-            val text = if (sats.total > 0) {
-                "Oczekiwanie na sygnał GPS (Satelity: ${sats.used}/${sats.total})..."
-            } else {
-                "Oczekiwanie na sygnał GPS..."
-            }
-            val notification = buildNotification(text)
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.notify(NOTIFICATION_ID, notification)
-            return
-        }
-
-        val dist = "%.2f km".format(_currentDistanceKm.value)
-        val speed = "%.1f km/h".format(_currentSpeedKmh.value)
-        val minutes = _elapsedSeconds.value / 60
-        val seconds = _elapsedSeconds.value % 60
-        val time = "%02d:%02d".format(minutes, seconds)
-
-        val status =
-            if (_isPaused.value) "WSTRZYMANY" else if (_isGpsLost.value) "BRAK GPS" else "AKTYWNY"
-        val text = if (_isGpsLost.value) {
-            "[$status] $dist • $time • Szukanie satelitów..."
-        } else {
-            "[$status] $dist • $time • $speed"
-        }
-
-        val notification = buildNotification(text)
+        if (!_isTracking.value) return
+        val notification = buildTrackingNotification()
         val manager = getSystemService(NotificationManager::class.java)
         manager.notify(NOTIFICATION_ID, notification)
     }
@@ -502,10 +663,12 @@ class LocationTrackingService : Service() {
         const val ACTION_PAUSE = "com.biketracker.action.PAUSE"
         const val ACTION_RESUME = "com.biketracker.action.RESUME"
         const val ACTION_STOP = "com.biketracker.action.STOP"
+        const val ACTION_STOP_AND_SAVE = "com.biketracker.action.STOP_AND_SAVE"
 
         const val EXTRA_WAIT_FOR_GPS = "extra_wait_for_gps"
 
         private const val NOTIFICATION_ID = 101
+        private const val NOTIFICATION_SAVED_ID = 103
         private const val CHANNEL_ID = "bike_tracking_channel"
         private const val GPS_ALERT_NOTIFICATION_ID = 102
         private const val GPS_ALERT_CHANNEL_ID = "bike_gps_alert_channel"

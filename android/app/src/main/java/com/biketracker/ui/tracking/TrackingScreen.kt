@@ -132,10 +132,23 @@ fun TrackingScreen(
         hasLocationPermission = fineLocationGranted
     }
 
-    LaunchedEffect(hasLocationPermission, isTracking) {
+    var hasEverTracked by remember { mutableStateOf(isTracking) }
+    var hasInitiatedStart by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isTracking) {
+        if (isTracking) {
+            hasEverTracked = true
+        } else if (hasEverTracked && !uiState.isSaving && uiState.savedRideId == null) {
+            // Śledzenie zakończone zewnętrznie (np. przyciskiem Stop w powiadomieniu)
+            onNavigateBack()
+        }
+    }
+
+    LaunchedEffect(hasLocationPermission) {
         if (!hasLocationPermission) {
             permissionLauncher.launch(permissionsToRequest)
-        } else if (!isTracking) {
+        } else if (!isTracking && !hasInitiatedStart && !hasEverTracked) {
+            hasInitiatedStart = true
             val hasFix = viewModel.checkHasGpsFix()
             if (hasFix) {
                 viewModel.startTracking(waitForGps = false)
