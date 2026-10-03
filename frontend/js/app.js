@@ -1,12 +1,13 @@
-import { downloadGpx, fetchRideById, fetchRideProfile, fetchUserRides } from './ride-service.js';
+import { downloadGpx, fetchRideById, fetchRideProfile, fetchUserRides, updateRideTitle } from './ride-service.js';
 import { decodePolyline } from './polyline-decoder.js';
 import {
   clearScrubMarker,
   displayAllRoutesOverview,
   displaySingleRoute,
   initMap,
+  invalidateMapSize,
   setScrubMarker
-} from './map-renderer.js';
+} from './map-renderer.js?v=3';
 import { calculateOverallStats, formatDate, formatDuration } from './stats.js';
 import { CalendarWidget } from './calendar-widget.js';
 import { ProfileChart } from './profile-chart.js';
@@ -18,8 +19,17 @@ let calendarWidget = null;
 let profileChart = null;
 let currentUser = null;
 let authMode = 'login'; // 'login' | 'register'
+let isMapFullscreen = false;
+let editingRideId = null;
 
 // DOM Elements
+const mapContainer = document.getElementById("map-container");
+const mapWrapper = document.getElementById("map-wrapper");
+const btnBackList = document.getElementById("btn-back-list");
+const btnMobileEdit = document.getElementById("btn-mobile-edit");
+const btnMobileShare = document.getElementById("btn-mobile-share");
+const btnMapFullscreen = document.getElementById("btn-map-fullscreen");
+
 const ridesListContainer = document.getElementById("rides-list");
 const statTotalDistance = document.getElementById("stat-total-distance");
 const statTotalRides = document.getElementById("stat-total-rides");
@@ -36,8 +46,22 @@ const detailDur = document.getElementById("detail-dur");
 const detailAvg = document.getElementById("detail-avg");
 const detailEle = document.getElementById("detail-ele");
 const btnDetailGpx = document.getElementById("btn-detail-gpx");
+const btnEditRide = document.getElementById("btn-edit-ride");
 const btnShareRide = document.getElementById("btn-share-ride");
 const toastContainer = document.getElementById("toast-container");
+
+// Edit Title Modal DOM Elements
+const editTitleModal = document.getElementById("edit-title-modal");
+const editTitleModalSubtitle = document.getElementById("edit-title-modal-subtitle");
+const btnEditTitleClose = document.getElementById("btn-edit-title-close");
+const btnEditTitleCancel = document.getElementById("btn-edit-title-cancel");
+const editTitleForm = document.getElementById("edit-title-form");
+const editTitleInput = document.getElementById("edit-title-input");
+const btnEditTitleSubmit = document.getElementById("btn-edit-title-submit");
+const editTitleSpinner = document.getElementById("edit-title-spinner");
+const editTitleSubmitText = document.getElementById("edit-title-submit-text");
+const editTitleAlert = document.getElementById("edit-title-alert");
+const editTitleAlertMsg = document.getElementById("edit-title-alert-msg");
 
 // Auth DOM Elements
 const userInfoEl = document.getElementById("user-info");
@@ -126,6 +150,18 @@ function showToast(message, type = "info") {
   }, 2800);
 }
 
+function toggleMapFullscreen() {
+  isMapFullscreen = !isMapFullscreen;
+  if (mapWrapper) {
+    mapWrapper.classList.toggle("is-fullscreen", isMapFullscreen);
+    const enterIcon = mapWrapper.querySelector(".icon-enter-fullscreen");
+    const exitIcon = mapWrapper.querySelector(".icon-exit-fullscreen");
+    if (enterIcon) enterIcon.style.display = isMapFullscreen ? "none" : "block";
+    if (exitIcon) exitIcon.style.display = isMapFullscreen ? "block" : "none";
+  }
+  invalidateMapSize();
+}
+
 async function handleShareClick(e) {
   if (e) e.preventDefault();
   if (!selectedRideId) return;
@@ -170,6 +206,12 @@ async function handleShareClick(e) {
       btnShareRide.classList.add("copied");
       setTimeout(() => {
         btnShareRide.classList.remove("copied");
+      }, 2000);
+    }
+    if (btnMobileShare) {
+      btnMobileShare.classList.add("copied");
+      setTimeout(() => {
+        btnMobileShare.classList.remove("copied");
       }, 2000);
     }
 
@@ -350,9 +392,13 @@ async function loadUserRides(userId) {
       }
     }
 
+    const isMobile = window.innerWidth <= 860;
     if (!targetRideId && allRides.length > 0) {
-      targetRideId = allRides[0].id;
+      if (!isMobile) {
+        targetRideId = allRides[0].id;
+      }
     }
+
 
     // Update Overall Stats
     updateStatsBanner(allRides);
@@ -445,6 +491,9 @@ function renderRidesList(rides) {
     const sharedBadge = ride.isShared
       ? '<span class="badge-shared" title="Udostępniony trening">🔗 Udostępniony</span>'
       : '';
+    const titleHtml = (ride.title && ride.title.trim().length > 0)
+      ? `<div class="ride-card-title" title="${ride.title}">${ride.title}</div>`
+      : '';
 
     card.innerHTML = `
       <div class="ride-card-header">
@@ -455,6 +504,7 @@ function renderRidesList(rides) {
           ${ride.isDemo ? '<span class="badge-demo">Demo</span>' : ''}
         </div>
       </div>
+      ${titleHtml}
       <div class="ride-card-main">
         <div class="ride-distance">
           ${ride.distanceKm.toFixed(1)}<span>km</span>
@@ -591,9 +641,24 @@ function filterAndRenderRides(term) {
   renderRidesList(filtered);
 }
 
+export function clearSelectedRide() {
+  selectedRideId = null;
+  updateUrlWithRideId(null);
+  document.body.classList.remove("has-selected-ride");
+  document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
+  if (floatingDetail) floatingDetail.classList.remove("active");
+  if (profileChart) profileChart.hide();
+  clearScrubMarker();
+  displayAllRoutesOverview(allRides);
+  setTimeout(() => {
+    invalidateMapSize();
+  }, 60);
+}
+
 async function selectRide(rideId) {
   selectedRideId = rideId;
   updateUrlWithRideId(rideId);
+  document.body.classList.add("has-selected-ride");
 
   // Update card highlighting
   document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
@@ -604,6 +669,17 @@ async function selectRide(rideId) {
 
   const ride = allRides.find(r => r.id === rideId);
   if (!ride) return;
+
+  // On mobile scroll to top of details view
+  if (mapContainer) {
+    mapContainer.scrollTop = 0;
+  }
+
+  // Ensure map is measured with new layout before centering route
+  invalidateMapSize();
+  setTimeout(() => {
+    invalidateMapSize();
+  }, 50);
 
   // Render on Leaflet Map
   displaySingleRoute(ride);
@@ -628,22 +704,43 @@ async function selectRide(rideId) {
 function showFloatingDetail(ride) {
   if (!floatingDetail) return;
 
-  detailTitle.textContent = ride.locationName
-    ? `📍 ${ride.locationName}`
-    : (ride.title || `Trening z dnia ${formatDate(ride.startTime)}`);
-  detailDate.textContent = ride.locationName
-    ? `${formatDate(ride.startTime)} • Trening rowerowy`
-    : formatDate(ride.startTime);
+  const displayTitle = (ride.title && ride.title.trim().length > 0)
+    ? ride.title
+    : (ride.locationName ? `📍 ${ride.locationName}` : `Trening z dnia ${formatDate(ride.startTime)}`);
+
+  detailTitle.textContent = displayTitle;
+
+  const formattedDate = formatDate(ride.startTime);
+  if (ride.locationName && ride.title && ride.title.trim().length > 0 && ride.locationName !== ride.title) {
+    detailDate.textContent = `📍 ${ride.locationName} • ${formattedDate}`;
+  } else if (ride.locationName) {
+    detailDate.textContent = `${formattedDate} • Trening rowerowy`;
+  } else {
+    detailDate.textContent = formattedDate;
+  }
+
   detailDist.textContent = `${ride.distanceKm.toFixed(2)} km`;
   detailDur.textContent = formatDuration(ride.durationSeconds);
   detailAvg.textContent = `${ride.avgSpeedKmh.toFixed(1)} km/h`;
   detailEle.textContent = ride.elevationGain != null ? `+${ride.elevationGain} m` : '—';
 
+  const shareUrl = buildShareUrl(ride.id);
   if (btnShareRide) {
-    const shareUrl = buildShareUrl(ride.id);
     btnShareRide.href = shareUrl;
     btnShareRide.dataset.shareUrl = shareUrl;
     btnShareRide.setAttribute("title", `Udostępnij trening (${ride.distanceKm.toFixed(1)} km)`);
+  }
+
+  const isOwner = currentUser && ride.userId === currentUser.uid;
+  const isSharedOther = ride.isShared && !isOwner && !ride.isDemo;
+
+  if (btnEditRide) {
+    btnEditRide.style.display = isSharedOther ? "none" : "inline-flex";
+    btnEditRide.setAttribute("title", `Edytuj nazwę treningu (${displayTitle})`);
+  }
+  if (btnMobileEdit) {
+    btnMobileEdit.style.display = isSharedOther ? "none" : "inline-flex";
+    btnMobileEdit.setAttribute("title", `Edytuj nazwę treningu (${displayTitle})`);
   }
 
   btnDetailGpx.onclick = () => {
@@ -665,19 +762,111 @@ function setupEventListeners() {
   // Show all routes overview
   if (btnOverview) {
     btnOverview.addEventListener("click", () => {
-      document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
-      selectedRideId = null;
-      updateUrlWithRideId(null);
-      if (floatingDetail) floatingDetail.classList.remove("active");
-      if (profileChart) profileChart.hide();
-      clearScrubMarker();
-      displayAllRoutesOverview(allRides);
+      clearSelectedRide();
     });
   }
 
-  // Share button click
+  // Back button on mobile detail view
+  if (btnBackList) {
+    btnBackList.addEventListener("click", () => {
+      clearSelectedRide();
+    });
+  }
+
+  // Mobile top-bar edit button
+  if (btnMobileEdit) {
+    btnMobileEdit.addEventListener("click", () => openEditTitleModal(selectedRideId));
+  }
+
+  // Mobile top-bar share button
+  if (btnMobileShare) {
+    btnMobileShare.addEventListener("click", handleShareClick);
+  }
+
+  // Fullscreen map button
+  if (btnMapFullscreen) {
+    btnMapFullscreen.addEventListener("click", toggleMapFullscreen);
+  }
+
+  // Edit ride button click in detail panel
+  if (btnEditRide) {
+    btnEditRide.addEventListener("click", () => openEditTitleModal(selectedRideId));
+  }
+
+  // Clicking on detail title opens edit modal as well
+  if (detailTitle) {
+    detailTitle.addEventListener("click", () => openEditTitleModal(selectedRideId));
+    detailTitle.style.cursor = "pointer";
+    detailTitle.setAttribute("title", "Kliknij, aby edytować nazwę treningu");
+  }
+
+  // Share button click in detail panel
   if (btnShareRide) {
     btnShareRide.addEventListener("click", handleShareClick);
+  }
+
+  // Edit Ride Title Modal listeners
+  if (btnEditTitleClose) {
+    btnEditTitleClose.addEventListener("click", closeEditTitleModal);
+  }
+
+  if (btnEditTitleCancel) {
+    btnEditTitleCancel.addEventListener("click", closeEditTitleModal);
+  }
+
+  if (editTitleModal) {
+    editTitleModal.addEventListener("click", (e) => {
+      if (e.target === editTitleModal) {
+        closeEditTitleModal();
+      }
+    });
+  }
+
+  if (editTitleForm) {
+    editTitleForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!editingRideId) return;
+
+      const ride = allRides.find(r => r.id === editingRideId);
+      if (!ride) return;
+
+      const newTitle = editTitleInput ? editTitleInput.value.trim() : "";
+      if (!newTitle) {
+        showEditTitleAlert("Podaj nazwę treningu.");
+        return;
+      }
+
+      setEditTitleLoading(true);
+      hideEditTitleAlert();
+
+      try {
+        await updateRideTitle(ride.id, newTitle);
+
+        // Update local object
+        ride.title = newTitle;
+
+        // If currently displayed in detail panel, refresh panel
+        if (selectedRideId === ride.id) {
+          showFloatingDetail(ride);
+        }
+
+        // Re-render list so card displays the new title
+        renderRidesList(allRides);
+
+        // Update calendar widget
+        if (calendarWidget) {
+          calendarWidget.setRides(allRides);
+        }
+
+        closeEditTitleModal();
+        showToast("Zaktualizowano nazwę treningu!", "success");
+      } catch (err) {
+        console.error("Error updating ride title:", err);
+        showEditTitleAlert(err.message || "Nie udało się zaktualizować nazwy treningu.");
+      } finally {
+        setEditTitleLoading(false);
+      }
+    });
   }
 
   // Handle browser back/forward history navigation
@@ -698,12 +887,7 @@ function setupEventListeners() {
         });
       }
     } else if (!urlRideId && selectedRideId) {
-      selectedRideId = null;
-      document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
-      if (floatingDetail) floatingDetail.classList.remove("active");
-      if (profileChart) profileChart.hide();
-      clearScrubMarker();
-      displayAllRoutesOverview(allRides);
+      clearSelectedRide();
     }
   });
 }
@@ -781,8 +965,13 @@ function setupAuthListeners() {
   }
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && authModal && authModal.style.display !== "none") {
-      closeAuthModal();
+    if (e.key === "Escape") {
+      if (authModal && authModal.style.display !== "none") {
+        closeAuthModal();
+      }
+      if (editTitleModal && editTitleModal.style.display !== "none") {
+        closeEditTitleModal();
+      }
     }
   });
 
@@ -853,6 +1042,80 @@ function setupAuthListeners() {
       }
     });
   }
+}
+
+// ==========================================================================
+// Edit Title Modal Handlers
+// ==========================================================================
+
+function openEditTitleModal(rideId = selectedRideId) {
+  if (!rideId) return;
+  const ride = allRides.find(r => r.id === rideId);
+  if (!ride) return;
+
+  if (!currentUser && !ride.isDemo) {
+    showToast("Zaloguj się, aby edytować trening", "info");
+    openAuthModal('login');
+    return;
+  }
+
+  if (currentUser && !ride.isDemo && ride.userId && ride.userId !== currentUser.uid) {
+    showToast("Możesz edytować tylko własne treningi", "error");
+    return;
+  }
+
+  editingRideId = ride.id;
+
+  if (editTitleInput) {
+    editTitleInput.value = (ride.title && ride.title.trim().length > 0)
+      ? ride.title
+      : (ride.locationName || `Trening ${formatDate(ride.startTime)}`);
+  }
+
+  if (editTitleModalSubtitle) {
+    editTitleModalSubtitle.textContent = `Trening z dnia ${formatDate(ride.startTime)}`;
+  }
+
+  hideEditTitleAlert();
+  if (editTitleModal) {
+    editTitleModal.style.display = "flex";
+  }
+
+  if (editTitleInput) {
+    setTimeout(() => {
+      editTitleInput.focus();
+      editTitleInput.select();
+    }, 60);
+  }
+}
+
+function closeEditTitleModal() {
+  if (editTitleModal) {
+    editTitleModal.style.display = "none";
+  }
+  hideEditTitleAlert();
+  editingRideId = null;
+  setEditTitleLoading(false);
+}
+
+function showEditTitleAlert(message) {
+  if (editTitleAlert && editTitleAlertMsg) {
+    editTitleAlertMsg.textContent = message;
+    editTitleAlert.style.display = "flex";
+  }
+}
+
+function hideEditTitleAlert() {
+  if (editTitleAlert) {
+    editTitleAlert.style.display = "none";
+  }
+}
+
+function setEditTitleLoading(isLoading) {
+  if (btnEditTitleSubmit) btnEditTitleSubmit.disabled = isLoading;
+  if (btnEditTitleCancel) btnEditTitleCancel.disabled = isLoading;
+  if (editTitleSpinner) editTitleSpinner.style.display = isLoading ? "inline-block" : "none";
+  if (editTitleSubmitText) editTitleSubmitText.style.display = isLoading ? "none" : "inline";
 }
 
 // Add spinning animation for loading spinner

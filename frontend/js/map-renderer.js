@@ -217,3 +217,13 @@ export function clearScrubMarker() {
     scrubMarker = null;
   }
 }
+
+/**
+ * Recomputes map container size and redraws tiles
+ */
+export function invalidateMapSize() {
+  if (mapInstance) {
+    mapInstance.invalidateSize();
+  }
+}
+

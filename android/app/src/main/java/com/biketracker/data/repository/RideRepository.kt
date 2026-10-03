@@ -35,6 +35,7 @@ interface RideRepository {
     suspend fun getRide(rideId: String): Result<Ride>
     suspend fun getGpxContent(rideId: String): Result<String>
     suspend fun deleteRide(rideId: String): Result<Unit>
+    suspend fun updateRideTitle(rideId: String, title: String): Result<Unit>
 }
 
 @Singleton
@@ -183,5 +184,10 @@ class RideRepositoryImpl @Inject constructor(
         batch.delete(gpxRef)
         batch.delete(rideRef)
         batch.commit().await()
+    }
+
+    override suspend fun updateRideTitle(rideId: String, title: String): Result<Unit> =
+        runCatching {
+            ridesCollection.document(rideId).update("title", title).await()
     }
 }

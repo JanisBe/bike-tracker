@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="css/style.css">
+    <link href="css/style.css?v=3" rel="stylesheet">
 </head>
 <body>
 
@@ -104,61 +104,133 @@
       </div>
     </aside>
 
-    <!-- Map Area -->
-    <main class="map-container">
-      <div id="map"></div>
-
-      <!-- Floating Detail Panel (Active on selection) -->
-      <div class="floating-detail-panel" id="floating-detail">
-          <div class="detail-header">
-              <div class="detail-header-info">
-                  <h2 class="detail-title" id="detail-title">Wybrany trening</h2>
-                  <div class="detail-subtitle" id="detail-date">—</div>
+      <!-- Map Area / Detail View -->
+      <main class="map-container" id="map-container">
+          <!-- Mobile Top Navigation Bar (Visible only on mobile when viewing ride details) -->
+          <header class="mobile-detail-nav" id="mobile-detail-nav">
+              <button aria-label="Wróć do listy treningów" class="btn-back-list" id="btn-back-list"
+                      title="Wróć do listy" type="button">
+                  <svg fill="none" height="22" stroke="currentColor" stroke-linecap="round"
+                       stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="22">
+                      <line x1="19" x2="5" y1="12" y2="12"></line>
+                      <polyline points="12 19 5 12 12 5"></polyline>
+                  </svg>
+              </button>
+              <h2 class="mobile-nav-title">Szczegóły treningu</h2>
+              <div class="mobile-nav-actions">
+                  <button aria-label="Edytuj nazwę treningu" class="btn-mobile-edit"
+                          id="btn-mobile-edit" title="Edytuj nazwę treningu" type="button">
+                      <svg class="icon-edit" fill="none" height="17" stroke="currentColor"
+                           stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                           viewBox="0 0 24 24" width="17">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                  </button>
+                  <button aria-label="Udostępnij trening" class="btn-mobile-share"
+                          id="btn-mobile-share" title="Udostępnij link do treningu" type="button">
+                      <svg class="icon-share" fill="none" height="18" stroke="currentColor"
+                           stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                           viewBox="0 0 24 24" width="18">
+                          <circle cx="18" cy="5" r="3"></circle>
+                          <circle cx="6" cy="12" r="3"></circle>
+                          <circle cx="18" cy="19" r="3"></circle>
+                          <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
+                          <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+                      </svg>
+                      <svg class="icon-check" fill="none" height="18" stroke="currentColor"
+                           stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                           style="display: none;" viewBox="0 0 24 24" width="18">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                  </button>
               </div>
-              <a aria-label="Udostępnij trening" class="btn-share-ride" href="#"
-                 id="btn-share-ride" title="Udostępnij link do treningu">
-                  <svg class="icon-share" fill="none" height="18" stroke="currentColor"
-                       stroke-linecap="round"
-                       stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
-                       width="18">
-                      <circle cx="18" cy="5" r="3"></circle>
-                      <circle cx="6" cy="12" r="3"></circle>
-                      <circle cx="18" cy="19" r="3"></circle>
-                      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
-                      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
-                  </svg>
-                  <svg class="icon-check" fill="none" height="18" stroke="currentColor"
-                       stroke-linecap="round"
-                       stroke-linejoin="round" stroke-width="2.5" style="display: none;"
+          </header>
+
+          <!-- Map Wrapper with Fullscreen Button -->
+          <div class="map-wrapper" id="map-wrapper">
+              <div id="map"></div>
+              <button aria-label="Pełny ekran mapy" class="btn-map-fullscreen"
+                      id="btn-map-fullscreen" title="Pełny ekran mapy" type="button">
+                  <svg class="icon-enter-fullscreen" fill="none" height="18" stroke="currentColor"
+                       stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                        viewBox="0 0 24 24" width="18">
-                      <polyline points="20 6 9 17 4 12"></polyline>
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                   </svg>
-              </a>
+                  <svg class="icon-exit-fullscreen" fill="none" height="18" stroke="currentColor"
+                       stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                       style="display: none;" viewBox="0 0 24 24" width="18">
+                      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+                  </svg>
+              </button>
           </div>
 
-        <div class="detail-grid">
-          <div class="detail-item-box">
-            <div class="detail-item-label">Dystans</div>
-            <div class="detail-item-val" id="detail-dist">—</div>
-          </div>
-          <div class="detail-item-box">
-            <div class="detail-item-label">Czas trwania</div>
-            <div class="detail-item-val" id="detail-dur">—</div>
-          </div>
-          <div class="detail-item-box">
-            <div class="detail-item-label">Śr. prędkość</div>
-            <div class="detail-item-val" id="detail-avg">—</div>
-          </div>
-          <div class="detail-item-box">
-            <div class="detail-item-label">Przewyższenie</div>
-            <div class="detail-item-val" id="detail-ele">—</div>
-          </div>
-        </div>
+          <!-- Detail Content Container -->
+          <div class="ride-detail-content" id="ride-detail-content">
+              <!-- Floating Detail Panel (Active on selection) -->
+              <div class="floating-detail-panel" id="floating-detail">
+                  <div class="detail-header">
+                      <div class="detail-header-info">
+                          <h2 class="detail-title" id="detail-title">Wybrany trening</h2>
+                          <div class="detail-subtitle" id="detail-date">—</div>
+                      </div>
+                      <div class="detail-header-actions">
+                          <button aria-label="Edytuj nazwę treningu" class="btn-edit-ride"
+                                  id="btn-edit-ride" title="Edytuj nazwę treningu" type="button">
+                              <svg class="icon-edit" fill="none" height="17" stroke="currentColor"
+                                   stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                   viewBox="0 0 24 24"
+                                   width="17">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
+                          </button>
+                          <a aria-label="Udostępnij trening" class="btn-share-ride" href="#"
+                             id="btn-share-ride" title="Udostępnij link do treningu">
+                              <svg class="icon-share" fill="none" height="18" stroke="currentColor"
+                                   stroke-linecap="round"
+                                   stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                                   width="18">
+                                  <circle cx="18" cy="5" r="3"></circle>
+                                  <circle cx="6" cy="12" r="3"></circle>
+                                  <circle cx="18" cy="19" r="3"></circle>
+                                  <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
+                                  <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+                              </svg>
+                              <svg class="icon-check" fill="none" height="18" stroke="currentColor"
+                                   stroke-linecap="round"
+                                   stroke-linejoin="round" stroke-width="2.5" style="display: none;"
+                                   viewBox="0 0 24 24" width="18">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                              </svg>
+                          </a>
+                      </div>
+                  </div>
 
-        <button class="btn-download-gpx" id="btn-detail-gpx" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
-          <span>⬇</span> Pobierz pełny plik GPX
-        </button>
-      </div>
+                  <div class="detail-grid">
+                      <div class="detail-item-box">
+                          <div class="detail-item-label">Dystans</div>
+                          <div class="detail-item-val" id="detail-dist">—</div>
+                      </div>
+                      <div class="detail-item-box">
+                          <div class="detail-item-label">Czas trwania</div>
+                          <div class="detail-item-val" id="detail-dur">—</div>
+                      </div>
+                      <div class="detail-item-box">
+                          <div class="detail-item-label">Śr. prędkość</div>
+                          <div class="detail-item-val" id="detail-avg">—</div>
+                      </div>
+                      <div class="detail-item-box">
+                          <div class="detail-item-label">Przewyższenie</div>
+                          <div class="detail-item-val" id="detail-ele">—</div>
+                      </div>
+                  </div>
+
+                  <button class="btn-download-gpx" id="btn-detail-gpx"
+                          style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
+                      <span>⬇</span> Pobierz pełny plik GPX
+                  </button>
+              </div>
 
         <!-- Ride Profile Chart Panel (Speed & Elevation) -->
         <section aria-label="Profil trasy: prędkość i wysokość" class="profile-chart-panel" id="profile-chart-panel">
@@ -193,10 +265,15 @@
                 </div>
             </div>
 
+            <div class="profile-chart-hint" id="profile-chart-hint">Przesuń palcem po wykresie, aby
+                sprawdzić punkt na mapie
+            </div>
+
             <div class="profile-chart-body" id="profile-chart-body">
                 <canvas height="150" id="profile-canvas"></canvas>
             </div>
         </section>
+          </div>
     </main>
 
       <!-- Auth Modal Dialog -->
@@ -259,7 +336,49 @@
                   </button>
               </form>
           </div>
-  </div>
+      </div>
+
+      <!-- Edit Ride Title Modal Dialog -->
+      <div class="modal-overlay" id="edit-title-modal" style="display: none;">
+          <div aria-labelledby="edit-title-modal-title" aria-modal="true"
+               class="auth-card edit-title-card" role="dialog">
+              <button aria-label="Zamknij" class="btn-modal-close" id="btn-edit-title-close"
+                      title="Zamknij">✕
+              </button>
+
+              <div class="auth-header">
+                  <div class="auth-logo">✏️</div>
+                  <h2 class="auth-title" id="edit-title-modal-title">Edytuj nazwę treningu</h2>
+                  <p class="auth-subtitle" id="edit-title-modal-subtitle">Wprowadź nową nazwę dla
+                      wybranego przejazdu</p>
+              </div>
+
+              <!-- Error Alert Box -->
+              <div class="auth-alert" id="edit-title-alert" style="display: none;">
+                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-msg" id="edit-title-alert-msg"></span>
+              </div>
+
+              <form class="auth-form" id="edit-title-form">
+                  <div class="form-group">
+                      <label for="edit-title-input">Nazwa treningu</label>
+                      <input autocomplete="off" id="edit-title-input" maxlength="60"
+                             placeholder="np. Bulwary Wiślane 🚴" required type="text">
+                  </div>
+                  <div class="modal-button-row">
+                      <button class="btn-modal-cancel" id="btn-edit-title-cancel" type="button">
+                          Anuluj
+                      </button>
+                      <button class="btn-auth-submit" id="btn-edit-title-submit" style="flex: 1.4; margin-top: 0;"
+                              type="submit">
+                          <span class="btn-spinner" id="edit-title-spinner"
+                                style="display: none;"></span>
+                          <span id="edit-title-submit-text">Zapisz</span>
+                      </button>
+                  </div>
+              </form>
+          </div>
+      </div>
   </div>
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
@@ -268,6 +387,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Application Controller -->
-  <script type="module" src="js/app.js"></script>
+  <script src="js/app.js?v=3" type="module"></script>
 </body>
 </html>

@@ -114,11 +114,13 @@ class RideDetailViewModel @Inject constructor(
             val parsedPoints = if (result.isSuccess) {
                 val xml = result.getOrNull().orEmpty()
                 val points = GpxParser.parse(xml)
-                if (points.isNotEmpty()) points else GpxParser.fromCoordinates(
-                    coords,
-                    ride.elevationGain ?: 0.0,
-                    ride.avgSpeedKmh
-                )
+                points.ifEmpty {
+                    GpxParser.fromCoordinates(
+                        coords,
+                        ride.elevationGain ?: 0.0,
+                        ride.avgSpeedKmh
+                    )
+                }
             } else {
                 GpxParser.fromCoordinates(coords, ride.elevationGain ?: 0.0, ride.avgSpeedKmh)
             }
@@ -181,6 +183,26 @@ class RideDetailViewModel @Inject constructor(
             } else {
                 _uiState.update {
                     it.copy(errorMessage = "Nie udało się usunąć treningu: ${result.exceptionOrNull()?.message}")
+                }
+            }
+        }
+    }
+
+    fun updateRideTitle(newTitle: String) {
+        val trimmed = newTitle.trim()
+        if (trimmed.isBlank()) return
+
+        viewModelScope.launch {
+            val result = rideRepository.updateRideTitle(rideId, trimmed)
+            if (result.isSuccess) {
+                _uiState.update { state ->
+                    state.copy(
+                        ride = state.ride?.copy(title = trimmed)
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(errorMessage = "Nie udało się zaktualizować nazwy treningu: ${result.exceptionOrNull()?.message}")
                 }
             }
         }

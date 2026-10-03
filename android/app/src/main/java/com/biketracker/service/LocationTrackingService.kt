@@ -21,6 +21,7 @@ import com.biketracker.MainActivity
 import com.biketracker.R
 import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
+import com.biketracker.data.repository.RideRepository
 import com.biketracker.domain.util.DistanceCalculator
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -28,6 +29,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,9 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import com.biketracker.data.repository.RideRepository
 
 @AndroidEntryPoint
 class LocationTrackingService : Service() {
@@ -134,9 +134,41 @@ class LocationTrackingService : Service() {
             }
         }
 
-        val speedKmh = if (location.hasSpeed()) {
+        val rawSpeedKmh = if (location.hasSpeed()) {
             (location.speed * 3.6).coerceAtLeast(0.0)
         } else null
+
+        // Check if speed reading is within noise margin (Android 8.0+)
+        val isSpeedNoisy =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasSpeedAccuracy()) {
+                location.hasSpeed() && location.speedAccuracyMetersPerSecond > 0 && location.speed < location.speedAccuracyMetersPerSecond
+            } else false
+
+        val currentList = _trackPoints.value
+
+        // If provider did not supply speed, estimate from distance to previous point
+        val estimatedSpeedKmh = if (rawSpeedKmh == null && currentList.isNotEmpty()) {
+            val lastPoint = currentList.last()
+            val timeDiffSec = (location.time - lastPoint.timestamp) / 1000.0
+            if (timeDiffSec > 0.5) {
+                val distMeters = DistanceCalculator.distanceBetweenMeters(
+                    lastPoint.latitude, lastPoint.longitude,
+                    location.latitude, location.longitude
+                )
+                (distMeters / timeDiffSec) * 3.6
+            } else 0.0
+        } else null
+
+        val candidateSpeedKmh = rawSpeedKmh ?: estimatedSpeedKmh ?: 0.0
+
+        // Zero speed below 1.0 km/h or when measurement is noisy
+        val filteredSpeedKmh = if (candidateSpeedKmh < MIN_SPEED_THRESHOLD_KMH || isSpeedNoisy) {
+            0.0
+        } else {
+            candidateSpeedKmh
+        }
+
+        _currentSpeedKmh.value = filteredSpeedKmh
 
         val point = TrackPoint(
             latitude = location.latitude,
@@ -144,24 +176,39 @@ class LocationTrackingService : Service() {
             elevation = if (location.hasAltitude()) location.altitude else null,
             timestamp = location.time,
             accuracy = location.accuracy,
-            speedKmh = speedKmh
+            speedKmh = filteredSpeedKmh
         )
 
-        val currentList = _trackPoints.value
-        if (currentList.isNotEmpty()) {
-            val lastPoint = currentList.last()
-            val distMeters = DistanceCalculator.distanceBetweenMeters(
-                lastPoint.latitude, lastPoint.longitude,
-                point.latitude, point.longitude
-            )
-            _currentDistanceKm.value += (distMeters / 1000.0)
+        if (currentList.isEmpty()) {
+            _trackPoints.value = listOf(point)
+            updateNotification()
+            return
         }
 
-        if (speedKmh != null) {
-            _currentSpeedKmh.value = speedKmh
+        val lastPoint = currentList.last()
+        val distMeters = DistanceCalculator.distanceBetweenMeters(
+            lastPoint.latitude, lastPoint.longitude,
+            point.latitude, point.longitude
+        )
+
+        val isStationary = filteredSpeedKmh == 0.0
+
+        if (isStationary) {
+            // Blokada naliczania fałszywego dystansu na postoju:
+            // 1. Dystans całkowity NIE jest zwiększany.
+            // 2. Jeśli poprzedni punkt był w ruchu (speed > 0), zapisujemy jeden punkt oznaczający zatrzymanie.
+            // 3. Kolejne punkty postoju są ignorowane, aby uniknąć pętli/plątaniny dryfu GPS na mapie.
+            if (lastPoint.speedKmh != null && lastPoint.speedKmh > 0.0) {
+                _trackPoints.value = currentList + point
+            }
+        } else {
+            // Użytkownik w ruchu (prędkość >= 1.0 km/h): naliczamy dystans i rejestrujemy punkt
+            if (distMeters >= MIN_MOVEMENT_DISTANCE_METERS) {
+                _currentDistanceKm.value += (distMeters / 1000.0)
+                _trackPoints.value = currentList + point
+            }
         }
 
-        _trackPoints.value = currentList + point
         updateNotification()
     }
 
@@ -398,6 +445,11 @@ class LocationTrackingService : Service() {
                 delay(1000L)
                 if (_isTracking.value && !_isPaused.value) {
                     _elapsedSeconds.value += 1
+                    // Jeśli przez >5s nie otrzymano nowej lokalizacji na postoju, wyzeruj licznik prędkości
+                    val now = System.currentTimeMillis()
+                    if (lastLocationTimeMs > 0 && (now - lastLocationTimeMs) > 5000L && _currentSpeedKmh.value > 0.0) {
+                        _currentSpeedKmh.value = 0.0
+                    }
                     checkGpsSignalStatus()
                     updateNotification()
                 }
@@ -712,6 +764,8 @@ class LocationTrackingService : Service() {
         const val ACTION_STOP_AND_SAVE = "com.biketracker.action.STOP_AND_SAVE"
 
         const val EXTRA_WAIT_FOR_GPS = "extra_wait_for_gps"
+        const val MIN_SPEED_THRESHOLD_KMH = 1.0
+        const val MIN_MOVEMENT_DISTANCE_METERS = 1.0
 
         private const val NOTIFICATION_ID = 101
         private const val NOTIFICATION_SAVED_ID = 103

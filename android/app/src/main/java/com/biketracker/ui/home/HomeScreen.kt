@@ -1,8 +1,12 @@
 package com.biketracker.ui.home
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,10 +29,13 @@ import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -35,23 +43,31 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,14 +77,17 @@ import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.DarkSurfaceVariant
+import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,6 +104,9 @@ fun HomeScreen(
     val totalHours = totalSeconds / 3600.0
 
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var rideToEdit by remember { mutableStateOf<Ride?>(null) }
+    var editTitleText by remember { mutableStateOf("") }
+    var rideToDelete by remember { mutableStateOf<Ride?>(null) }
 
     val filteredRides = remember(rides, selectedDate) {
         if (selectedDate == null) {
@@ -244,10 +266,117 @@ fun HomeScreen(
                 }
             } else {
                 items(filteredRides, key = { it.id }) { ride ->
-                    RideCard(ride = ride, onClick = { onRideSelected(ride.id) })
+                    SwipeableRideCard(
+                        ride = ride,
+                        onClick = { onRideSelected(ride.id) },
+                        onEdit = {
+                            rideToEdit = ride
+                            editTitleText = ride.title.ifBlank { ride.locationName }
+                        },
+                        onDelete = {
+                            rideToDelete = ride
+                        }
+                    )
                 }
             }
         }
+    }
+
+    // Dialog for editing ride title
+    rideToEdit?.let { ride ->
+        AlertDialog(
+            onDismissRequest = { rideToEdit = null },
+            title = {
+                Text(
+                    text = "Edytuj nazwę treningu",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = editTitleText,
+                        onValueChange = { editTitleText = it },
+                        label = { Text("Nazwa treningu") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = OrangeAccent,
+                            unfocusedBorderColor = CardBorder,
+                            focusedLabelColor = OrangeAccent,
+                            cursorColor = OrangeAccent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val trimmed = editTitleText.trim()
+                        if (trimmed.isNotBlank()) {
+                            viewModel.updateRideTitle(ride.id, trimmed)
+                        }
+                        rideToEdit = null
+                    },
+                    enabled = editTitleText.isNotBlank()
+                ) {
+                    Text(
+                        "Zapisz",
+                        color = if (editTitleText.isNotBlank()) OrangeAccent else TextSecondary
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { rideToEdit = null }) {
+                    Text("Anuluj", color = TextSecondary)
+                }
+            },
+            containerColor = DarkSurface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Dialog for confirming ride deletion
+    rideToDelete?.let { ride ->
+        AlertDialog(
+            onDismissRequest = { rideToDelete = null },
+            title = {
+                Text(
+                    text = "Usunąć trening?",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Text(
+                    text = "Czy na pewno chcesz usunąć ten trening? Tej operacji nie można cofnąć.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteRide(ride.id)
+                        rideToDelete = null
+                    }
+                ) {
+                    Text("Usuń", color = ErrorRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { rideToDelete = null }) {
+                    Text("Anuluj", color = TextSecondary)
+                }
+            },
+            containerColor = DarkSurface,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 
@@ -320,6 +449,132 @@ fun HeaderStatItem(
 }
 
 @Composable
+fun SwipeableRideCard(
+    ride: Ride,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val actionButtonsWidth = 124.dp
+    val actionButtonsWidthPx = with(LocalDensity.current) { actionButtonsWidth.toPx() }
+    val offsetX = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        // Background action buttons revealed when swiped left
+        Row(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(14.dp))
+                .background(DarkSurfaceVariant.copy(alpha = 0.7f))
+                .padding(end = 12.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Edit button (Pencil)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2563EB))
+                    .clickable {
+                        coroutineScope.launch {
+                            offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                        }
+                        onEdit()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edytuj nazwę",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // Delete button (Trash bin)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(ErrorRed)
+                    .clickable {
+                        coroutineScope.launch {
+                            offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                        }
+                        onDelete()
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Usuń trening",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        // Foreground RideCard
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(ride.id) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            coroutineScope.launch {
+                                if (offsetX.value < -actionButtonsWidthPx / 2) {
+                                    offsetX.animateTo(
+                                        targetValue = -actionButtonsWidthPx,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                    )
+                                } else {
+                                    offsetX.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                    )
+                                }
+                            }
+                        },
+                        onDragCancel = {
+                            coroutineScope.launch {
+                                offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                            }
+                        },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            coroutineScope.launch {
+                                val newOffset =
+                                    (offsetX.value + dragAmount).coerceIn(-actionButtonsWidthPx, 0f)
+                                offsetX.snapTo(newOffset)
+                            }
+                        }
+                    )
+                }
+        ) {
+            RideCard(
+                ride = ride,
+                onClick = {
+                    if (offsetX.value < -10f) {
+                        coroutineScope.launch {
+                            offsetX.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
+                        }
+                    } else {
+                        onClick()
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
 fun RideCard(
     ride: Ride,
     onClick: () -> Unit
@@ -331,6 +586,8 @@ fun RideCard(
     val seconds = ride.durationSeconds % 60
     val durationStr = "%02d:%02d".format(minutes, seconds)
 
+    val displayTitle = ride.title.ifBlank { ride.locationName.ifBlank { "Trening rowerowy" } }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -341,6 +598,17 @@ fun RideCard(
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = displayTitle,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -352,7 +620,7 @@ fun RideCard(
                     color = TextSecondary,
                     fontSize = 12.sp
                 )
-                if (ride.locationName.isNotBlank()) {
+                if (ride.locationName.isNotBlank() && ride.locationName != displayTitle) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier

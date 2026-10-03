@@ -37,14 +37,22 @@ object StatsCalculator {
                 p1.latitude, p1.longitude,
                 p2.latitude, p2.longitude
             )
-            totalDistanceKm += distKm
-
             val timeDiffSec = (p2.timestamp - p1.timestamp) / 1000.0
+            val speedKmh = if (timeDiffSec > 0.5) (distKm / (timeDiffSec / 3600.0)) else 0.0
+
+            // Filter out stationary GPS jitter (speed below 1.0 km/h with negligible displacement < 5m)
+            val isStationaryJitter = (p2.speedKmh != null && p2.speedKmh < 1.0 && distKm < 0.005) ||
+                    (p2.speedKmh == null && speedKmh < 1.0 && distKm < 0.005)
+
+            if (!isStationaryJitter) {
+                totalDistanceKm += distKm
+            }
+
             if (timeDiffSec > 0.5) {
-                val speedKmh = (distKm / (timeDiffSec / 3600.0))
-                // Ignore unreasonable GPS jump speeds (> 100 km/h for bike)
-                if (speedKmh in 0.5..100.0) {
-                    maxSpeedKmh = max(maxSpeedKmh, speedKmh)
+                val effectiveSpeed = p2.speedKmh ?: speedKmh
+                // Ignore unreasonable GPS jump speeds (> 100 km/h for bike) and stationary speeds (< 1.0 km/h)
+                if (effectiveSpeed in 1.0..100.0) {
+                    maxSpeedKmh = max(maxSpeedKmh, effectiveSpeed)
                 }
             }
 

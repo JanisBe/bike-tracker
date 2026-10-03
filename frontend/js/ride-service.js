@@ -6,6 +6,7 @@ import {
     getDocs,
     orderBy,
     query,
+    updateDoc,
     where
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import {decodePolyline} from './polyline-decoder.js';
@@ -427,5 +428,36 @@ export async function fetchRideProfile(ride) {
     // Fallback to decoded polyline
     const coords = decodePolyline(ride.encodedPolyline);
     return generateProfileFromPolyline(coords, ride);
+}
+
+/**
+ * Updates the title of a ride in Firestore (or updates mock ride in memory).
+ * @param {string} rideId
+ * @param {string} newTitle
+ * @returns {Promise<void>}
+ */
+export async function updateRideTitle(rideId, newTitle) {
+    if (!rideId) {
+        throw new Error("Brak identyfikatora treningu.");
+    }
+
+    const trimmedTitle = (newTitle || "").trim();
+
+    // Check if demo ride
+    const demoRide = MOCK_RIDES.find(r => r.id === rideId);
+    if (demoRide) {
+        demoRide.title = trimmedTitle;
+        return;
+    }
+
+    try {
+        const rideDocRef = doc(db, "rides", rideId);
+        await updateDoc(rideDocRef, {
+            title: trimmedTitle
+        });
+    } catch (error) {
+        console.error("Firestore update ride title error:", error);
+        throw error;
+    }
 }
 

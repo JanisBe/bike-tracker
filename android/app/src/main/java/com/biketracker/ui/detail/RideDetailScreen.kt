@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Place
@@ -42,6 +43,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -88,6 +91,8 @@ fun RideDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditTitleDialog by remember { mutableStateOf(false) }
+    var editTitleText by remember { mutableStateOf("") }
     var selectedProfilePoint by remember { mutableStateOf<RouteProfilePoint?>(null) }
     var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
 
@@ -121,6 +126,17 @@ fun RideDetailScreen(
                             )
                         }
                         if (uiState.isOwner) {
+                            IconButton(onClick = {
+                                val ride = uiState.ride
+                                editTitleText = ride?.title?.ifBlank { ride.locationName } ?: ""
+                                showEditTitleDialog = true
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edytuj nazwę treningu",
+                                    tint = OrangeAccent
+                                )
+                            }
                             IconButton(onClick = { showDeleteDialog = true }) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,
@@ -198,27 +214,36 @@ fun RideDetailScreen(
 
                     // Content details
                     Column(modifier = Modifier.padding(16.dp)) {
-                        if (ride.locationName.isNotBlank()) {
+                        val displayTitle =
+                            ride.title.ifBlank { ride.locationName.ifBlank { "Trening rowerowy" } }
+                        Text(
+                            text = displayTitle,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+
+                        if (ride.locationName.isNotBlank() && ride.locationName != displayTitle) {
+                            Spacer(modifier = Modifier.height(4.dp))
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(bottom = 6.dp)
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Place,
                                     contentDescription = null,
                                     tint = OrangeAccent,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = ride.locationName,
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextSecondary
                                 )
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(4.dp))
                         val dateFormat =
                             SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm", Locale("pl", "PL"))
                         Text(
@@ -328,6 +353,64 @@ fun RideDetailScreen(
                 }
             }
         }
+
+            // Edit Title Dialog
+            if (showEditTitleDialog) {
+                AlertDialog(
+                    onDismissRequest = { showEditTitleDialog = false },
+                    title = {
+                        Text(
+                            text = "Edytuj nazwę treningu",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                    },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = editTitleText,
+                                onValueChange = { editTitleText = it },
+                                label = { Text("Nazwa treningu") },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = TextPrimary,
+                                    unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = OrangeAccent,
+                                    unfocusedBorderColor = CardBorder,
+                                    focusedLabelColor = OrangeAccent,
+                                    cursorColor = OrangeAccent
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                val trimmed = editTitleText.trim()
+                                if (trimmed.isNotBlank()) {
+                                    viewModel.updateRideTitle(trimmed)
+                                }
+                                showEditTitleDialog = false
+                            },
+                            enabled = editTitleText.isNotBlank()
+                        ) {
+                            Text(
+                                "Zapisz",
+                                color = if (editTitleText.isNotBlank()) OrangeAccent else TextSecondary
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showEditTitleDialog = false }) {
+                            Text("Anuluj", color = TextSecondary)
+                        }
+                    },
+                    containerColor = DarkSurface,
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
 
         // Delete Dialog
         if (showDeleteDialog) {

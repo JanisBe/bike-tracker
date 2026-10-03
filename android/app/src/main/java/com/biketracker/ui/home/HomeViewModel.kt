@@ -34,4 +34,16 @@ class HomeViewModel @Inject constructor(
             onLoggedOut()
         }
     }
+
+    fun deleteRide(rideId: String) {
+        viewModelScope.launch {
+            rideRepository.deleteRide(rideId)
+        }
+    }
+
+    fun updateRideTitle(rideId: String, newTitle: String) {
+        viewModelScope.launch {
+            rideRepository.updateRideTitle(rideId, newTitle.trim())
+        }
+    }
 }
