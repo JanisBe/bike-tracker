@@ -10,6 +10,8 @@ object RideMapper {
 
     fun toFirestore(ride: Ride): Map<String, Any?> = mapOf(
         "userId" to ride.userId,
+        "title" to ride.title,
+        "locationName" to ride.locationName,
         "startTime" to Timestamp(ride.startTime),
         "endTime" to Timestamp(ride.endTime),
         "distanceKm" to ride.distanceKm,
@@ -24,6 +26,8 @@ object RideMapper {
     fun fromFirestore(doc: DocumentSnapshot): Ride = Ride(
         id = doc.id,
         userId = doc.getString("userId") ?: "",
+        title = doc.getString("title") ?: "",
+        locationName = doc.getString("locationName") ?: "",
         startTime = doc.getTimestamp("startTime")?.toDate() ?: Date(),
         endTime = doc.getTimestamp("endTime")?.toDate() ?: Date(),
         distanceKm = doc.getDouble("distanceKm") ?: 0.0,

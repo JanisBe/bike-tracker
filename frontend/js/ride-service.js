@@ -17,6 +17,7 @@ const MOCK_RIDES = [
     id: "demo-ride-kampinos",
     userId: "demo-user",
     title: "Puszcza Kampinoska 🌲",
+    locationName: "Kampinos, Izabelin",
     startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), // Wczoraj
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 85),
     distanceKm: 28.4,
@@ -25,13 +26,14 @@ const MOCK_RIDES = [
     maxSpeedKmh: 36.5,
     elevationGain: 145,
     // Realistic polyline in Kampinos National Park near Warsaw
-      encodedPolyline: "_{_iIe{m`Bg@k@_Ag@qAo@uAe@eAm@mB}@mCe@yAs@kC_AkDu@kCy@kCe@kBu@}Bq@cBk@_Bi@eBs@iBy@qB_AiB}@iBy@iBs@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB",
+      encodedPolyline: "_{_iIe{m`Bg@k@_Ag@qAo@uAe@eAm@mB}@mCe@yAs@kC_AkDu@kCy@kCe@kBu@}Bq@cBk@_Bi@eBs@iBy@qB_AiB}@iBy@iBs@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB",
     isDemo: true
   },
   {
     id: "demo-ride-vistula",
     userId: "demo-user",
     title: "Bulwary Wiślane 🚴",
+    locationName: "Warszawa, Powiśle",
     startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 dni temu
     endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 45),
     distanceKm: 16.2,
@@ -71,6 +73,8 @@ export async function fetchUserRides(userId) {
             return {
                 id: docSnap.id,
                 ...data,
+                title: data.title || "",
+                locationName: data.locationName || "",
                 startTime: data.startTime ? data.startTime.toDate() : new Date(),
                 endTime: data.endTime ? data.endTime.toDate() : new Date(),
                 distanceKm: Number(data.distanceKm) || 0,
@@ -85,6 +89,50 @@ export async function fetchUserRides(userId) {
     } catch (error) {
         console.error("Firestore fetch user rides error:", error);
         throw error;
+    }
+}
+
+/**
+ * Fetches a single ride by ID from Firestore (or fallback mock rides).
+ * @param {string} rideId
+ * @returns {Promise<Object|null>}
+ */
+export async function fetchRideById(rideId) {
+    if (!rideId) return null;
+
+    // Check mock rides first if it's a demo ride
+    const demoRide = MOCK_RIDES.find(r => r.id === rideId);
+    if (demoRide) {
+        return demoRide;
+    }
+
+    try {
+        const rideDocRef = doc(db, "rides", rideId);
+        const docSnap = await getDoc(rideDocRef);
+
+        if (!docSnap.exists()) {
+            return null;
+        }
+
+        const data = docSnap.data();
+        return {
+            id: docSnap.id,
+            ...data,
+            title: data.title || "",
+            locationName: data.locationName || "",
+            startTime: data.startTime ? data.startTime.toDate() : new Date(),
+            endTime: data.endTime ? data.endTime.toDate() : new Date(),
+            distanceKm: Number(data.distanceKm) || 0,
+            durationSeconds: Number(data.durationSeconds) || 0,
+            avgSpeedKmh: Number(data.avgSpeedKmh) || 0,
+            maxSpeedKmh: Number(data.maxSpeedKmh) || 0,
+            elevationGain: data.elevationGain != null ? Number(data.elevationGain) : null,
+            encodedPolyline: data.encodedPolyline || "",
+            isDemo: false
+        };
+    } catch (error) {
+        console.error("Firestore fetch ride by id error:", error);
+        return null;
     }
 }
 
@@ -107,6 +155,8 @@ export async function fetchAllRides() {
       return {
         id: docSnap.id,
         ...data,
+        title: data.title || "",
+        locationName: data.locationName || "",
         startTime: data.startTime ? data.startTime.toDate() : new Date(),
         endTime: data.endTime ? data.endTime.toDate() : new Date(),
         distanceKm: Number(data.distanceKm) || 0,

@@ -5,6 +5,8 @@ import java.util.Date
 data class Ride(
     val id: String = "",
     val userId: String = "",
+    val title: String = "",
+    val locationName: String = "",
     val startTime: Date = Date(),
     val endTime: Date = Date(),
     val distanceKm: Double = 0.0,

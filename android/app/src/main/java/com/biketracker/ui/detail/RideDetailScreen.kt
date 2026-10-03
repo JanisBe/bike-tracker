@@ -1,6 +1,11 @@
 package com.biketracker.ui.detail
 
+import android.graphics.drawable.GradientDrawable
+import android.view.MotionEvent
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,14 +15,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Speed
@@ -41,6 +51,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,14 +62,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
-import android.graphics.drawable.GradientDrawable
-import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -79,82 +89,136 @@ fun RideDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedProfilePoint by remember { mutableStateOf<RouteProfilePoint?>(null) }
+    var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Szczegóły treningu",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Wróć",
-                            tint = TextPrimary
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Szczegóły treningu",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showDeleteDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Usuń",
-                            tint = ErrorRed
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
-            )
-        },
-        containerColor = DarkBackground
-    ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = OrangeAccent)
-            }
-        } else {
-            val ride = uiState.ride
-            if (ride == null) {
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Wróć",
+                                tint = TextPrimary
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.shareRideLink() }) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Udostępnij link do treningu",
+                                tint = OrangeAccent
+                            )
+                        }
+                        if (uiState.isOwner) {
+                            IconButton(onClick = { showDeleteDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Usuń",
+                                    tint = ErrorRed
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+                )
+            },
+            containerColor = DarkBackground
+        ) { paddingValues ->
+            if (uiState.isLoading) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Nie znaleziono treningu", color = TextSecondary)
+                    CircularProgressIndicator(color = OrangeAccent)
                 }
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    // Map View
+                val ride = uiState.ride
+                if (ride == null) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(260.dp)
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
                     ) {
-                        DetailOsmMapView(
-                            coordinates = uiState.routeCoordinates,
-                            selectedPoint = selectedProfilePoint?.let { Pair(it.latitude, it.longitude) }
-                        )
+                        Text("Nie znaleziono treningu", color = TextSecondary)
                     }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Map View
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(260.dp)
+                        ) {
+                            DetailOsmMapView(
+                                coordinates = uiState.routeCoordinates,
+                                selectedPoint = selectedProfilePoint?.let {
+                                    Pair(
+                                        it.latitude,
+                                        it.longitude
+                                    )
+                                }
+                            )
+
+                            IconButton(
+                                onClick = { isMapFullscreen = true },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(12.dp)
+                                    .size(36.dp)
+                                    .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                    .border(1.dp, CardBorder, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Fullscreen,
+                                    contentDescription = "Pełny ekran",
+                                    tint = TextPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
 
                     // Content details
                     Column(modifier = Modifier.padding(16.dp)) {
+                        if (ride.locationName.isNotBlank()) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Place,
+                                    contentDescription = null,
+                                    tint = OrangeAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = ride.locationName,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextPrimary
+                                )
+                            }
+                        }
+
                         val dateFormat =
                             SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm", Locale("pl", "PL"))
                         Text(
@@ -311,6 +375,64 @@ fun RideDetailScreen(
             )
         }
     }
+
+        if (isMapFullscreen) {
+            BackHandler {
+                isMapFullscreen = false
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkBackground)
+            ) {
+                DetailOsmMapView(
+                    coordinates = uiState.routeCoordinates,
+                    selectedPoint = selectedProfilePoint?.let { Pair(it.latitude, it.longitude) }
+                )
+
+                // Top Controls: Back button on top-start, Exit Fullscreen button on top-end
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { isMapFullscreen = false },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                            .border(1.dp, CardBorder, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Zamknij pełny ekran",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { isMapFullscreen = false },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                            .border(1.dp, CardBorder, CircleShape)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FullscreenExit,
+                            contentDescription = "Zmniejsz mapę",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -364,7 +486,22 @@ fun DetailOsmMapView(
 
     AndroidView(
         factory = { ctx ->
-            MapView(ctx).apply {
+            object : MapView(ctx) {
+                override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+                    when (ev.actionMasked) {
+                        MotionEvent.ACTION_DOWN,
+                        MotionEvent.ACTION_MOVE -> {
+                            parent?.requestDisallowInterceptTouchEvent(true)
+                        }
+
+                        MotionEvent.ACTION_UP,
+                        MotionEvent.ACTION_CANCEL -> {
+                            parent?.requestDisallowInterceptTouchEvent(false)
+                        }
+                    }
+                    return super.dispatchTouchEvent(ev)
+                }
+            }.apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 isTilesScaledToDpi = true

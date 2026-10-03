@@ -1,15 +1,16 @@
-import {downloadGpx, fetchRideProfile, fetchUserRides} from './ride-service.js';
+import { downloadGpx, fetchRideById, fetchRideProfile, fetchUserRides } from './ride-service.js';
+import { decodePolyline } from './polyline-decoder.js';
 import {
-    clearScrubMarker,
-    displayAllRoutesOverview,
-    displaySingleRoute,
-    initMap,
-    setScrubMarker
+  clearScrubMarker,
+  displayAllRoutesOverview,
+  displaySingleRoute,
+  initMap,
+  setScrubMarker
 } from './map-renderer.js';
-import {calculateOverallStats, formatDate, formatDuration} from './stats.js';
-import {CalendarWidget} from './calendar-widget.js';
-import {ProfileChart} from './profile-chart.js';
-import {onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, signUpWithEmail} from './auth-service.js';
+import { calculateOverallStats, formatDate, formatDuration } from './stats.js';
+import { CalendarWidget } from './calendar-widget.js';
+import { ProfileChart } from './profile-chart.js';
+import { onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, signUpWithEmail } from './auth-service.js';
 
 let allRides = [];
 let selectedRideId = null;
@@ -35,6 +36,8 @@ const detailDur = document.getElementById("detail-dur");
 const detailAvg = document.getElementById("detail-avg");
 const detailEle = document.getElementById("detail-ele");
 const btnDetailGpx = document.getElementById("btn-detail-gpx");
+const btnShareRide = document.getElementById("btn-share-ride");
+const toastContainer = document.getElementById("toast-container");
 
 // Auth DOM Elements
 const userInfoEl = document.getElementById("user-info");
@@ -60,100 +63,251 @@ const btnAuthSubmit = document.getElementById("btn-auth-submit");
 const authSubmitText = document.getElementById("auth-submit-text");
 const authSpinner = document.getElementById("auth-spinner");
 
+// ==========================================================================
+// Deep Linking, URL Routing & Share Helpers
+// ==========================================================================
+
+function getRideIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const rideParam = params.get('ride');
+  if (rideParam) return rideParam.trim();
+
+  const hash = window.location.hash;
+  if (hash) {
+    const hashMatch = new RegExp(/(?:#|\/|\?|&)ride=([^&]+)/).exec(hash) || hash.match(/#\/?ride\/(.+)/);
+    if (hashMatch?.[1]) {
+      return decodeURIComponent(hashMatch[1]).trim();
+    }
+  }
+  return null;
+}
+
+function buildShareUrl(rideId) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('ride', rideId);
+  url.hash = '';
+  return url.toString();
+}
+
+function updateUrlWithRideId(rideId) {
+  const url = new URL(window.location.href);
+  if (rideId) {
+    url.searchParams.set('ride', rideId);
+  } else {
+    url.searchParams.delete('ride');
+  }
+  url.hash = '';
+  window.history.replaceState({ rideId }, '', url.toString());
+}
+
+let toastTimeout = null;
+function showToast(message, type = "info") {
+  if (!toastContainer) return;
+  toastContainer.innerHTML = "";
+  if (toastTimeout) clearTimeout(toastTimeout);
+
+  const toast = document.createElement("div");
+  toast.className = `toast-notification toast-${type}`;
+
+  let icon = "ℹ️";
+  if (type === "success") icon = "✅";
+  if (type === "error") icon = "⚠️";
+
+  toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+  toastContainer.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("active");
+  });
+
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove("active");
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+async function handleShareClick(e) {
+  if (e) e.preventDefault();
+  if (!selectedRideId) return;
+
+  const ride = allRides.find(r => r.id === selectedRideId);
+  if (!ride) return;
+
+  const shareUrl = buildShareUrl(ride.id);
+  const rideTitle = ride.locationName || ride.title || `Trening ${formatDate(ride.startTime)}`;
+  const shareText = `Zobacz mój trening rowerowy (${ride.distanceKm.toFixed(1)} km) w aplikacji Bike Tracker!`;
+
+  // Try Web Share API (native mobile share sheet / macOS / Windows)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `Bike Tracker • ${rideTitle}`,
+        text: shareText,
+        url: shareUrl
+      });
+      showToast("Udostępniono trening!", "success");
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return; // User closed sheet
+      console.warn("navigator.share failed, fallback to clipboard:", err);
+    }
+  }
+
+  // Fallback: Copy to clipboard
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+    }
+
+    if (btnShareRide) {
+      btnShareRide.classList.add("copied");
+      setTimeout(() => {
+        btnShareRide.classList.remove("copied");
+      }, 2000);
+    }
+
+    showToast("Skopiowano link do treningu do schowka! 🔗", "success");
+  } catch (err) {
+    console.error("Clipboard copy failed:", err);
+    showToast("Nie udało się skopiować linku automatycznie.", "error");
+  }
+}
+
 async function initApp() {
   // 1. Initialize Map
   initMap("map");
 
-    // 2. Initialize Profile Chart
-    const profileContainer = document.getElementById("profile-chart-panel");
-    const profileCanvas = document.getElementById("profile-canvas");
-    if (profileContainer && profileCanvas) {
-        profileChart = new ProfileChart({
-            container: profileContainer,
-            canvas: profileCanvas,
-            btnSpeed: document.getElementById("btn-toggle-speed"),
-            btnElevation: document.getElementById("btn-toggle-elevation"),
-            btnCollapse: document.getElementById("btn-toggle-chart-collapse"),
-            chartBody: document.getElementById("profile-chart-body"),
-            tooltipContainer: document.getElementById("profile-scrub-tooltip"),
-            scrubDist: document.getElementById("scrub-dist"),
-            scrubSpeed: document.getElementById("scrub-speed"),
-            scrubEle: document.getElementById("scrub-ele"),
-            collapseIcon: document.getElementById("collapse-icon"),
-            onPointHover: (point) => {
-                if (point && point.lat != null && point.lon != null) {
-                    setScrubMarker(point.lat, point.lon);
-                } else {
-                    clearScrubMarker();
-                }
-            }
-        });
-    }
-
-    // 3. Setup UI & Auth Listeners
-    setupEventListeners();
-    setupAuthListeners();
-
-    // 4. Initialize Calendar Widget skeleton
-    if (calendarContainer) {
-        calendarWidget = new CalendarWidget(calendarContainer, {
-            onSelectRide: (rideId) => {
-                selectRide(rideId);
-                const card = document.getElementById(`card-${rideId}`);
-                if (card) {
-                    card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-                }
-            }
-        });
-    }
-
-    // 5. Watch Auth State
-    onAuthStateChange(async (user) => {
-        currentUser = user;
-        if (user) {
-            // User signed in
-            if (userInfoEl) userInfoEl.style.display = "flex";
-            if (userGuestEl) userGuestEl.style.display = "none";
-
-            const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Użytkownik');
-            if (userNameEl) userNameEl.textContent = displayName;
-            if (userEmailEl) userEmailEl.textContent = user.email || '';
-
-            if (userAvatarEl) {
-                if (user.photoURL) {
-                    userAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" referrerpolicy="no-referrer">`;
-                } else {
-                    userAvatarEl.textContent = displayName.charAt(0).toUpperCase();
-                }
-            }
-
-            closeAuthModal();
-            await loadUserRides(user.uid);
+  // 2. Initialize Profile Chart
+  const profileContainer = document.getElementById("profile-chart-panel");
+  const profileCanvas = document.getElementById("profile-canvas");
+  if (profileContainer && profileCanvas) {
+    profileChart = new ProfileChart({
+      container: profileContainer,
+      canvas: profileCanvas,
+      btnSpeed: document.getElementById("btn-toggle-speed"),
+      btnElevation: document.getElementById("btn-toggle-elevation"),
+      btnCollapse: document.getElementById("btn-toggle-chart-collapse"),
+      chartBody: document.getElementById("profile-chart-body"),
+      tooltipContainer: document.getElementById("profile-scrub-tooltip"),
+      scrubDist: document.getElementById("scrub-dist"),
+      scrubSpeed: document.getElementById("scrub-speed"),
+      scrubEle: document.getElementById("scrub-ele"),
+      collapseIcon: document.getElementById("collapse-icon"),
+      onPointHover: (point) => {
+        if (point?.lat != null && point?.lon != null) {
+          setScrubMarker(point.lat, point.lon);
         } else {
-            // User signed out
-            if (userInfoEl) userInfoEl.style.display = "none";
-            if (userGuestEl) userGuestEl.style.display = "flex";
-
-            allRides = [];
-            selectedRideId = null;
-
-            updateStatsBanner([]);
-            if (calendarWidget) {
-                calendarWidget.setRides([]);
-            }
-            if (floatingDetail) {
-                floatingDetail.classList.remove("active");
-            }
-            if (profileChart) {
-                profileChart.hide();
-            }
-            clearScrubMarker();
-            displayAllRoutesOverview([]);
-            renderRidesList([]);
-
-            openAuthModal('login');
+          clearScrubMarker();
         }
+      }
     });
+  }
+
+  // 3. Setup UI & Auth Listeners
+  setupEventListeners();
+  setupAuthListeners();
+
+  // 4. Initialize Calendar Widget skeleton
+  if (calendarContainer) {
+    calendarWidget = new CalendarWidget(calendarContainer, {
+      onSelectRide: (rideId) => {
+        selectRide(rideId);
+        const card = document.getElementById(`card-${rideId}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    });
+  }
+
+  // 5. Watch Auth State
+  onAuthStateChange(async (user) => {
+    currentUser = user;
+    if (user) {
+      // User signed in
+      if (userInfoEl) userInfoEl.style.display = "flex";
+      if (userGuestEl) userGuestEl.style.display = "none";
+
+      const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Użytkownik');
+      if (userNameEl) userNameEl.textContent = displayName;
+      if (userEmailEl) userEmailEl.textContent = user.email || '';
+
+      if (userAvatarEl) {
+        if (user.photoURL) {
+          userAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" referrerpolicy="no-referrer">`;
+        } else {
+          userAvatarEl.textContent = displayName.charAt(0).toUpperCase();
+        }
+      }
+
+      closeAuthModal();
+      await loadUserRides(user.uid);
+    } else {
+      // User signed out
+      if (userInfoEl) userInfoEl.style.display = "none";
+      if (userGuestEl) userGuestEl.style.display = "flex";
+
+      const urlRideId = getRideIdFromUrl();
+
+      if (urlRideId) {
+        // Guest opened a shared ride link directly!
+        closeAuthModal();
+        ridesListContainer.innerHTML = `
+                  <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--accent-orange); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 12px; font-size: 13px;">Wczytywanie udostępnionego treningu...</p>
+                  </div>
+                `;
+
+        try {
+          const sharedRide = await fetchRideById(urlRideId);
+          if (sharedRide) {
+            sharedRide.isShared = true;
+            allRides = [sharedRide];
+            updateStatsBanner(allRides);
+            if (calendarWidget) calendarWidget.setRides(allRides);
+            renderRidesList(allRides);
+            enrichRidesWithLocation(allRides);
+            selectRide(sharedRide.id);
+            showToast("Wyświetlasz udostępniony trening", "info");
+            return;
+          } else {
+            showToast("Nie znaleziono wskazanego treningu", "error");
+          }
+        } catch (err) {
+          console.error("Error loading shared ride for guest:", err);
+        }
+      }
+
+      allRides = [];
+      selectedRideId = null;
+
+      updateStatsBanner([]);
+      if (calendarWidget) {
+        calendarWidget.setRides([]);
+      }
+      if (floatingDetail) {
+        floatingDetail.classList.remove("active");
+      }
+      if (profileChart) {
+        profileChart.hide();
+      }
+      clearScrubMarker();
+      displayAllRoutesOverview([]);
+      renderRidesList([]);
+
+      if (!urlRideId) {
+        openAuthModal('login');
+      }
+    }
+  });
 }
 
 /**
@@ -161,38 +315,74 @@ async function initApp() {
  * @param {string} userId
  */
 async function loadUserRides(userId) {
-    try {
-        ridesListContainer.innerHTML = `
+  const urlRideId = getRideIdFromUrl();
+  try {
+    ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 40px; color: var(--text-muted);">
         <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--accent-orange); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
         <p style="margin-top: 12px; font-size: 13px;">Wczytywanie Twoich treningów...</p>
       </div>
     `;
 
-        allRides = await fetchUserRides(userId);
+    allRides = await fetchUserRides(userId);
 
-        // Update Overall Stats
-        updateStatsBanner(allRides);
+    let targetRideId = null;
 
-        // Update Calendar Widget
-        if (calendarWidget) {
+    // If URL has a specific ride ID, check if it's in allRides or fetch as shared ride
+    if (urlRideId) {
+      const existing = allRides.find(r => r.id === urlRideId);
+      if (existing) {
+        targetRideId = existing.id;
+      } else {
+        try {
+          const sharedRide = await fetchRideById(urlRideId);
+          if (sharedRide) {
+            sharedRide.isShared = true;
+            allRides = [sharedRide, ...allRides];
+            targetRideId = sharedRide.id;
+            showToast("Wczytano udostępniony trening", "info");
+          } else {
+            showToast("Nie znaleziono treningu z podanego linku", "error");
+          }
+        } catch (err) {
+          console.warn("Could not fetch shared ride:", err);
+        }
+      }
+    }
+
+    if (!targetRideId && allRides.length > 0) {
+      targetRideId = allRides[0].id;
+    }
+
+    // Update Overall Stats
+    updateStatsBanner(allRides);
+
+    // Update Calendar Widget
+    if (calendarWidget) {
       calendarWidget.setRides(allRides);
     }
 
-        // Render Ride List
+    // Render Ride List
     renderRidesList(allRides);
 
-        // Select first ride or clear map
-    if (allRides.length > 0) {
-      selectRide(allRides[0].id);
+    // Enrich legacy rides with location from OSM in background
+    enrichRidesWithLocation(allRides);
+
+    // Select targeted ride or clear map
+    if (targetRideId) {
+      selectRide(targetRideId);
+      const card = document.getElementById(`card-${targetRideId}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     } else {
-        if (floatingDetail) floatingDetail.classList.remove("active");
-        if (profileChart) profileChart.hide();
-        clearScrubMarker();
-        displayAllRoutesOverview([]);
+      if (floatingDetail) floatingDetail.classList.remove("active");
+      if (profileChart) profileChart.hide();
+      clearScrubMarker();
+      displayAllRoutesOverview([]);
     }
   } catch (error) {
-        console.error("Error loading user rides:", error);
+    console.error("Error loading user rides:", error);
     ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 30px; color: var(--accent-red);">
         Nie udało się wczytać treningów. Sprawdź konsolę.
@@ -212,8 +402,8 @@ function renderRidesList(rides) {
   ridesListContainer.innerHTML = "";
 
   if (rides.length === 0) {
-      if (!currentUser) {
-          ridesListContainer.innerHTML = `
+    if (!currentUser) {
+      ridesListContainer.innerHTML = `
         <div style="text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 13px;">
           <p style="margin-bottom: 14px;">Zaloguj się, aby wyświetlić swoje treningi.</p>
           <button class="btn-login-open" style="display: inline-flex; width: auto; margin: 0 auto;" id="btn-list-login">
@@ -221,23 +411,23 @@ function renderRidesList(rides) {
           </button>
         </div>
       `;
-          const btn = document.getElementById("btn-list-login");
-          if (btn) btn.addEventListener("click", () => openAuthModal('login'));
-      } else if (searchInput && searchInput.value.trim().length > 0) {
-          ridesListContainer.innerHTML = `
+      const btn = document.getElementById("btn-list-login");
+      if (btn) btn.addEventListener("click", () => openAuthModal('login'));
+    } else if (searchInput && searchInput.value.trim().length > 0) {
+      ridesListContainer.innerHTML = `
         <div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">
           Brak treningów pasujących do wyszukiwania.
         </div>
       `;
-      } else {
-          ridesListContainer.innerHTML = `
+    } else {
+      ridesListContainer.innerHTML = `
         <div style="text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px; line-height: 1.6;">
           <div style="font-size: 32px; margin-bottom: 10px;">🚴</div>
           <strong style="color: var(--text-main); font-size: 14px; display: block; margin-bottom: 6px;">Brak zarejestrowanych treningów</strong>
           <p>Uruchom aplikację mobilną Bike Tracker na telefonie i nagraj swój pierwszy przejazd!</p>
         </div>
       `;
-      }
+    }
     return;
   }
 
@@ -249,11 +439,21 @@ function renderRidesList(rides) {
     const dateFormatted = formatDate(ride.startTime);
     const durationFormatted = formatDuration(ride.durationSeconds);
     const elevationStr = ride.elevationGain != null ? `↑ ${ride.elevationGain}m` : '';
+    const locationBadge = ride.locationName
+      ? `<span class="ride-location" title="${ride.locationName}">📍 ${ride.locationName}</span>`
+      : '';
+    const sharedBadge = ride.isShared
+      ? '<span class="badge-shared" title="Udostępniony trening">🔗 Udostępniony</span>'
+      : '';
 
     card.innerHTML = `
       <div class="ride-card-header">
         <span class="ride-date">${dateFormatted}</span>
-        ${ride.isDemo ? '<span class="badge-demo">Demo</span>' : ''}
+        <div class="ride-card-badges">
+          ${sharedBadge}
+          ${locationBadge}
+          ${ride.isDemo ? '<span class="badge-demo">Demo</span>' : ''}
+        </div>
       </div>
       <div class="ride-card-main">
         <div class="ride-distance">
@@ -282,15 +482,118 @@ function renderRidesList(rides) {
     const downloadBtn = card.querySelector(".btn-download-gpx");
     downloadBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-        downloadGpx(ride);
+      downloadGpx(ride);
     });
 
     ridesListContainer.appendChild(card);
   });
 }
 
+// Reverse Geocoding Cache & Background Enrichment
+const GEO_CACHE_KEY = "bike_tracker_geo_cache_v1";
+
+function getGeoCache() {
+  try {
+    return JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || "{}");
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveGeoCache(cache) {
+  try {
+    localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    // Ignore storage quota errors
+  }
+}
+
+let isEnriching = false;
+async function enrichRidesWithLocation(rides) {
+  if (!rides || rides.length === 0 || isEnriching) return;
+  isEnriching = true;
+  try {
+    const cache = getGeoCache();
+    let updatedCount = 0;
+
+    for (const ride of rides) {
+      if (ride.locationName) continue;
+      if (!ride.encodedPolyline) continue;
+
+      if (cache[ride.id]) {
+        ride.locationName = cache[ride.id];
+        updatedCount++;
+        continue;
+      }
+
+      const coords = decodePolyline(ride.encodedPolyline);
+      if (!coords || coords.length === 0) continue;
+
+      const [lat, lon] = coords[0];
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14&addressdetails=1`, {
+          headers: { "Accept-Language": "pl" }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || data.address?.county || "";
+          const district = data.address?.suburb || data.address?.city_district || data.address?.neighbourhood || "";
+          let loc = "";
+          if (city && district && city.toLowerCase() !== district.toLowerCase()) {
+            loc = `${city}, ${district}`;
+          } else if (city) {
+            loc = city;
+          } else if (district) {
+            loc = district;
+          } else if (data.display_name) {
+            loc = data.display_name.split(",")[0];
+          }
+
+          if (loc) {
+            ride.locationName = loc;
+            cache[ride.id] = loc;
+            saveGeoCache(cache);
+            updatedCount++;
+          }
+        }
+        // Small throttle for OSM Nominatim usage policy
+        await new Promise(r => setTimeout(r, 1100));
+      } catch (err) {
+        console.warn("Geocoding failed for ride", ride.id, err);
+      }
+    }
+
+    if (updatedCount > 0) {
+      const term = searchInput ? searchInput.value.toLowerCase().trim() : "";
+      if (term) {
+        filterAndRenderRides(term);
+      } else {
+        renderRidesList(allRides);
+      }
+      if (selectedRideId) {
+        const current = allRides.find(r => r.id === selectedRideId);
+        if (current) showFloatingDetail(current);
+      }
+    }
+  } finally {
+    isEnriching = false;
+  }
+}
+
+function filterAndRenderRides(term) {
+  const filtered = allRides.filter(r => {
+    const titleMatch = (r.title || "").toLowerCase().includes(term);
+    const locationMatch = (r.locationName || "").toLowerCase().includes(term);
+    const distMatch = r.distanceKm.toString().includes(term);
+    const dateMatch = formatDate(r.startTime).toLowerCase().includes(term);
+    return titleMatch || locationMatch || distMatch || dateMatch;
+  });
+  renderRidesList(filtered);
+}
+
 async function selectRide(rideId) {
   selectedRideId = rideId;
+  updateUrlWithRideId(rideId);
 
   // Update card highlighting
   document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
@@ -308,32 +611,43 @@ async function selectRide(rideId) {
   // Update floating detail panel
   showFloatingDetail(ride);
 
-    // Fetch and display route profile chart
-    if (profileChart) {
-        try {
-            const points = await fetchRideProfile(ride);
-            if (selectedRideId === rideId) {
-                profileChart.setData(points);
-            }
-        } catch (err) {
-            console.warn("Failed to load profile points for ride:", err);
-            profileChart.hide();
-        }
+  // Fetch and display route profile chart
+  if (profileChart) {
+    try {
+      const points = await fetchRideProfile(ride);
+      if (selectedRideId === rideId) {
+        profileChart.setData(points);
+      }
+    } catch (err) {
+      console.warn("Failed to load profile points for ride:", err);
+      profileChart.hide();
     }
+  }
 }
 
 function showFloatingDetail(ride) {
   if (!floatingDetail) return;
 
-  detailTitle.textContent = ride.title || `Trening z dnia ${formatDate(ride.startTime)}`;
-  detailDate.textContent = formatDate(ride.startTime);
+  detailTitle.textContent = ride.locationName
+    ? `📍 ${ride.locationName}`
+    : (ride.title || `Trening z dnia ${formatDate(ride.startTime)}`);
+  detailDate.textContent = ride.locationName
+    ? `${formatDate(ride.startTime)} • Trening rowerowy`
+    : formatDate(ride.startTime);
   detailDist.textContent = `${ride.distanceKm.toFixed(2)} km`;
   detailDur.textContent = formatDuration(ride.durationSeconds);
   detailAvg.textContent = `${ride.avgSpeedKmh.toFixed(1)} km/h`;
   detailEle.textContent = ride.elevationGain != null ? `+${ride.elevationGain} m` : '—';
 
+  if (btnShareRide) {
+    const shareUrl = buildShareUrl(ride.id);
+    btnShareRide.href = shareUrl;
+    btnShareRide.dataset.shareUrl = shareUrl;
+    btnShareRide.setAttribute("title", `Udostępnij trening (${ride.distanceKm.toFixed(1)} km)`);
+  }
+
   btnDetailGpx.onclick = () => {
-      downloadGpx(ride);
+    downloadGpx(ride);
   };
 
   floatingDetail.classList.add("active");
@@ -344,13 +658,7 @@ function setupEventListeners() {
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const term = e.target.value.toLowerCase().trim();
-      const filtered = allRides.filter(r => {
-        const titleMatch = (r.title || "").toLowerCase().includes(term);
-        const distMatch = r.distanceKm.toString().includes(term);
-        const dateMatch = formatDate(r.startTime).toLowerCase().includes(term);
-        return titleMatch || distMatch || dateMatch;
-      });
-      renderRidesList(filtered);
+      filterAndRenderRides(term);
     });
   }
 
@@ -359,12 +667,45 @@ function setupEventListeners() {
     btnOverview.addEventListener("click", () => {
       document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
       selectedRideId = null;
+      updateUrlWithRideId(null);
       if (floatingDetail) floatingDetail.classList.remove("active");
-        if (profileChart) profileChart.hide();
-        clearScrubMarker();
+      if (profileChart) profileChart.hide();
+      clearScrubMarker();
       displayAllRoutesOverview(allRides);
     });
   }
+
+  // Share button click
+  if (btnShareRide) {
+    btnShareRide.addEventListener("click", handleShareClick);
+  }
+
+  // Handle browser back/forward history navigation
+  window.addEventListener("popstate", () => {
+    const urlRideId = getRideIdFromUrl();
+    if (urlRideId && urlRideId !== selectedRideId) {
+      const found = allRides.find(r => r.id === urlRideId);
+      if (found) {
+        selectRide(found.id);
+      } else {
+        fetchRideById(urlRideId).then(sharedRide => {
+          if (sharedRide) {
+            sharedRide.isShared = true;
+            allRides = [sharedRide, ...allRides];
+            renderRidesList(allRides);
+            selectRide(sharedRide.id);
+          }
+        });
+      }
+    } else if (!urlRideId && selectedRideId) {
+      selectedRideId = null;
+      document.querySelectorAll(".ride-card").forEach(c => c.classList.remove("selected"));
+      if (floatingDetail) floatingDetail.classList.remove("active");
+      if (profileChart) profileChart.hide();
+      clearScrubMarker();
+      displayAllRoutesOverview(allRides);
+    }
+  });
 }
 
 // ==========================================================================
@@ -372,146 +713,146 @@ function setupEventListeners() {
 // ==========================================================================
 
 function switchAuthMode(mode) {
-    authMode = mode;
-    hideAuthAlert();
+  authMode = mode;
+  hideAuthAlert();
 
-    if (mode === 'login') {
-        if (tabLogin) tabLogin.classList.add("active");
-        if (tabRegister) tabRegister.classList.remove("active");
-        if (authSubmitText) authSubmitText.textContent = "Zaloguj się";
-        if (authModalSubtitle) authModalSubtitle.textContent = "Zaloguj się, aby wyświetlić swoje treningi";
-    } else {
-        if (tabRegister) tabRegister.classList.add("active");
-        if (tabLogin) tabLogin.classList.remove("active");
-        if (authSubmitText) authSubmitText.textContent = "Utwórz konto";
-        if (authModalSubtitle) authModalSubtitle.textContent = "Zarejestruj się, aby zapisywać i przeglądać treningi";
-    }
+  if (mode === 'login') {
+    if (tabLogin) tabLogin.classList.add("active");
+    if (tabRegister) tabRegister.classList.remove("active");
+    if (authSubmitText) authSubmitText.textContent = "Zaloguj się";
+    if (authModalSubtitle) authModalSubtitle.textContent = "Zaloguj się, aby wyświetlić swoje treningi";
+  } else {
+    if (tabRegister) tabRegister.classList.add("active");
+    if (tabLogin) tabLogin.classList.remove("active");
+    if (authSubmitText) authSubmitText.textContent = "Utwórz konto";
+    if (authModalSubtitle) authModalSubtitle.textContent = "Zarejestruj się, aby zapisywać i przeglądać treningi";
+  }
 }
 
 function openAuthModal(mode = 'login') {
-    switchAuthMode(mode);
-    if (authModal) authModal.style.display = "flex";
-    if (authEmailInput) authEmailInput.focus();
+  switchAuthMode(mode);
+  if (authModal) authModal.style.display = "flex";
+  if (authEmailInput) authEmailInput.focus();
 }
 
 function closeAuthModal() {
-    if (authModal) authModal.style.display = "none";
-    hideAuthAlert();
-    if (authForm) authForm.reset();
-    setAuthLoading(false);
+  if (authModal) authModal.style.display = "none";
+  hideAuthAlert();
+  if (authForm) authForm.reset();
+  setAuthLoading(false);
 }
 
 function showAuthAlert(message) {
-    if (authAlert && authAlertMsg) {
-        authAlertMsg.textContent = message;
-        authAlert.style.display = "flex";
-    }
+  if (authAlert && authAlertMsg) {
+    authAlertMsg.textContent = message;
+    authAlert.style.display = "flex";
+  }
 }
 
 function hideAuthAlert() {
-    if (authAlert) {
-        authAlert.style.display = "none";
-    }
+  if (authAlert) {
+    authAlert.style.display = "none";
+  }
 }
 
 function setAuthLoading(isLoading) {
-    if (btnAuthSubmit) btnAuthSubmit.disabled = isLoading;
-    if (btnGoogleAuth) btnGoogleAuth.disabled = isLoading;
-    if (authSpinner) authSpinner.style.display = isLoading ? "inline-block" : "none";
-    if (authSubmitText) authSubmitText.style.display = isLoading ? "none" : "inline";
+  if (btnAuthSubmit) btnAuthSubmit.disabled = isLoading;
+  if (btnGoogleAuth) btnGoogleAuth.disabled = isLoading;
+  if (authSpinner) authSpinner.style.display = isLoading ? "inline-block" : "none";
+  if (authSubmitText) authSubmitText.style.display = isLoading ? "none" : "inline";
 }
 
 function setupAuthListeners() {
-    // Open / Close modal
-    if (btnLoginOpen) {
-        btnLoginOpen.addEventListener("click", () => openAuthModal('login'));
-    }
+  // Open / Close modal
+  if (btnLoginOpen) {
+    btnLoginOpen.addEventListener("click", () => openAuthModal('login'));
+  }
 
-    if (btnAuthClose) {
-        btnAuthClose.addEventListener("click", () => closeAuthModal());
-    }
+  if (btnAuthClose) {
+    btnAuthClose.addEventListener("click", () => closeAuthModal());
+  }
 
-    if (authModal) {
-        authModal.addEventListener("click", (e) => {
-            if (e.target === authModal) {
-                closeAuthModal();
-            }
-        });
-    }
-
-    document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && authModal && authModal.style.display !== "none") {
-            closeAuthModal();
-        }
+  if (authModal) {
+    authModal.addEventListener("click", (e) => {
+      if (e.target === authModal) {
+        closeAuthModal();
+      }
     });
+  }
 
-    // Tab switching
-    if (tabLogin) {
-        tabLogin.addEventListener("click", () => switchAuthMode('login'));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && authModal && authModal.style.display !== "none") {
+      closeAuthModal();
     }
-    if (tabRegister) {
-        tabRegister.addEventListener("click", () => switchAuthMode('register'));
-    }
+  });
 
-    // Logout button
-    if (btnLogout) {
-        btnLogout.addEventListener("click", async () => {
-            try {
-                await signOutUser();
-            } catch (err) {
-                console.error("Sign out error:", err);
-            }
-        });
-    }
+  // Tab switching
+  if (tabLogin) {
+    tabLogin.addEventListener("click", () => switchAuthMode('login'));
+  }
+  if (tabRegister) {
+    tabRegister.addEventListener("click", () => switchAuthMode('register'));
+  }
 
-    // Email/password form submission
-    if (authForm) {
-        authForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const email = authEmailInput ? authEmailInput.value.trim() : '';
-            const password = authPasswordInput ? authPasswordInput.value : '';
+  // Logout button
+  if (btnLogout) {
+    btnLogout.addEventListener("click", async () => {
+      try {
+        await signOutUser();
+      } catch (err) {
+        console.error("Sign out error:", err);
+      }
+    });
+  }
 
-            if (!email || !password) {
-                showAuthAlert("Wypełnij wszystkie pola formularza.");
-                return;
-            }
+  // Email/password form submission
+  if (authForm) {
+    authForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = authEmailInput ? authEmailInput.value.trim() : '';
+      const password = authPasswordInput ? authPasswordInput.value : '';
 
-            setAuthLoading(true);
-            hideAuthAlert();
+      if (!email || !password) {
+        showAuthAlert("Wypełnij wszystkie pola formularza.");
+        return;
+      }
 
-            try {
-                if (authMode === 'login') {
-                    await signInWithEmail(email, password);
-                } else {
-                    await signUpWithEmail(email, password);
-                }
-                // onAuthStateChange callback handles UI update & modal close
-            } catch (err) {
-                console.error("Auth error:", err);
-                showAuthAlert(err.message || "Wystąpił błąd autoryzacji.");
-            } finally {
-                setAuthLoading(false);
-            }
-        });
-    }
+      setAuthLoading(true);
+      hideAuthAlert();
 
-    // Google sign in button
-    if (btnGoogleAuth) {
-        btnGoogleAuth.addEventListener("click", async () => {
-            setAuthLoading(true);
-            hideAuthAlert();
+      try {
+        if (authMode === 'login') {
+          await signInWithEmail(email, password);
+        } else {
+          await signUpWithEmail(email, password);
+        }
+        // onAuthStateChange callback handles UI update & modal close
+      } catch (err) {
+        console.error("Auth error:", err);
+        showAuthAlert(err.message || "Wystąpił błąd autoryzacji.");
+      } finally {
+        setAuthLoading(false);
+      }
+    });
+  }
 
-            try {
-                await signInWithGoogle();
-                // onAuthStateChange callback handles UI update & modal close
-            } catch (err) {
-                console.error("Google auth error:", err);
-                showAuthAlert(err.message || "Błąd logowania przez Google.");
-            } finally {
-                setAuthLoading(false);
-            }
-        });
-    }
+  // Google sign in button
+  if (btnGoogleAuth) {
+    btnGoogleAuth.addEventListener("click", async () => {
+      setAuthLoading(true);
+      hideAuthAlert();
+
+      try {
+        await signInWithGoogle();
+        // onAuthStateChange callback handles UI update & modal close
+      } catch (err) {
+        console.error("Google auth error:", err);
+        showAuthAlert(err.message || "Błąd logowania przez Google.");
+      } finally {
+        setAuthLoading(false);
+      }
+    });
+  }
 }
 
 // Add spinning animation for loading spinner

@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.biketracker.data.model.Ride
 import com.biketracker.data.model.RouteProfilePoint
+import com.biketracker.data.repository.AuthRepository
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.domain.util.GpxGenerator
 import com.biketracker.domain.util.GpxParser
@@ -26,6 +27,7 @@ import javax.inject.Inject
 data class RideDetailUiState(
     val isLoading: Boolean = true,
     val ride: Ride? = null,
+    val isOwner: Boolean = false,
     val routeCoordinates: List<Pair<Double, Double>> = emptyList(),
     val profilePoints: List<RouteProfilePoint> = emptyList(),
     val isLoadingProfile: Boolean = false,
@@ -37,8 +39,9 @@ data class RideDetailUiState(
 @HiltViewModel
 class RideDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    @ApplicationContext private val context: Context,
-    private val rideRepository: RideRepository
+    @param:ApplicationContext private val context: Context,
+    private val rideRepository: RideRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val rideId: String = checkNotNull(savedStateHandle["rideId"])
@@ -53,29 +56,56 @@ class RideDetailViewModel @Inject constructor(
     private fun loadRide() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            rideRepository.getRides().collect { rides ->
-                val ride = rides.find { it.id == rideId }
-                if (ride != null) {
-                    val coords = PolylineEncoder.decode(ride.encodedPolyline)
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            ride = ride,
-                            routeCoordinates = coords,
-                            isLoadingProfile = true
-                        )
-                    }
-                    loadProfileData(ride, coords)
-                } else if (_uiState.value.ride == null) {
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Nie znaleziono treningu"
-                        )
-                    }
+            val result = rideRepository.getRide(rideId)
+            if (result.isSuccess) {
+                val ride = result.getOrThrow()
+                val coords = PolylineEncoder.decode(ride.encodedPolyline)
+                val isOwner = authRepository.currentUser?.uid == ride.userId
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        ride = ride,
+                        isOwner = isOwner,
+                        routeCoordinates = coords,
+                        isLoadingProfile = true
+                    )
+                }
+                loadProfileData(ride, coords)
+            } else {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Nie znaleziono treningu"
+                    )
                 }
             }
         }
+    }
+
+    fun shareRideLink() {
+        val currentRide = _uiState.value.ride ?: return
+        val title =
+            currentRide.locationName.ifBlank { currentRide.title }.ifBlank { "Trening rowerowy" }
+        val shareUrl = "https://janisbe.github.io/bike-tracker/?ride=${currentRide.id}"
+        val shareText = "Zobacz mój trening rowerowy ($title, ${
+            String.format(
+                Locale.US,
+                "%.1f",
+                currentRide.distanceKm
+            )
+        } km) w Bike Tracker:\n$shareUrl"
+
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "Trening rowerowy: $title")
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        val chooser = Intent.createChooser(sendIntent, "Udostępnij link do treningu").apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(chooser)
     }
 
     private fun loadProfileData(ride: Ride, coords: List<Pair<Double, Double>>) {

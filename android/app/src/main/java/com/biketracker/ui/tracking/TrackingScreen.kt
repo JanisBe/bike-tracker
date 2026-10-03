@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -59,6 +61,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -196,6 +199,12 @@ fun TrackingScreen(
         }
     }
 
+    var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(enabled = isMapFullscreen) {
+        isMapFullscreen = false
+    }
+
     BackHandler(enabled = isTracking || showGpsWarningDialog) {
         if (showGpsWarningDialog) {
             showGpsWarningDialog = false
@@ -285,14 +294,31 @@ fun TrackingScreen(
                 .padding(paddingValues)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Map View (Top 55%)
+                // Map View (Top 55% or Fullscreen)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.55f)
+                        .weight(if (isMapFullscreen) 1f else 0.55f)
                 ) {
                     if (hasLocationPermission) {
                         TrackingOsmMapView(trackPoints = trackPoints)
+
+                        IconButton(
+                            onClick = { isMapFullscreen = !isMapFullscreen },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(12.dp)
+                                .size(36.dp)
+                                .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                .border(1.dp, CardBorder, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = if (isMapFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                contentDescription = if (isMapFullscreen) "Zmniejsz mapę" else "Pełny ekran",
+                                tint = TextPrimary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     } else {
                         Box(
                             modifier = Modifier
@@ -310,242 +336,244 @@ fun TrackingScreen(
                 }
 
                 // Live Stats & Controls Panel (Bottom 45%)
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(0.45f)
-                        .border(
-                            1.dp,
-                            CardBorder,
-                            RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                        ),
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface)
-                ) {
-                    Column(
+                if (!isMapFullscreen) {
+                    Card(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
+                            .fillMaxWidth()
+                            .weight(0.45f)
+                            .border(
+                                1.dp,
+                                CardBorder,
+                                RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                            ),
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface)
                     ) {
-                        // GPS Waiting Banner
-                        if (isWaitingForGps) {
-                            val qualityBadgeText = when (satelliteInfo.signalQuality) {
-                                SignalQuality.EXCELLENT -> "Sygnał idealny"
-                                SignalQuality.GOOD -> "Sygnał dobry"
-                                SignalQuality.POOR -> "Sygnał słaby"
-                                SignalQuality.NONE -> "Brak fix-a"
-                            }
-                            val qualityColor = when (satelliteInfo.signalQuality) {
-                                SignalQuality.EXCELLENT, SignalQuality.GOOD -> SuccessGreen
-                                SignalQuality.POOR -> OrangeAccent
-                                SignalQuality.NONE -> TextSecondary
-                            }
-                            val satelliteTitle = if (satelliteInfo.total > 0) {
-                                "Satelity: ${satelliteInfo.used}/${satelliteInfo.total}"
-                            } else {
-                                "Szukanie satelitów GPS..."
-                            }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // GPS Waiting Banner
+                            if (isWaitingForGps) {
+                                val qualityBadgeText = when (satelliteInfo.signalQuality) {
+                                    SignalQuality.EXCELLENT -> "Sygnał idealny"
+                                    SignalQuality.GOOD -> "Sygnał dobry"
+                                    SignalQuality.POOR -> "Sygnał słaby"
+                                    SignalQuality.NONE -> "Brak fix-a"
+                                }
+                                val qualityColor = when (satelliteInfo.signalQuality) {
+                                    SignalQuality.EXCELLENT, SignalQuality.GOOD -> SuccessGreen
+                                    SignalQuality.POOR -> OrangeAccent
+                                    SignalQuality.NONE -> TextSecondary
+                                }
+                                val satelliteTitle = if (satelliteInfo.total > 0) {
+                                    "Satelity: ${satelliteInfo.used}/${satelliteInfo.total}"
+                                } else {
+                                    "Szukanie satelitów GPS..."
+                                }
 
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
-                                shape = RoundedCornerShape(14.dp),
-                                border = BorderStroke(1.dp, CardBorder)
-                            ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                                    shape = RoundedCornerShape(14.dp),
+                                    border = BorderStroke(1.dp, CardBorder)
                                 ) {
-                                    // Row 1: Icon/Spinner + Satellite title + Quality Badge
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
+                                        // Row 1: Icon/Spinner + Satellite title + Quality Badge
                                         Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f, fill = false)
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            if (satelliteInfo.isGoodSignal) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Sensors,
-                                                    contentDescription = null,
-                                                    tint = SuccessGreen,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            } else {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(16.dp),
-                                                    color = OrangeAccent,
-                                                    strokeWidth = 2.dp
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            ) {
+                                                if (satelliteInfo.isGoodSignal) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Sensors,
+                                                        contentDescription = null,
+                                                        tint = SuccessGreen,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                } else {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(16.dp),
+                                                        color = OrangeAccent,
+                                                        strokeWidth = 2.dp
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = satelliteTitle,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (satelliteInfo.isGoodSignal) SuccessGreen else OrangeAccent,
+                                                    fontSize = 13.sp
                                                 )
                                             }
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = satelliteTitle,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (satelliteInfo.isGoodSignal) SuccessGreen else OrangeAccent,
-                                                fontSize = 13.sp
-                                            )
-                                        }
 
-                                        Surface(
-                                            color = qualityColor.copy(alpha = 0.15f),
-                                            shape = RoundedCornerShape(6.dp)
-                                        ) {
-                                            Text(
-                                                text = qualityBadgeText,
-                                                color = qualityColor,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                modifier = Modifier.padding(
-                                                    horizontal = 8.dp,
-                                                    vertical = 3.dp
+                                            Surface(
+                                                color = qualityColor.copy(alpha = 0.15f),
+                                                shape = RoundedCornerShape(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = qualityBadgeText,
+                                                    color = qualityColor,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    modifier = Modifier.padding(
+                                                        horizontal = 8.dp,
+                                                        vertical = 3.dp
+                                                    )
                                                 )
-                                            )
+                                            }
                                         }
-                                    }
 
-                                    // Row 2: Subtitle guidance + "Start teraz" button
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = when {
-                                                satelliteInfo.isGoodSignal -> "Stabilny sygnał – czekam na fix..."
-                                                satelliteInfo.used in 4..6 -> "Wykryto ${satelliteInfo.used} satelity – stabilizacja..."
-                                                else -> "Start po wykryciu min. 4 satelitów"
-                                            },
-                                            color = TextSecondary,
-                                            fontSize = 11.sp,
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        )
-
-                                        TextButton(
-                                            onClick = { viewModel.forceStartTracking() },
-                                            contentPadding = PaddingValues(
-                                                horizontal = 8.dp,
-                                                vertical = 0.dp
-                                            ),
-                                            modifier = Modifier.height(28.dp)
+                                        // Row 2: Subtitle guidance + "Start teraz" button
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = "Start teraz",
-                                                color = OrangeAccent,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp
+                                                text = when {
+                                                    satelliteInfo.isGoodSignal -> "Stabilny sygnał – czekam na fix..."
+                                                    satelliteInfo.used in 4..6 -> "Wykryto ${satelliteInfo.used} satelity – stabilizacja..."
+                                                    else -> "Start po wykryciu min. 4 satelitów"
+                                                },
+                                                color = TextSecondary,
+                                                fontSize = 11.sp,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
+
+                                            TextButton(
+                                                onClick = { viewModel.forceStartTracking() },
+                                                contentPadding = PaddingValues(
+                                                    horizontal = 8.dp,
+                                                    vertical = 0.dp
+                                                ),
+                                                modifier = Modifier.height(28.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Start teraz",
+                                                    color = OrangeAccent,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        // Main Speed Display
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.Bottom
-                        ) {
-                            Text(
-                                text = "%.1f".format(currentSpeedKmh),
-                                fontSize = 56.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "km/h",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = OrangeAccent,
-                                modifier = Modifier.padding(bottom = 10.dp)
-                            )
-                        }
-
-                        // Secondary Stats Row (Distance & Time)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
-                        ) {
-                            val minutes = elapsedSeconds / 60
-                            val seconds = elapsedSeconds % 60
-                            val durationStr = "%02d:%02d".format(minutes, seconds)
-
-                            LiveStatItem(
-                                icon = Icons.Default.Straighten,
-                                label = "Dystans",
-                                value = "%.2f km".format(currentDistanceKm),
-                                tint = OrangeAccent
-                            )
-                            LiveStatItem(
-                                icon = Icons.Default.Schedule,
-                                label = "Czas",
-                                value = durationStr,
-                                tint = TealAccent
-                            )
-                            LiveStatItem(
-                                icon = Icons.Default.Speed,
-                                label = "Punkty",
-                                value = "${trackPoints.size}",
-                                tint = TextSecondary
-                            )
-                        }
-
-                        // Action Buttons Row
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Pause / Resume Toggle
-                            FilledIconButton(
-                                onClick = {
-                                    if (isPaused) viewModel.resumeTracking() else viewModel.pauseTracking()
-                                },
-                                modifier = Modifier.size(64.dp),
-                                shape = CircleShape,
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = if (isPaused) SuccessGreen else OrangeAccent
-                                )
+                            // Main Speed Display
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.Bottom
                             ) {
-                                Icon(
-                                    imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
-                                    contentDescription = if (isPaused) "Wznów" else "Wstrzymaj",
-                                    tint = DarkBackground,
-                                    modifier = Modifier.size(32.dp)
+                                Text(
+                                    text = "%.1f".format(currentSpeedKmh),
+                                    fontSize = 56.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "km/h",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = OrangeAccent,
+                                    modifier = Modifier.padding(bottom = 10.dp)
                                 )
                             }
 
-                            // Finish & Save Ride Button
-                            Button(
-                                onClick = { showFinishDialog = true },
-                                modifier = Modifier
-                                    .height(56.dp)
-                                    .weight(1f)
-                                    .padding(start = 16.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = TealAccent)
+                            // Secondary Stats Row (Distance & Time)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround
                             ) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = DarkBackground
+                                val minutes = elapsedSeconds / 60
+                                val seconds = elapsedSeconds % 60
+                                val durationStr = "%02d:%02d".format(minutes, seconds)
+
+                                LiveStatItem(
+                                    icon = Icons.Default.Straighten,
+                                    label = "Dystans",
+                                    value = "%.2f km".format(currentDistanceKm),
+                                    tint = OrangeAccent
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Zakończ i zapisz",
-                                    color = DarkBackground,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
+                                LiveStatItem(
+                                    icon = Icons.Default.Schedule,
+                                    label = "Czas",
+                                    value = durationStr,
+                                    tint = TealAccent
                                 )
+                                LiveStatItem(
+                                    icon = Icons.Default.Speed,
+                                    label = "Punkty",
+                                    value = "${trackPoints.size}",
+                                    tint = TextSecondary
+                                )
+                            }
+
+                            // Action Buttons Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Pause / Resume Toggle
+                                FilledIconButton(
+                                    onClick = {
+                                        if (isPaused) viewModel.resumeTracking() else viewModel.pauseTracking()
+                                    },
+                                    modifier = Modifier.size(64.dp),
+                                    shape = CircleShape,
+                                    colors = IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = if (isPaused) SuccessGreen else OrangeAccent
+                                    )
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                        contentDescription = if (isPaused) "Wznów" else "Wstrzymaj",
+                                        tint = DarkBackground,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+
+                                // Finish & Save Ride Button
+                                Button(
+                                    onClick = { showFinishDialog = true },
+                                    modifier = Modifier
+                                        .height(56.dp)
+                                        .weight(1f)
+                                        .padding(start = 16.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = TealAccent)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = DarkBackground
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Zakończ i zapisz",
+                                        color = DarkBackground,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                }
                             }
                         }
                     }

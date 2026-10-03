@@ -8,7 +8,7 @@ plugins {
 
 android {
     namespace = "com.biketracker"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.biketracker"
@@ -81,8 +81,8 @@ dependencies {
     // Firebase (BOM)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
-    implementation(libs.firebase.auth.ktx)
-    implementation(libs.firebase.firestore.ktx)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
 
     // Credentials & Auth
     implementation(libs.androidx.credentials)

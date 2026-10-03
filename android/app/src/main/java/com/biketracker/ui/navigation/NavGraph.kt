@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.biketracker.ui.detail.RideDetailScreen
 import com.biketracker.ui.home.HomeScreen
 import com.biketracker.ui.login.LoginScreen
@@ -63,11 +64,26 @@ fun NavGraph(
             route = Screen.RideDetail.route,
             arguments = listOf(
                 navArgument("rideId") { type = NavType.StringType }
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "https://janisbe.github.io/bike-tracker/?ride={rideId}"
+                },
+                navDeepLink { uriPattern = "https://bike-tracker-97e13.web.app/?ride={rideId}" },
+                navDeepLink {
+                    uriPattern = "https://bike-tracker-97e13.firebaseapp.com/?ride={rideId}"
+                },
+                navDeepLink { uriPattern = "biketracker://ride?ride={rideId}" },
+                navDeepLink { uriPattern = "biketracker://ride/{rideId}" }
             )
         ) {
             RideDetailScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    if (!navController.popBackStack()) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 }
             )
         }

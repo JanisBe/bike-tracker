@@ -110,8 +110,31 @@
 
       <!-- Floating Detail Panel (Active on selection) -->
       <div class="floating-detail-panel" id="floating-detail">
-        <h2 class="detail-title" id="detail-title">Wybrany trening</h2>
-        <div class="detail-subtitle" id="detail-date">—</div>
+          <div class="detail-header">
+              <div class="detail-header-info">
+                  <h2 class="detail-title" id="detail-title">Wybrany trening</h2>
+                  <div class="detail-subtitle" id="detail-date">—</div>
+              </div>
+              <a aria-label="Udostępnij trening" class="btn-share-ride" href="#"
+                 id="btn-share-ride" title="Udostępnij link do treningu">
+                  <svg class="icon-share" fill="none" height="18" stroke="currentColor"
+                       stroke-linecap="round"
+                       stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"
+                       width="18">
+                      <circle cx="18" cy="5" r="3"></circle>
+                      <circle cx="6" cy="12" r="3"></circle>
+                      <circle cx="18" cy="19" r="3"></circle>
+                      <line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line>
+                      <line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line>
+                  </svg>
+                  <svg class="icon-check" fill="none" height="18" stroke="currentColor"
+                       stroke-linecap="round"
+                       stroke-linejoin="round" stroke-width="2.5" style="display: none;"
+                       viewBox="0 0 24 24" width="18">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+              </a>
+          </div>
 
         <div class="detail-grid">
           <div class="detail-item-box">
@@ -237,6 +260,9 @@
               </form>
           </div>
   </div>
+  </div>
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
