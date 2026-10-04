@@ -7,9 +7,10 @@ import {
     orderBy,
     query,
     updateDoc,
-    where
+    where,
+    writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-import {decodePolyline} from './polyline-decoder.js';
+import {decodePolyline, encodePolyline} from './polyline-decoder.js';
 import {formatGpxFileName} from './stats.js';
 
 // Demo rides provided as high-quality fallback if no rides are recorded in Firestore yet
@@ -460,4 +461,230 @@ export async function updateRideTitle(rideId, newTitle) {
         throw error;
     }
 }
+
+/**
+ * Reverse geocodes coordinates to a friendly Polish locality name using OpenStreetMap Nominatim.
+ * @param {number} lat
+ * @param {number} lon
+ * @returns {Promise<string>}
+ */
+export async function resolveLocationFromCoords(lat, lon) {
+    if (lat == null || lon == null) return '';
+    try {
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=pl`;
+        const res = await fetch(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        if (!res.ok) return '';
+        const data = await res.json();
+        if (!data || !data.address) return '';
+        const addr = data.address;
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
+        const district = addr.suburb || addr.neighbourhood || addr.city_district || '';
+        if (city && district && city !== district) {
+            return `${city}, ${district}`;
+        }
+        return city || district || data.display_name?.split(',')[0] || '';
+    } catch (e) {
+        console.warn("Geocoding failed, continuing without location name:", e);
+        return '';
+    }
+}
+
+/**
+ * Suggests an intelligent title for a ride based on GPX metadata, location, and time of day.
+ * @param {string|null} gpxName
+ * @param {string} locationName
+ * @param {Date} startTime
+ * @returns {string}
+ */
+export function suggestTitleFromGpx(gpxName, locationName, startTime) {
+    const trimmed = (gpxName || "").trim();
+    if (trimmed && !trimmed.startsWith("202") && trimmed.toLowerCase() !== "track" && trimmed.toLowerCase() !== "activity") {
+        return trimmed;
+    }
+    const hour = startTime ? startTime.getHours() : new Date().getHours();
+    let prefix = "Trasa";
+    if (hour >= 5 && hour < 12) {
+        prefix = "Poranna trasa";
+    } else if (hour >= 12 && hour < 18) {
+        prefix = "Popołudniowa trasa";
+    } else if (hour >= 18 && hour < 22) {
+        prefix = "Wieczorny przejazd";
+    } else {
+        prefix = "Nocna trasa";
+    }
+    if (locationName && locationName.trim()) {
+        return `${prefix} – ${locationName.trim()}`;
+    }
+    const dateStr = startTime ? startTime.toLocaleDateString("pl-PL") : new Date().toLocaleDateString("pl-PL");
+    return `${prefix} • ${dateStr}`;
+}
+
+/**
+ * Parses a GPX XML string into full ride summary metrics and coordinates for import preview.
+ * @param {string} gpxXml
+ * @returns {Promise<Object>}
+ */
+export async function parseGpxFileForImport(gpxXml) {
+    if (!gpxXml || typeof gpxXml !== 'string') {
+        throw new Error("Plik GPX jest pusty lub nieprawidłowy.");
+    }
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(gpxXml, "text/xml");
+
+    // Check for parse error
+    const parseError = xmlDoc.querySelector("parsererror");
+    if (parseError) {
+        throw new Error("Nieprawidłowa struktura pliku XML/GPX.");
+    }
+
+    const trkpts = xmlDoc.querySelectorAll("trkpt");
+    if (!trkpts || trkpts.length < 2) {
+        throw new Error("Plik GPX musi zawierać co najmniej 2 punkty trasy (trkpt).");
+    }
+
+    // Extract name if available
+    let nameTag = xmlDoc.querySelector("metadata > name")?.textContent ||
+                  xmlDoc.querySelector("trk > name")?.textContent || null;
+
+    const rawPoints = [];
+    trkpts.forEach(pt => {
+        const lat = Number.parseFloat(pt.getAttribute("lat"));
+        const lon = Number.parseFloat(pt.getAttribute("lon"));
+        const eleNode = pt.querySelector("ele");
+        const timeNode = pt.querySelector("time");
+        const ele = eleNode ? Number.parseFloat(eleNode.textContent) : null;
+        const time = timeNode ? new Date(timeNode.textContent).getTime() : null;
+
+        if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+            rawPoints.push({lat, lon, ele, time});
+        }
+    });
+
+    if (rawPoints.length < 2) {
+        throw new Error("Nie znaleziono prawidłowych współrzędnych geograficznych w pliku GPX.");
+    }
+
+    let totalDistM = 0;
+    let elevationGain = 0;
+    let maxSpeedKmh = 0;
+    const coords = [];
+
+    const startTime = rawPoints[0].time ? new Date(rawPoints[0].time) : new Date();
+    const endTime = rawPoints[rawPoints.length - 1].time ? new Date(rawPoints[rawPoints.length - 1].time) : new Date();
+    let durationSeconds = 0;
+
+    if (rawPoints[0].time && rawPoints[rawPoints.length - 1].time) {
+        durationSeconds = Math.max(1, (rawPoints[rawPoints.length - 1].time - rawPoints[0].time) / 1000);
+    }
+
+    for (let i = 0; i < rawPoints.length; i++) {
+        const p = rawPoints[i];
+        coords.push([p.lat, p.lon]);
+
+        if (i > 0) {
+            const prev = rawPoints[i - 1];
+            const stepM = haversineDistanceM(prev.lat, prev.lon, p.lat, p.lon);
+            totalDistM += stepM;
+
+            if (p.ele != null && prev.ele != null && p.ele > prev.ele) {
+                const eleDiff = p.ele - prev.ele;
+                if (eleDiff < 150) { // filter extreme vertical spikes
+                    elevationGain += eleDiff;
+                }
+            }
+
+            if (p.time && prev.time) {
+                const deltaSec = (p.time - prev.time) / 1000;
+                if (deltaSec >= 0.5 && deltaSec <= 120 && stepM > 0.5) {
+                    const speed = (stepM / deltaSec) * 3.6;
+                    if (speed <= 95 && speed > maxSpeedKmh) {
+                        maxSpeedKmh = speed;
+                    }
+                }
+            }
+        }
+    }
+
+    const distanceKm = totalDistM / 1000;
+    if (durationSeconds <= 0 && distanceKm > 0) {
+        // Fallback duration at default 20 km/h
+        durationSeconds = (distanceKm / 20) * 3600;
+    }
+
+    const avgSpeedKmh = durationSeconds > 0 ? (distanceKm / (durationSeconds / 3600)) : 0;
+    if (maxSpeedKmh < avgSpeedKmh) {
+        maxSpeedKmh = avgSpeedKmh * 1.35;
+    }
+
+    const encodedPolyline = encodePolyline(coords);
+
+    // Resolve location asynchronously
+    const locationName = await resolveLocationFromCoords(rawPoints[0].lat, rawPoints[0].lon);
+    const suggestedTitle = suggestTitleFromGpx(nameTag, locationName, startTime);
+
+    return {
+        title: suggestedTitle,
+        locationName: locationName,
+        startTime: startTime,
+        endTime: endTime,
+        distanceKm: distanceKm,
+        durationSeconds: durationSeconds,
+        avgSpeedKmh: avgSpeedKmh,
+        maxSpeedKmh: maxSpeedKmh,
+        elevationGain: elevationGain > 0 ? elevationGain : 0,
+        encodedPolyline: encodedPolyline,
+        rawPointsCount: rawPoints.length
+    };
+}
+
+/**
+ * Saves an imported ride and its original GPX file content to Firestore.
+ * @param {Object} rideData
+ * @param {string} gpxXml
+ * @param {string} userId
+ * @returns {Promise<Object>}
+ */
+export async function saveImportedRide(rideData, gpxXml, userId) {
+    if (!userId) {
+        throw new Error("Musisz być zalogowany, aby zaimportować trening do bazy.");
+    }
+    const ridesCollection = collection(db, "rides");
+    const rideDocRef = doc(ridesCollection);
+    const rideId = rideDocRef.id;
+
+    const batch = writeBatch(db);
+
+    const firestoreRideData = {
+        userId: userId,
+        title: (rideData.title || "Trening GPX").trim(),
+        locationName: rideData.locationName || "",
+        startTime: rideData.startTime instanceof Date ? rideData.startTime : new Date(rideData.startTime),
+        endTime: rideData.endTime instanceof Date ? rideData.endTime : new Date(rideData.endTime),
+        distanceKm: Number(Number(rideData.distanceKm).toFixed(2)),
+        durationSeconds: Math.round(rideData.durationSeconds),
+        avgSpeedKmh: Number(Number(rideData.avgSpeedKmh).toFixed(1)),
+        maxSpeedKmh: Number(Number(rideData.maxSpeedKmh).toFixed(1)),
+        elevationGain: rideData.elevationGain != null ? Math.round(rideData.elevationGain) : 0,
+        encodedPolyline: rideData.encodedPolyline || ""
+    };
+
+    const gpxDocRef = doc(db, "rides", rideId, "details", "gpx");
+
+    batch.set(rideDocRef, firestoreRideData);
+    batch.set(gpxDocRef, { gpxContent: gpxXml });
+
+    await batch.commit();
+
+    return {
+        id: rideId,
+        ...firestoreRideData,
+        isDemo: false
+    };
+}
+
 

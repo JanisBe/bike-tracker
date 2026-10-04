@@ -31,6 +31,13 @@ import kotlin.coroutines.resume
 
 interface RideRepository {
     suspend fun saveRide(points: List<TrackPoint>): Result<String>
+    suspend fun importGpxRide(
+        points: List<TrackPoint>,
+        gpxXml: String,
+        title: String,
+        locationName: String
+    ): Result<String>
+    suspend fun resolveLocation(lat: Double, lng: Double): String
     fun getRides(): Flow<List<Ride>>
     suspend fun getRide(rideId: String): Result<Ride>
     suspend fun getGpxContent(rideId: String): Result<String>
@@ -137,6 +144,49 @@ class RideRepositoryImpl @Inject constructor(
         )
 
         // 5. Batch write to Firestore (Spark Plan / 0 MB Storage)
+        val batch = firestore.batch()
+        val gpxDocRef = rideRef.collection("details").document("gpx")
+
+        batch.set(rideRef, RideMapper.toFirestore(ride))
+        batch.set(gpxDocRef, mapOf("gpxContent" to gpxXml))
+
+        batch.commit().await()
+
+        rideId
+    }
+
+    override suspend fun resolveLocation(lat: Double, lng: Double): String =
+        resolveLocationName(lat, lng)
+
+    override suspend fun importGpxRide(
+        points: List<TrackPoint>,
+        gpxXml: String,
+        title: String,
+        locationName: String
+    ): Result<String> = runCatching {
+        val user = auth.currentUser ?: throw IllegalStateException("User not authenticated")
+        require(points.size >= 2) { "At least 2 GPS points are required" }
+        val rideRef = ridesCollection.document()
+        val rideId = rideRef.id
+
+        val stats = StatsCalculator.calculate(points)
+        val encodedPolyline = PolylineEncoder.encode(points)
+
+        val ride = Ride(
+            id = rideId,
+            userId = user.uid,
+            title = title.trim(),
+            locationName = locationName,
+            startTime = Date(points.first().timestamp),
+            endTime = Date(points.last().timestamp),
+            distanceKm = stats.distanceKm,
+            durationSeconds = stats.durationSeconds,
+            avgSpeedKmh = stats.avgSpeedKmh,
+            maxSpeedKmh = stats.maxSpeedKmh,
+            elevationGain = stats.elevationGain,
+            encodedPolyline = encodedPolyline
+        )
+
         val batch = firestore.batch()
         val gpxDocRef = rideRef.collection("details").document("gpx")
 

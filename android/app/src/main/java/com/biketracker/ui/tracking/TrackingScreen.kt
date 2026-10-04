@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -35,6 +37,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
@@ -61,6 +64,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,6 +73,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -78,6 +83,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.biketracker.data.model.SignalQuality
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.ui.theme.CardBorder
@@ -112,10 +118,16 @@ fun TrackingScreen(
     val currentDistanceKm by viewModel.currentDistanceKm.collectAsStateWithLifecycle()
     val currentSpeedKmh by viewModel.currentSpeedKmh.collectAsStateWithLifecycle()
     val elapsedSeconds by viewModel.elapsedSeconds.collectAsStateWithLifecycle()
+    val isPowerSaveMode by viewModel.isPowerSaveMode.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val coroutineScope = rememberCoroutineScope()
 
     var showFinishDialog by remember { mutableStateOf(false) }
     var showGpsWarningDialog by remember { mutableStateOf(false) }
+    var showPowerSaverDialog by remember { mutableStateOf(false) }
+    var powerSaverWarningDismissed by remember { mutableStateOf(false) }
+
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -143,20 +155,9 @@ fun TrackingScreen(
     var hasEverTracked by remember { mutableStateOf(isTracking) }
     var hasInitiatedStart by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isTracking) {
-        if (isTracking) {
-            hasEverTracked = true
-        } else if (hasEverTracked && !uiState.isSaving && uiState.savedRideId == null) {
-            // Śledzenie zakończone zewnętrznie (np. przyciskiem Stop w powiadomieniu)
-            onNavigateBack()
-        }
-    }
-
-    LaunchedEffect(hasLocationPermission) {
-        if (!hasLocationPermission) {
-            permissionLauncher.launch(permissionsToRequest)
-        } else if (!isTracking && !hasInitiatedStart && !hasEverTracked) {
-            hasInitiatedStart = true
+    val startTrackingFlow = {
+        hasInitiatedStart = true
+        coroutineScope.launch {
             val hasFix = viewModel.checkHasGpsFix()
             if (hasFix) {
                 viewModel.startTracking(waitForGps = false)
@@ -169,7 +170,29 @@ fun TrackingScreen(
         }
     }
 
-    // Gdy sygnał GPS zostanie ustalony i rozpocznie się zapis trasy, okienko ostrzeżenia znika automatycznie
+    LaunchedEffect(isTracking) {
+        if (isTracking) {
+            hasEverTracked = true
+        } else if (hasEverTracked && !uiState.isSaving && uiState.savedRideId == null) {
+            // Tracking ended externally (e.g. Stop button in notification)
+            onNavigateBack()
+        }
+    }
+
+    LaunchedEffect(hasLocationPermission, isPowerSaveMode, powerSaverWarningDismissed) {
+        if (!hasLocationPermission) {
+            permissionLauncher.launch(permissionsToRequest)
+        } else if (!isTracking && !hasInitiatedStart && !hasEverTracked) {
+            if (isPowerSaveMode && !powerSaverWarningDismissed) {
+                showPowerSaverDialog = true
+            } else {
+                showPowerSaverDialog = false
+                startTrackingFlow()
+            }
+        }
+    }
+
+    // Auto-dismiss GPS warning dialog once a solid fix is established
     LaunchedEffect(isTracking, isWaitingForGps) {
         if (isTracking && !isWaitingForGps && showGpsWarningDialog) {
             showGpsWarningDialog = false
@@ -180,6 +203,7 @@ fun TrackingScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshPowerSaveMode()
                 if (hasLocationPermission && !isTracking && !hasEverTracked && hasInitiatedStart && showGpsWarningDialog) {
                     if (viewModel.isLocationServiceEnabled()) {
                         viewModel.startTracking(waitForGps = true)
@@ -205,8 +229,11 @@ fun TrackingScreen(
         isMapFullscreen = false
     }
 
-    BackHandler(enabled = isTracking || showGpsWarningDialog) {
-        if (showGpsWarningDialog) {
+    BackHandler(enabled = isTracking || showGpsWarningDialog || showPowerSaverDialog) {
+        if (showPowerSaverDialog) {
+            showPowerSaverDialog = false
+            onNavigateBack()
+        } else if (showGpsWarningDialog) {
             showGpsWarningDialog = false
             if (isTracking) {
                 viewModel.stopTrackingWithoutSaving()
@@ -473,6 +500,61 @@ fun TrackingScreen(
                                 }
                             }
 
+                            // Power Save Active Warning Banner (while tracking)
+                            if (!isWaitingForGps && isPowerSaveMode) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            try {
+                                                context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+                                            } catch (e: Exception) {
+                                                try {
+                                                    context.startActivity(Intent(Settings.ACTION_SETTINGS))
+                                                } catch (e2: Exception) {
+                                                    // Ignored
+                                                }
+                                            }
+                                        },
+                                    color = OrangeAccent.copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, OrangeAccent.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.BatteryAlert,
+                                                contentDescription = null,
+                                                tint = OrangeAccent,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "Oszczędzanie energii aktywne – GPS może zostać uśpiony",
+                                                color = OrangeAccent,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Text(
+                                            text = "Ustawienia",
+                                            color = TextPrimary,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(start = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+
                             // Main Speed Display
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -602,6 +684,140 @@ fun TrackingScreen(
                     }
                 }
             }
+        }
+
+        // Power Saver Warning Dialog
+        if (showPowerSaverDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showPowerSaverDialog = false
+                    onNavigateBack()
+                },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.BatteryAlert,
+                        contentDescription = null,
+                        tint = OrangeAccent,
+                        modifier = Modifier.size(36.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = "Tryb oszczędzania energii",
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "W telefonie włączony jest tryb oszczędzania energii. Po wyłączeniu ekranu i włożeniu telefonu do kieszeni system może uśpić moduł GPS i przerwać rejestrowanie trasy.",
+                            color = TextSecondary,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                        Surface(
+                            color = OrangeAccent.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, OrangeAccent.copy(alpha = 0.3f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.BatteryAlert,
+                                    contentDescription = null,
+                                    tint = OrangeAccent,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "Zalecamy wyłączenie oszczędzania energii na czas treningu.",
+                                    color = OrangeAccent,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Button 1: Settings
+                        Button(
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+                                } catch (e: Exception) {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_SETTINGS))
+                                    } catch (e2: Exception) {
+                                        // Ignored
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null,
+                                tint = DarkBackground,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Wyłącz w ustawieniach",
+                                color = DarkBackground,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Button 2: Continue anyway
+                        Button(
+                            onClick = {
+                                powerSaverWarningDismissed = true
+                                showPowerSaverDialog = false
+                                startTrackingFlow()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Kontynuuj mimo to",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Button 3: Cancel and go back
+                        TextButton(
+                            onClick = {
+                                showPowerSaverDialog = false
+                                onNavigateBack()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Anuluj (wróć)",
+                                color = TextSecondary,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                },
+                containerColor = DarkSurface,
+                shape = RoundedCornerShape(20.dp)
+            )
         }
 
         // GPS Warning Dialog

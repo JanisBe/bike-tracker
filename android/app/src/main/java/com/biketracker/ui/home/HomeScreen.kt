@@ -1,5 +1,8 @@
 package com.biketracker.ui.home
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
@@ -38,6 +42,7 @@ import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -63,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -97,6 +103,7 @@ fun HomeScreen(
     onLoggedOut: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val rides by viewModel.rides.collectAsStateWithLifecycle()
 
     val totalDistance = rides.sumOf { it.distanceKm }
@@ -107,6 +114,21 @@ fun HomeScreen(
     var rideToEdit by remember { mutableStateOf<Ride?>(null) }
     var editTitleText by remember { mutableStateOf("") }
     var rideToDelete by remember { mutableStateOf<Ride?>(null) }
+
+    val gpxPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.openInputStream(it)?.bufferedReader()?.use { reader ->
+                    val content = reader.readText()
+                    viewModel.processGpxContent(content)
+                }
+            } catch (e: Exception) {
+                // Ignore read errors
+            }
+        }
+    }
 
     val filteredRides = remember(rides, selectedDate) {
         if (selectedDate == null) {
@@ -142,6 +164,13 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { gpxPickerLauncher.launch("*/*") }) {
+                        Icon(
+                            imageVector = Icons.Default.FileUpload,
+                            contentDescription = "Importuj GPX",
+                            tint = TealAccent
+                        )
+                    }
                     IconButton(onClick = { viewModel.signOut(onLoggedOut) }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
@@ -372,6 +401,144 @@ fun HomeScreen(
             dismissButton = {
                 TextButton(onClick = { rideToDelete = null }) {
                     Text("Anuluj", color = TextSecondary)
+                }
+            },
+            containerColor = DarkSurface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Dialog for confirming GPX Import
+    val importPreview = viewModel.importPreview
+    if (importPreview != null) {
+        var importTitleText by remember(importPreview) { mutableStateOf(importPreview.suggestedTitle) }
+
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissGpxImport() },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.FileUpload,
+                        contentDescription = null,
+                        tint = TealAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Importuj trasę GPX",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("Dystans", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            Text("%.2f km".format(importPreview.distanceKm), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = OrangeAccent)
+                        }
+                        Column {
+                            val durHours = importPreview.durationSeconds / 3600
+                            val durMins = (importPreview.durationSeconds % 3600) / 60
+                            val durText = if (durHours > 0) "${durHours}h ${durMins}m" else "${durMins}m"
+                            Text("Czas trwania", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            Text(durText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TealAccent)
+                        }
+                        Column {
+                            Text("Śr. prędkość", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            Text("%.1f km/h".format(importPreview.avgSpeedKmh), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        }
+                    }
+
+                    if (importPreview.locationName.isNotBlank()) {
+                        Text(
+                            text = "📍 ${importPreview.locationName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = importTitleText,
+                        onValueChange = { importTitleText = it },
+                        label = { Text("Nazwa treningu") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = TealAccent,
+                            unfocusedBorderColor = CardBorder,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedLabelColor = TealAccent,
+                            unfocusedLabelColor = TextSecondary
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (viewModel.isImporting) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(22.dp),
+                                color = TealAccent,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Zapisywanie treningu...", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.confirmGpxImport(importTitleText) { newRideId ->
+                            onRideSelected(newRideId)
+                        }
+                    },
+                    enabled = !viewModel.isImporting && importTitleText.isNotBlank()
+                ) {
+                    Text(
+                        "Zapisz trening",
+                        color = if (importTitleText.isNotBlank()) TealAccent else TextSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { viewModel.dismissGpxImport() },
+                    enabled = !viewModel.isImporting
+                ) {
+                    Text("Anuluj", color = TextSecondary)
+                }
+            },
+            containerColor = DarkSurface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Dialog for error message
+    viewModel.importErrorMessage?.let { errMsg ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissImportError() },
+            title = { Text("Błąd importu GPX", color = ErrorRed, fontWeight = FontWeight.Bold) },
+            text = { Text(errMsg, color = TextPrimary) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissImportError() }) {
+                    Text("OK", color = TextPrimary)
                 }
             },
             containerColor = DarkSurface,

@@ -1,8 +1,11 @@
 package com.biketracker.ui.tracking
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.location.LocationManager
+import android.os.PowerManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.biketracker.data.model.SatelliteInfo
@@ -41,6 +44,40 @@ class TrackingViewModel @Inject constructor(
     val currentDistanceKm = LocationTrackingService.currentDistanceKm
     val currentSpeedKmh = LocationTrackingService.currentSpeedKmh
     val elapsedSeconds = LocationTrackingService.elapsedSeconds
+
+    private val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+    private val _isPowerSaveMode = MutableStateFlow(powerManager?.isPowerSaveMode == true)
+    val isPowerSaveMode: StateFlow<Boolean> = _isPowerSaveMode.asStateFlow()
+
+    private val powerSaveReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == PowerManager.ACTION_POWER_SAVE_MODE_CHANGED) {
+                refreshPowerSaveMode()
+            }
+        }
+    }
+
+    init {
+        val filter = IntentFilter(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+        context.registerReceiver(powerSaveReceiver, filter)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            context.unregisterReceiver(powerSaveReceiver)
+        } catch (e: Exception) {
+            // Ignored if receiver was not registered
+        }
+    }
+
+    fun refreshPowerSaveMode() {
+        _isPowerSaveMode.value = powerManager?.isPowerSaveMode == true
+    }
+
+    fun isPowerSaveModeEnabled(): Boolean {
+        return powerManager?.isPowerSaveMode == true
+    }
 
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 

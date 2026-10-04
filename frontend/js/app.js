@@ -1,4 +1,12 @@
-import { downloadGpx, fetchRideById, fetchRideProfile, fetchUserRides, updateRideTitle } from './ride-service.js';
+import {
+  downloadGpx,
+  fetchRideById,
+  fetchRideProfile,
+  fetchUserRides,
+  parseGpxFileForImport,
+  saveImportedRide,
+  updateRideTitle
+} from './ride-service.js';
 import { decodePolyline } from './polyline-decoder.js';
 import {
   clearScrubMarker,
@@ -22,6 +30,10 @@ let authMode = 'login'; // 'login' | 'register'
 let isMapFullscreen = false;
 let editingRideId = null;
 
+// GPX Import state
+let pendingImportData = null;
+let pendingImportGpxXml = null;
+
 // DOM Elements
 const mapContainer = document.getElementById("map-container");
 const mapWrapper = document.getElementById("map-wrapper");
@@ -36,6 +48,8 @@ const statTotalRides = document.getElementById("stat-total-rides");
 const statTotalHours = document.getElementById("stat-total-hours");
 const searchInput = document.getElementById("search-input");
 const btnOverview = document.getElementById("btn-overview");
+const btnImportGpx = document.getElementById("btn-import-gpx");
+const gpxFileInput = document.getElementById("gpx-file-input");
 const calendarContainer = document.getElementById("calendar-widget-container");
 
 const floatingDetail = document.getElementById("floating-detail");
@@ -62,6 +76,23 @@ const editTitleSpinner = document.getElementById("edit-title-spinner");
 const editTitleSubmitText = document.getElementById("edit-title-submit-text");
 const editTitleAlert = document.getElementById("edit-title-alert");
 const editTitleAlertMsg = document.getElementById("edit-title-alert-msg");
+
+// Import GPX Modal DOM Elements
+const importGpxModal = document.getElementById("import-gpx-modal");
+const btnImportGpxClose = document.getElementById("btn-import-gpx-close");
+const btnImportGpxCancel = document.getElementById("btn-import-gpx-cancel");
+const importGpxForm = document.getElementById("import-gpx-form");
+const importGpxTitleInput = document.getElementById("import-gpx-title-input");
+const btnImportGpxSubmit = document.getElementById("btn-import-gpx-submit");
+const importGpxSpinner = document.getElementById("import-gpx-spinner");
+const importGpxSubmitText = document.getElementById("import-gpx-submit-text");
+const importGpxAlert = document.getElementById("import-gpx-alert");
+const importGpxAlertMsg = document.getElementById("import-gpx-alert-msg");
+const importPreviewDist = document.getElementById("import-preview-dist");
+const importPreviewTime = document.getElementById("import-preview-time");
+const importPreviewSpeed = document.getElementById("import-preview-speed");
+const importPreviewElev = document.getElementById("import-preview-elev");
+const importPreviewLocation = document.getElementById("import-preview-location");
 
 // Auth DOM Elements
 const userInfoEl = document.getElementById("user-info");
@@ -869,6 +900,102 @@ function setupEventListeners() {
     });
   }
 
+  // Import GPX File Trigger
+  if (btnImportGpx && gpxFileInput) {
+    btnImportGpx.addEventListener("click", () => {
+      if (!currentUser) {
+        showToast("Zaloguj się, aby zaimportować własny trening GPX", "info");
+        openAuthModal('login');
+        return;
+      }
+      gpxFileInput.value = "";
+      gpxFileInput.click();
+    });
+
+    gpxFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      try {
+        showToast("Wczytywanie i analiza pliku GPX...", "info");
+        const gpxXml = await file.text();
+        const parsed = await parseGpxFileForImport(gpxXml);
+
+        pendingImportData = parsed;
+        pendingImportGpxXml = gpxXml;
+
+        openImportGpxModal(parsed);
+      } catch (err) {
+        console.error("Failed to parse GPX file:", err);
+        showToast(err.message || "Błąd podczas parsowania pliku GPX.", "error");
+      }
+    });
+  }
+
+  // Import GPX Modal Actions
+  if (btnImportGpxClose) {
+    btnImportGpxClose.addEventListener("click", closeImportGpxModal);
+  }
+
+  if (btnImportGpxCancel) {
+    btnImportGpxCancel.addEventListener("click", closeImportGpxModal);
+  }
+
+  if (importGpxModal) {
+    importGpxModal.addEventListener("click", (e) => {
+      if (e.target === importGpxModal) {
+        closeImportGpxModal();
+      }
+    });
+  }
+
+  if (importGpxForm) {
+    importGpxForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!pendingImportData || !pendingImportGpxXml) return;
+
+      const title = importGpxTitleInput ? importGpxTitleInput.value.trim() : "";
+      if (!title) {
+        showImportGpxAlert("Podaj nazwę treningu.");
+        return;
+      }
+
+      if (!currentUser) {
+        showImportGpxAlert("Musisz być zalogowany, aby zapisać trening.");
+        return;
+      }
+
+      setImportGpxLoading(true);
+      hideImportGpxAlert();
+
+      try {
+        pendingImportData.title = title;
+        const newRide = await saveImportedRide(pendingImportData, pendingImportGpxXml, currentUser.uid);
+
+        // Add to allRides at beginning
+        allRides = [newRide, ...allRides.filter(r => !r.isDemo)];
+
+        // Update UI
+        updateOverallStats();
+        renderRidesList(allRides);
+        if (calendarWidget) {
+          calendarWidget.setRides(allRides);
+        }
+
+        closeImportGpxModal();
+        showToast("Trening został pomyślnie zaimportowany! 🎉", "success");
+
+        // Select the newly imported ride
+        selectRide(newRide.id);
+      } catch (err) {
+        console.error("Error saving imported ride:", err);
+        showImportGpxAlert(err.message || "Nie udało się zapisać zaimportowanego treningu.");
+      } finally {
+        setImportGpxLoading(false);
+      }
+    });
+  }
+
   // Handle browser back/forward history navigation
   window.addEventListener("popstate", () => {
     const urlRideId = getRideIdFromUrl();
@@ -1116,6 +1243,73 @@ function setEditTitleLoading(isLoading) {
   if (btnEditTitleCancel) btnEditTitleCancel.disabled = isLoading;
   if (editTitleSpinner) editTitleSpinner.style.display = isLoading ? "inline-block" : "none";
   if (editTitleSubmitText) editTitleSubmitText.style.display = isLoading ? "none" : "inline";
+}
+
+function openImportGpxModal(parsed) {
+  if (!parsed) return;
+
+  if (importPreviewDist) {
+    importPreviewDist.textContent = `${parsed.distanceKm.toFixed(1)} km`;
+  }
+  if (importPreviewTime) {
+    importPreviewTime.textContent = formatDuration(parsed.durationSeconds);
+  }
+  if (importPreviewSpeed) {
+    importPreviewSpeed.textContent = `${parsed.avgSpeedKmh.toFixed(1)} km/h`;
+  }
+  if (importPreviewElev) {
+    importPreviewElev.textContent = parsed.elevationGain > 0 ? `+${Math.round(parsed.elevationGain)} m` : "—";
+  }
+  if (importPreviewLocation) {
+    importPreviewLocation.textContent = parsed.locationName
+      ? `📍 Lokalizacja: ${parsed.locationName}`
+      : `📅 Data: ${formatDate(parsed.startTime)}`;
+  }
+  if (importGpxTitleInput) {
+    importGpxTitleInput.value = parsed.title || "Nowy trening";
+  }
+
+  hideImportGpxAlert();
+  if (importGpxModal) {
+    importGpxModal.style.display = "flex";
+  }
+
+  if (importGpxTitleInput) {
+    setTimeout(() => {
+      importGpxTitleInput.focus();
+      importGpxTitleInput.select();
+    }, 60);
+  }
+}
+
+function closeImportGpxModal() {
+  if (importGpxModal) {
+    importGpxModal.style.display = "none";
+  }
+  hideImportGpxAlert();
+  pendingImportData = null;
+  pendingImportGpxXml = null;
+  setImportGpxLoading(false);
+}
+
+function showImportGpxAlert(message) {
+  if (importGpxAlert && importGpxAlertMsg) {
+    importGpxAlertMsg.textContent = message;
+    importGpxAlert.style.display = "flex";
+  }
+}
+
+function hideImportGpxAlert() {
+  if (importGpxAlert) {
+    importGpxAlert.style.display = "none";
+  }
+}
+
+function setImportGpxLoading(isLoading) {
+  if (btnImportGpxSubmit) btnImportGpxSubmit.disabled = isLoading;
+  if (btnImportGpxCancel) btnImportGpxCancel.disabled = isLoading;
+  if (importGpxSpinner) importGpxSpinner.style.display = isLoading ? "inline-block" : "none";
+  if (importGpxSubmitText) importGpxSubmitText.style.display = isLoading ? "none" : "inline";
 }
 
 // Add spinning animation for loading spinner

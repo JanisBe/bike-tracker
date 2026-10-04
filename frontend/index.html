@@ -98,9 +98,18 @@
       <div class="controls-bar">
         <input aria-label="Szukaj treningów" class="search-input" id="search-input"
                placeholder="Szukaj treningów..." type="text">
-        <button class="btn-overview" id="btn-overview" title="Pokaż wszystkie trasy na mapie">
-          Wszystkie trasy
+        <button class="btn-import-gpx" id="btn-import-gpx" title="Importuj trasę z pliku GPX" type="button">
+          <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="15">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>Importuj GPX</span>
         </button>
+        <button class="btn-overview" id="btn-overview" title="Pokaż wszystkie trasy na mapie" type="button">
+          Wszystkie
+        </button>
+        <input accept=".gpx,application/gpx+xml,text/xml" id="gpx-file-input" style="display: none;" type="file">
       </div>
 
       <!-- Activity Calendar Widget -->
@@ -384,6 +393,71 @@
                           <span class="btn-spinner" id="edit-title-spinner"
                                 style="display: none;"></span>
                           <span id="edit-title-submit-text">Zapisz</span>
+                      </button>
+                  </div>
+              </form>
+          </div>
+      </div>
+
+      <!-- Import GPX Modal Dialog -->
+      <div class="modal-overlay" id="import-gpx-modal" style="display: none;">
+          <div aria-labelledby="import-gpx-modal-title" aria-modal="true"
+               class="auth-card import-gpx-card" role="dialog">
+              <button aria-label="Zamknij" class="btn-modal-close" id="btn-import-gpx-close"
+                      title="Zamknij">✕
+              </button>
+
+              <div class="auth-header">
+                  <div class="auth-logo">📥</div>
+                  <h2 class="auth-title" id="import-gpx-modal-title">Zaimportuj trasę GPX</h2>
+                  <p class="auth-subtitle">Podsumowanie pliku i potwierdzenie zapisu</p>
+              </div>
+
+              <!-- Error Alert Box -->
+              <div class="auth-alert" id="import-gpx-alert" style="display: none;">
+                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-msg" id="import-gpx-alert-msg"></span>
+              </div>
+
+              <!-- Stats Preview Grid -->
+              <div class="import-stats-grid">
+                  <div class="import-stat-box">
+                      <span class="import-stat-label">Dystans</span>
+                      <span class="import-stat-value" id="import-preview-dist">0.0 km</span>
+                  </div>
+                  <div class="import-stat-box">
+                      <span class="import-stat-label">Czas trwania</span>
+                      <span class="import-stat-value" id="import-preview-time">0m</span>
+                  </div>
+                  <div class="import-stat-box">
+                      <span class="import-stat-label">Śr. prędkość</span>
+                      <span class="import-stat-value" id="import-preview-speed">0.0 km/h</span>
+                  </div>
+                  <div class="import-stat-box">
+                      <span class="import-stat-label">Przewyższenia</span>
+                      <span class="import-stat-value" id="import-preview-elev">+0 m</span>
+                  </div>
+              </div>
+
+              <div class="import-meta-info" id="import-meta-info">
+                  <span id="import-preview-location">📍 Lokalizacja: Trwa ustalanie...</span>
+              </div>
+
+              <form class="auth-form" id="import-gpx-form">
+                  <div class="form-group">
+                      <label for="import-gpx-title-input">Nazwa treningu</label>
+                      <input autocomplete="off" id="import-gpx-title-input" maxlength="60"
+                             placeholder="Wprowadź nazwę treningu..." required type="text">
+                  </div>
+                  <div class="modal-button-row">
+                      <button class="btn-modal-cancel" id="btn-import-gpx-cancel" type="button">
+                          Anuluj
+                      </button>
+                      <button class="btn-auth-submit" id="btn-import-gpx-submit" style="flex: 1.4; margin-top: 0;"
+                              type="submit">
+                          <span class="btn-spinner" id="import-gpx-spinner"
+                                style="display: none;"></span>
+                          <span id="import-gpx-submit-text">Zapisz trening</span>
                       </button>
                   </div>
               </form>
