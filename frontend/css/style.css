@@ -95,6 +95,11 @@ body {
   fill: var(--bg-dark);
 }
 
+.brand-info {
+  flex: 1;
+  min-width: 0;
+}
+
 .brand-title {
   font-family: var(--font-heading);
   font-size: 24px;
@@ -106,6 +111,37 @@ body {
 .brand-subtitle {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.btn-apk-download {
+  margin-left: auto;
+  background: rgba(46, 204, 113, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  color: var(--accent-green);
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn-apk-download:hover {
+  background: rgba(46, 204, 113, 0.24);
+  border-color: var(--accent-green);
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.4);
+  transform: translateY(-1px);
+  color: #2ecc71;
+}
+
+.btn-apk-download svg {
+  flex-shrink: 0;
 }
 
 /* Summary Stats Banner */
