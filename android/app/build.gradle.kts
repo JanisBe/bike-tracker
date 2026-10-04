@@ -23,9 +23,24 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+                ?: "${System.getProperty("user.home")}/.android/bike-tracker-release.jks"
+            val keystoreFile = file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: "biketracker123"
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "biketracker"
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "biketracker123"
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

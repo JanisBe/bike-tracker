@@ -11,6 +11,9 @@ Thumbs.db
 *.log
 build/
 dist/
+*.jks
+*.keystore
+
 
 # Flutter / Dart
 bike_tracker_app/.dart_tool/

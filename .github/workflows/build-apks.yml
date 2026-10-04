@@ -33,13 +33,25 @@ jobs:
         working-directory: android
         run: chmod +x gradlew
 
-      - name: Build APK with Gradle
+      - name: Restore release keystore
+        if: env.RELEASE_KEYSTORE_BASE64 != ''
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p ~/.android
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > ~/.android/bike-tracker-release.jks
+
+      - name: Build Release APK with Gradle
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v7
         with:
           name: bike-tracker-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
