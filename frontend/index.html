@@ -56,16 +56,29 @@
           <!-- User Profile Bar -->
           <div class="user-profile-bar" id="user-profile-bar">
               <div class="user-info" id="user-info" style="display: none;">
-                  <div class="user-avatar" id="user-avatar">?</div>
-                  <div class="user-text">
+                  <div class="user-avatar" id="user-avatar" title="Otwórz profil użytkownika">?</div>
+                  <div class="user-text" id="user-profile-trigger" role="button" tabindex="0"
+                       title="Otwórz profil użytkownika">
                       <span class="user-name" id="user-name">Użytkownik</span>
                       <span class="user-email" id="user-email">email@example.com</span>
                   </div>
-                  <button aria-label="Wyloguj" class="btn-logout" id="btn-logout" title="Wyloguj się">
-                      <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16">
-                          <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-                      </svg>
-                  </button>
+                  <div class="user-bar-actions">
+                      <button aria-label="Importuj GPX" class="btn-user-import-gpx" id="btn-import-gpx"
+                              title="Importuj trasę z pliku GPX" type="button">
+                          <svg fill="none" height="14" stroke="currentColor" stroke-linecap="round"
+                               stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="14">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                              <polyline points="17 8 12 3 7 8"/>
+                              <line x1="12" x2="12" y1="3" y2="15"/>
+                          </svg>
+                          <span>Importuj</span>
+                      </button>
+                      <button aria-label="Wyloguj" class="btn-logout" id="btn-logout" title="Wyloguj się">
+                          <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16">
+                              <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                          </svg>
+                      </button>
+                  </div>
               </div>
               <div class="user-guest" id="user-guest">
                   <button class="btn-login-open" id="btn-login-open">
@@ -102,14 +115,6 @@
       <div class="controls-bar">
         <input aria-label="Szukaj treningów" class="search-input" id="search-input"
                placeholder="Szukaj treningów..." type="text">
-        <button class="btn-import-gpx" id="btn-import-gpx" title="Importuj trasę z pliku GPX" type="button">
-          <svg fill="none" height="15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="15">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          <span>Importuj GPX</span>
-        </button>
         <button class="btn-overview" id="btn-overview" title="Pokaż wszystkie trasy na mapie" type="button">
           Wszystkie
         </button>
@@ -148,6 +153,17 @@
                            viewBox="0 0 24 24" width="17">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                  </button>
+                  <button aria-label="Usuń trening" class="btn-mobile-delete"
+                          id="btn-mobile-delete" title="Usuń trening" type="button">
+                      <svg class="icon-delete" fill="none" height="17" stroke="currentColor"
+                           stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                           viewBox="0 0 24 24" width="17">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" x2="10" y1="11" y2="17"></line>
+                          <line x1="14" x2="14" y1="11" y2="17"></line>
                       </svg>
                   </button>
                   <button aria-label="Udostępnij trening" class="btn-mobile-share"
@@ -206,6 +222,17 @@
                                    width="17">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              </svg>
+                          </button>
+                          <button aria-label="Usuń trening" class="btn-delete-ride"
+                                  id="btn-delete-ride" title="Usuń trening" type="button">
+                              <svg class="icon-delete" fill="none" height="17" stroke="currentColor"
+                                   stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                   viewBox="0 0 24 24" width="17">
+                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                  <line x1="10" x2="10" y1="11" y2="17"></line>
+                                  <line x1="14" x2="14" y1="11" y2="17"></line>
                               </svg>
                           </button>
                           <a aria-label="Udostępnij trening" class="btn-share-ride" href="#"
@@ -479,6 +506,149 @@
               </form>
           </div>
       </div>
+
+      <!-- Delete Ride Modal Dialog -->
+      <div class="modal-overlay" id="delete-ride-modal" style="display: none;">
+          <div aria-labelledby="delete-ride-modal-title" aria-modal="true"
+               class="auth-card delete-ride-card" role="dialog">
+              <button aria-label="Zamknij" class="btn-modal-close" id="btn-delete-ride-close"
+                      title="Zamknij">✕
+              </button>
+
+              <div class="auth-header">
+                  <div class="auth-logo">🗑️</div>
+                  <h2 class="auth-title" id="delete-ride-modal-title">Usunąć trening?</h2>
+                  <p class="auth-subtitle">Spowoduje to trwałe usunięcie tego treningu oraz jego danych GPX.</p>
+              </div>
+
+              <div class="delete-ride-preview" id="delete-ride-preview">
+                  <div class="delete-ride-title" id="delete-ride-preview-title">...</div>
+                  <div class="delete-ride-subtitle" id="delete-ride-preview-subtitle">...</div>
+              </div>
+
+              <!-- Error Alert Box -->
+              <div class="auth-alert" id="delete-ride-alert" style="display: none;">
+                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-msg" id="delete-ride-alert-msg"></span>
+              </div>
+
+              <div class="modal-button-row">
+                  <button class="btn-modal-cancel" id="btn-delete-ride-cancel" type="button">
+                      Anuluj
+                  </button>
+                  <button class="btn-danger-submit" id="btn-delete-ride-confirm" type="button">
+                      <span class="btn-spinner" id="delete-ride-spinner" style="display: none;"></span>
+                      <span id="delete-ride-confirm-text">Usuń</span>
+                  </button>
+              </div>
+          </div>
+      </div>
+
+      <!-- User Profile Modal Dialog -->
+      <div class="modal-overlay" id="user-profile-modal" style="display: none;">
+          <div aria-labelledby="user-profile-modal-title" aria-modal="true"
+               class="auth-card user-profile-card" role="dialog">
+              <button aria-label="Zamknij" class="btn-modal-close" id="btn-user-profile-close"
+                      title="Zamknij">✕
+              </button>
+
+              <div class="auth-header">
+                  <div class="auth-logo">👤</div>
+                  <h2 class="auth-title" id="user-profile-modal-title">Profil użytkownika</h2>
+                  <p class="auth-subtitle" id="user-profile-modal-subtitle">Parametry fizyczne oraz ustawienia filtrów
+                      GPS</p>
+              </div>
+
+              <!-- Alert Box -->
+              <div class="auth-alert" id="profile-alert" style="display: none;">
+                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-msg" id="profile-alert-msg"></span>
+              </div>
+
+              <form class="auth-form" id="user-profile-form">
+                  <!-- Gender Selection -->
+                  <div class="form-group">
+                      <label>Płeć</label>
+                      <div class="profile-gender-group">
+                          <button class="gender-chip active" data-gender="male" id="gender-chip-male" type="button">
+                              Mężczyzna ♂
+                          </button>
+                          <button class="gender-chip" data-gender="female" id="gender-chip-female" type="button">
+                              Kobieta ♀
+                          </button>
+                      </div>
+                  </div>
+
+                  <!-- Weight & Height Grid -->
+                  <div class="form-row-2col">
+                      <div class="form-group">
+                          <label for="profile-weight">Waga (kg)</label>
+                          <div class="input-with-icon">
+                              <span class="input-prefix-icon">🏋️</span>
+                              <input id="profile-weight" max="250" min="30" placeholder="75.0" required step="0.5"
+                                     type="number">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <label for="profile-height">Wzrost (cm)</label>
+                          <div class="input-with-icon">
+                              <span class="input-prefix-icon">📏</span>
+                              <input id="profile-height" max="250" min="100" placeholder="175" required step="1"
+                                     type="number">
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- MET Info Hint -->
+                  <div class="profile-info-hint">
+                      <span class="info-icon">ℹ️</span>
+                      <p>Dane posłużą do wzoru MET wyliczającego spalone kalorie w zależności od typu aktywności (Rower
+                          vs Spacer).</p>
+                  </div>
+
+                  <!-- Stationary Drift Filters Section -->
+                  <div class="profile-section-card">
+                      <div class="profile-section-header">
+                          <span class="section-icon">⚡</span>
+                          <span class="section-title">Wykrywanie postoju (filtr dryfu GPS)</span>
+                      </div>
+                      <p class="section-desc">Poniżej tego progu prędkość zerowana jest do 0.0 km/h, aby uniknąć
+                          naliczania fałszywego dystansu z pływającego sygnału GPS.</p>
+
+                      <!-- Cycling Slider -->
+                      <div class="slider-group">
+                          <div class="slider-label-row">
+                              <span class="slider-label">🚴 Próg dla roweru</span>
+                              <span class="slider-badge slider-badge-orange" id="val-cycling-threshold">1.5 km/h</span>
+                          </div>
+                          <input class="threshold-slider slider-orange" id="profile-cycling-threshold" max="3.0"
+                                 min="0.8" step="0.1" type="range" value="1.5">
+                      </div>
+
+                      <!-- Walking Slider -->
+                      <div class="slider-group">
+                          <div class="slider-label-row">
+                              <span class="slider-label">🚶 Próg dla spaceru / marszu</span>
+                              <span class="slider-badge slider-badge-teal" id="val-walking-threshold">0.5 km/h</span>
+                          </div>
+                          <input class="threshold-slider slider-teal" id="profile-walking-threshold" max="1.5"
+                                 min="0.2" step="0.1" type="range" value="0.5">
+                      </div>
+                  </div>
+
+                  <div class="modal-button-row">
+                      <button class="btn-modal-cancel" id="btn-user-profile-cancel" type="button">
+                          Anuluj
+                      </button>
+                      <button class="btn-auth-submit" id="btn-user-profile-submit" style="flex: 1.4; margin-top: 0;"
+                              type="submit">
+                          <span class="btn-spinner" id="profile-spinner" style="display: none;"></span>
+                          <span id="profile-submit-text">Zapisz zmiany</span>
+                      </button>
+                  </div>
+              </form>
+          </div>
+      </div>
   </div>
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
@@ -487,6 +657,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <!-- Application Controller -->
-  <script src="js/app.js?v=3" type="module"></script>
+  <script src="js/app.js?v=6" type="module"></script>
 </body>
 </html>

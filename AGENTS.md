@@ -31,7 +31,13 @@ When working on the Android UI:
 ## 5. Code & Language Standards
 - **Language:** All source code, comments, docstrings, commit messages, and variable/function names must be written in **English**.
 - **Java / Kotlin:** Never use Fully Qualified Class Names in code body — always use explicit top-level imports.
-- **Web Frontend:** Use modern ES Modules (`import/export`), avoid unnecessary third-party libraries, and adhere to the established Dark Theme CSS variables (`--bg-dark`, `--accent-orange`, `--accent-green`, `--accent-cyan`).
+- **Web Frontend:**
+    - Use modern ES Modules (`import/export`), avoid unnecessary third-party libraries, and adhere to the established
+      Dark Theme CSS variables (`--bg-dark`, `--accent-orange`, `--accent-green`, `--accent-cyan`).
+    - Prefer `Number.parseFloat` over global `parseFloat`.
+    - Prefer `Number.isNaN` over global `isNaN`.
+    - Prefer using optional chaining (`?.`) instead of verbose logical AND chains (e.g. `obj?.prop` over
+      `obj && obj.prop`).
 
 ## 6. Verification Steps Before Turn Completion
 - **Android:** Always run `./gradlew compileDebugKotlin` in `android/` directory to verify there are no compilation or type errors.

@@ -107,18 +107,33 @@ export async function fetchUserRides(userId) {
         return [];
     }
     try {
-        const q = query(
-            collection(db, "rides"),
-            where("userId", "==", userId),
-            orderBy("startTime", "desc")
-        );
-        const snapshot = await getDocs(q);
+        let snapshot;
+        try {
+            const q = query(
+                collection(db, "rides"),
+                where("userId", "==", userId),
+                orderBy("startTime", "desc")
+            );
+            snapshot = await getDocs(q);
+        } catch (queryErr) {
+            console.warn("Ordered Firestore query failed (likely missing composite index), attempting fallback query without orderBy:", queryErr);
+            const fallbackQuery = query(
+                collection(db, "rides"),
+                where("userId", "==", userId)
+            );
+            snapshot = await getDocs(fallbackQuery);
+        }
 
-        if (snapshot.empty) {
+        if (snapshot?.empty) {
             return [];
         }
 
-        return snapshot.docs.map(docSnap => mapFirestoreRide(docSnap.id, docSnap.data()));
+        const rides = snapshot.docs.map(docSnap => mapFirestoreRide(docSnap.id, docSnap.data()));
+        return rides.sort((a, b) => {
+            const timeA = a.startTime instanceof Date ? a.startTime.getTime() : 0;
+            const timeB = b.startTime instanceof Date ? b.startTime.getTime() : 0;
+            return timeB - timeA;
+        });
     } catch (error) {
         console.error("Firestore fetch user rides error:", error);
         throw error;
@@ -457,6 +472,36 @@ export async function updateRideTitle(rideId, newTitle) {
         });
     } catch (error) {
         console.error("Firestore update ride title error:", error);
+        throw error;
+    }
+}
+
+/**
+ * Deletes a ride and its GPX details subcollection document atomically from Firestore.
+ * @param {string} rideId
+ * @returns {Promise<void>}
+ */
+export async function deleteRide(rideId) {
+    if (!rideId) {
+        throw new Error("Brak identyfikatora treningu.");
+    }
+
+    const demoIndex = MOCK_RIDES.findIndex(r => r.id === rideId);
+    if (demoIndex !== -1) {
+        MOCK_RIDES.splice(demoIndex, 1);
+        return;
+    }
+
+    try {
+        const rideDocRef = doc(db, "rides", rideId);
+        const gpxDocRef = doc(db, "rides", rideId, "details", "gpx");
+
+        const batch = writeBatch(db);
+        batch.delete(gpxDocRef);
+        batch.delete(rideDocRef);
+        await batch.commit();
+    } catch (error) {
+        console.error("Firestore delete ride error:", error);
         throw error;
     }
 }

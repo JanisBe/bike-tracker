@@ -1,4 +1,5 @@
 import {
+  deleteRide,
   downloadGpx,
   fetchRideById,
   fetchRideProfile,
@@ -7,6 +8,7 @@ import {
   saveImportedRide,
   updateRideTitle
 } from './ride-service.js';
+import {getUserProfile, saveUserProfile} from './user-service.js';
 import {decodePolyline} from './polyline-decoder.js';
 import {
   clearScrubMarker,
@@ -26,6 +28,9 @@ let selectedRideId = null;
 let calendarWidget = null;
 let profileChart = null;
 let currentUser = null;
+let currentUserProfile = null;
+let profileGender = 'male';
+let ridePendingDelete = null;
 let authMode = 'login'; // 'login' | 'register'
 let isMapFullscreen = false;
 let editingRideId = null;
@@ -39,6 +44,7 @@ const mapContainer = document.getElementById("map-container");
 const mapWrapper = document.getElementById("map-wrapper");
 const btnBackList = document.getElementById("btn-back-list");
 const btnMobileEdit = document.getElementById("btn-mobile-edit");
+const btnMobileDelete = document.getElementById("btn-mobile-delete");
 const btnMobileShare = document.getElementById("btn-mobile-share");
 const btnMapFullscreen = document.getElementById("btn-map-fullscreen");
 
@@ -64,6 +70,7 @@ const detailEle = document.getElementById("detail-ele");
 const detailCalories = document.getElementById("detail-calories");
 const btnDetailGpx = document.getElementById("btn-detail-gpx");
 const btnEditRide = document.getElementById("btn-edit-ride");
+const btnDeleteRide = document.getElementById("btn-delete-ride");
 const btnShareRide = document.getElementById("btn-share-ride");
 const toastContainer = document.getElementById("toast-container");
 
@@ -97,6 +104,38 @@ const importPreviewSpeed = document.getElementById("import-preview-speed");
 const importPreviewElev = document.getElementById("import-preview-elev");
 const importPreviewCalories = document.getElementById("import-preview-calories");
 const importPreviewLocation = document.getElementById("import-preview-location");
+
+// Delete Ride Modal DOM Elements
+const deleteRideModal = document.getElementById("delete-ride-modal");
+const btnDeleteRideClose = document.getElementById("btn-delete-ride-close");
+const btnDeleteRideCancel = document.getElementById("btn-delete-ride-cancel");
+const btnDeleteRideConfirm = document.getElementById("btn-delete-ride-confirm");
+const deleteRideSpinner = document.getElementById("delete-ride-spinner");
+const deleteRideConfirmText = document.getElementById("delete-ride-confirm-text");
+const deleteRideAlert = document.getElementById("delete-ride-alert");
+const deleteRideAlertMsg = document.getElementById("delete-ride-alert-msg");
+const deleteRidePreviewTitle = document.getElementById("delete-ride-preview-title");
+const deleteRidePreviewSubtitle = document.getElementById("delete-ride-preview-subtitle");
+
+// User Profile Modal DOM Elements
+const userProfileTrigger = document.getElementById("user-profile-trigger");
+const userProfileModal = document.getElementById("user-profile-modal");
+const btnUserProfileClose = document.getElementById("btn-user-profile-close");
+const btnUserProfileCancel = document.getElementById("btn-user-profile-cancel");
+const userProfileForm = document.getElementById("user-profile-form");
+const btnUserProfileSubmit = document.getElementById("btn-user-profile-submit");
+const profileSpinner = document.getElementById("profile-spinner");
+const profileSubmitText = document.getElementById("profile-submit-text");
+const profileAlert = document.getElementById("profile-alert");
+const profileAlertMsg = document.getElementById("profile-alert-msg");
+const genderChipMale = document.getElementById("gender-chip-male");
+const genderChipFemale = document.getElementById("gender-chip-female");
+const profileWeight = document.getElementById("profile-weight");
+const profileHeight = document.getElementById("profile-height");
+const profileCyclingThreshold = document.getElementById("profile-cycling-threshold");
+const profileWalkingThreshold = document.getElementById("profile-walking-threshold");
+const valCyclingThreshold = document.getElementById("val-cycling-threshold");
+const valWalkingThreshold = document.getElementById("val-walking-threshold");
 
 // Auth DOM Elements
 const userInfoEl = document.getElementById("user-info");
@@ -305,10 +344,13 @@ async function initApp() {
   }
 
   // 5. Watch Auth State
+  let wasAuthenticated = false;
+
   onAuthStateChange((user) => {
     void (async () => {
       currentUser = user;
       if (user) {
+        wasAuthenticated = true;
         // User signed in
         if (userInfoEl) userInfoEl.style.display = "flex";
         if (userGuestEl) userGuestEl.style.display = "none";
@@ -326,15 +368,30 @@ async function initApp() {
         }
 
         closeAuthModal();
+        try {
+          currentUserProfile = await getUserProfile(user.uid);
+          if (currentUserProfile?.displayName && userNameEl) {
+            userNameEl.textContent = currentUserProfile.displayName;
+          }
+        } catch (e) {
+          console.warn("Failed to load user profile:", e);
+        }
         await loadUserRides(user.uid);
       } else {
+        const wasUserLoggedIn = wasAuthenticated;
+        wasAuthenticated = false;
+        currentUserProfile = null;
         // User signed out
         if (userInfoEl) userInfoEl.style.display = "none";
         if (userGuestEl) userGuestEl.style.display = "flex";
 
+        if (wasUserLoggedIn) {
+          updateUrlWithRideId(null);
+        }
+
         const urlRideId = getRideIdFromUrl();
 
-        if (urlRideId) {
+        if (urlRideId && !wasUserLoggedIn) {
           // Guest opened a shared ride link directly!
           closeAuthModal();
           ridesListContainer.innerHTML = `
@@ -381,9 +438,7 @@ async function initApp() {
         displayAllRoutesOverview([]);
         renderRidesList([]);
 
-        if (!urlRideId) {
           openAuthModal('login');
-        }
       }
     })().catch((err) => {
       console.error("Auth state change error:", err);
@@ -470,9 +525,14 @@ async function loadUserRides(userId) {
     console.error("Error loading user rides:", error);
     ridesListContainer.innerHTML = `
       <div style="text-align: center; padding: 30px; color: var(--accent-red);">
-        Nie udało się wczytać treningów. Sprawdź konsolę.
+        <p style="font-weight: 600; margin-bottom: 6px;">Nie udało się wczytać treningów.</p>
+        <p id="rides-error-msg" style="font-size: 12px; color: var(--text-muted); word-break: break-word;"></p>
       </div>
     `;
+    const errorMsgEl = document.getElementById("rides-error-msg");
+    if (errorMsgEl) {
+      errorMsgEl.textContent = error?.message || String(error);
+    }
   }
 }
 
@@ -563,15 +623,27 @@ function renderRidesList(rides) {
           ${elevationStr ? `&nbsp;&nbsp;<span>⛰️</span> ${elevationStr}` : ''}
           ${caloriesStr ? `&nbsp;&nbsp;<span>${caloriesStr}</span>` : ''}
         </div>
-        <button class="btn-download-gpx" data-ride-id="${ride.id}" title="Pobierz plik GPX">
-          <span>⬇</span> GPX
-        </button>
+        <div class="ride-card-actions">
+          <button class="btn-download-gpx" data-ride-id="${ride.id}" title="Pobierz plik GPX">
+            <span>⬇</span> GPX
+          </button>
+          ${!ride.isShared ? `
+          <button class="btn-card-delete" data-ride-id="${ride.id}" title="Usuń trening">
+            <svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="13">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+          ` : ''}
+        </div>
       </div>
     `;
 
     // Click on card selects route on map
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".btn-download-gpx")) return;
+      if (e.target.closest(".btn-download-gpx") || e.target.closest(".btn-card-delete")) return;
       void selectRide(ride.id);
     });
 
@@ -584,6 +656,15 @@ function renderRidesList(rides) {
         showToast("Nie udało się pobrać pliku GPX.", "error");
       });
     });
+
+    // Delete button click
+    const deleteBtn = card.querySelector(".btn-card-delete");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openDeleteModal(ride);
+      });
+    }
 
     ridesListContainer.appendChild(card);
   });
@@ -754,9 +835,11 @@ async function selectRide(rideId) {
 function showFloatingDetail(ride) {
   if (!floatingDetail) return;
 
+  const formattedDate = formatDate(ride.startTime);
+
   const displayTitle = (ride.title && ride.title.trim().length > 0)
     ? ride.title
-    : (ride.locationName ? `📍 ${ride.locationName}` : `Trening z dnia ${formatDate(ride.startTime)}`);
+      : (ride.locationName ? `📍 ${ride.locationName}` : `Trening z dnia ${formattedDate}`);
 
   detailTitle.textContent = displayTitle;
 
@@ -794,6 +877,14 @@ function showFloatingDetail(ride) {
   if (btnMobileEdit) {
     btnMobileEdit.style.display = isSharedOther ? "none" : "inline-flex";
     btnMobileEdit.setAttribute("title", `Edytuj nazwę treningu (${displayTitle})`);
+  }
+  if (btnDeleteRide) {
+    btnDeleteRide.style.display = isSharedOther ? "none" : "inline-flex";
+    btnDeleteRide.setAttribute("title", `Usuń trening (${displayTitle})`);
+  }
+  if (btnMobileDelete) {
+    btnMobileDelete.style.display = isSharedOther ? "none" : "inline-flex";
+    btnMobileDelete.setAttribute("title", `Usuń trening (${displayTitle})`);
   }
 
   btnDetailGpx.onclick = () => {
@@ -834,6 +925,14 @@ function setupEventListeners() {
     btnMobileEdit.addEventListener("click", () => openEditTitleModal(selectedRideId));
   }
 
+  // Mobile top-bar delete button
+  if (btnMobileDelete) {
+    btnMobileDelete.addEventListener("click", () => {
+      const ride = allRides.find(r => r.id === selectedRideId);
+      if (ride) openDeleteModal(ride);
+    });
+  }
+
   // Mobile top-bar share button
   if (btnMobileShare) {
     btnMobileShare.addEventListener("click", (e) => {
@@ -849,6 +948,14 @@ function setupEventListeners() {
   // Edit ride button click in detail panel
   if (btnEditRide) {
     btnEditRide.addEventListener("click", () => openEditTitleModal(selectedRideId));
+  }
+
+  // Delete ride button click in detail panel
+  if (btnDeleteRide) {
+    btnDeleteRide.addEventListener("click", () => {
+      const ride = allRides.find(r => r.id === selectedRideId);
+      if (ride) openDeleteModal(ride);
+    });
   }
 
   // Clicking on detail title opens edit modal as well
@@ -1031,6 +1138,78 @@ function setupEventListeners() {
     });
   }
 
+  // Delete Ride Modal Actions
+  if (btnDeleteRideClose) {
+    btnDeleteRideClose.addEventListener("click", closeDeleteModal);
+  }
+  if (btnDeleteRideCancel) {
+    btnDeleteRideCancel.addEventListener("click", closeDeleteModal);
+  }
+  if (btnDeleteRideConfirm) {
+    btnDeleteRideConfirm.addEventListener("click", () => {
+      void handleDeleteRide();
+    });
+  }
+  if (deleteRideModal) {
+    deleteRideModal.addEventListener("click", (e) => {
+      if (e.target === deleteRideModal) {
+        closeDeleteModal();
+      }
+    });
+  }
+
+  // User Profile Modal Actions & Triggers
+  if (userProfileTrigger) {
+    userProfileTrigger.addEventListener("click", openUserProfileModal);
+    userProfileTrigger.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openUserProfileModal();
+      }
+    });
+  }
+  if (userAvatarEl) {
+    userAvatarEl.addEventListener("click", () => {
+      if (currentUser) {
+        openUserProfileModal();
+      }
+    });
+  }
+  if (btnUserProfileClose) {
+    btnUserProfileClose.addEventListener("click", closeUserProfileModal);
+  }
+  if (btnUserProfileCancel) {
+    btnUserProfileCancel.addEventListener("click", closeUserProfileModal);
+  }
+  if (userProfileModal) {
+    userProfileModal.addEventListener("click", (e) => {
+      if (e.target === userProfileModal) {
+        closeUserProfileModal();
+      }
+    });
+  }
+  if (genderChipMale) {
+    genderChipMale.addEventListener("click", () => updateGenderChips("male"));
+  }
+  if (genderChipFemale) {
+    genderChipFemale.addEventListener("click", () => updateGenderChips("female"));
+  }
+  if (profileCyclingThreshold && valCyclingThreshold) {
+    profileCyclingThreshold.addEventListener("input", (e) => {
+      valCyclingThreshold.textContent = `${Number.parseFloat(e.target.value).toFixed(1)} km/h`;
+    });
+  }
+  if (profileWalkingThreshold && valWalkingThreshold) {
+    profileWalkingThreshold.addEventListener("input", (e) => {
+      valWalkingThreshold.textContent = `${Number.parseFloat(e.target.value).toFixed(1)} km/h`;
+    });
+  }
+  if (userProfileForm) {
+    userProfileForm.addEventListener("submit", (e) => {
+      void handleProfileSubmit(e);
+    });
+  }
+
   // Handle browser back/forward history navigation
   window.addEventListener("popstate", () => {
     void (async () => {
@@ -1139,6 +1318,12 @@ function setupAuthListeners() {
       if (editTitleModal && editTitleModal.style.display !== "none") {
         closeEditTitleModal();
       }
+      if (deleteRideModal && deleteRideModal.style.display !== "none") {
+        closeDeleteModal();
+      }
+      if (userProfileModal && userProfileModal.style.display !== "none") {
+        closeUserProfileModal();
+      }
     }
   });
 
@@ -1155,6 +1340,10 @@ function setupAuthListeners() {
     btnLogout.addEventListener("click", () => {
       void (async () => {
         try {
+          updateUrlWithRideId(null);
+          clearSelectedRide();
+          allRides = [];
+          displayAllRoutesOverview([]);
           await signOutUser();
         } catch (err) {
           console.error("Sign out error:", err);
@@ -1359,6 +1548,225 @@ function setImportGpxLoading(isLoading) {
   if (btnImportGpxCancel) btnImportGpxCancel.disabled = isLoading;
   if (importGpxSpinner) importGpxSpinner.style.display = isLoading ? "inline-block" : "none";
   if (importGpxSubmitText) importGpxSubmitText.style.display = isLoading ? "none" : "inline";
+}
+
+// ==========================================================================
+// Delete Ride Modal Handlers
+// ==========================================================================
+
+function openDeleteModal(ride) {
+  if (!ride) return;
+  ridePendingDelete = ride;
+
+  if (deleteRidePreviewTitle) {
+    deleteRidePreviewTitle.textContent = ride.title || (ride.locationName ? `📍 ${ride.locationName}` : "Trening");
+  }
+  if (deleteRidePreviewSubtitle) {
+    const isWalking = ride.activityType?.toLowerCase() === "walking";
+    const typeStr = isWalking ? "🚶 Marsz" : "🚴 Rower";
+    deleteRidePreviewSubtitle.textContent = `${formatDate(ride.startTime)} • ${ride.distanceKm.toFixed(1)} km • ${typeStr}`;
+  }
+
+  hideDeleteRideAlert();
+  setDeleteRideLoading(false);
+
+  if (deleteRideModal) {
+    deleteRideModal.style.display = "flex";
+  }
+}
+
+function closeDeleteModal() {
+  if (deleteRideModal) {
+    deleteRideModal.style.display = "none";
+  }
+  ridePendingDelete = null;
+  hideDeleteRideAlert();
+  setDeleteRideLoading(false);
+}
+
+function showDeleteRideAlert(msg) {
+  if (deleteRideAlert && deleteRideAlertMsg) {
+    deleteRideAlertMsg.textContent = msg;
+    deleteRideAlert.style.display = "flex";
+  }
+}
+
+function hideDeleteRideAlert() {
+  if (deleteRideAlert) {
+    deleteRideAlert.style.display = "none";
+  }
+}
+
+function setDeleteRideLoading(isLoading) {
+  if (btnDeleteRideConfirm) btnDeleteRideConfirm.disabled = isLoading;
+  if (btnDeleteRideCancel) btnDeleteRideCancel.disabled = isLoading;
+  if (deleteRideSpinner) deleteRideSpinner.style.display = isLoading ? "inline-block" : "none";
+  if (deleteRideConfirmText) deleteRideConfirmText.style.display = isLoading ? "none" : "inline";
+}
+
+async function handleDeleteRide() {
+  if (!ridePendingDelete) return;
+  const targetId = ridePendingDelete.id;
+
+  setDeleteRideLoading(true);
+  hideDeleteRideAlert();
+
+  try {
+    await deleteRide(targetId);
+
+    // Remove from local allRides
+    allRides = allRides.filter(r => r.id !== targetId);
+
+    // Update banner & widgets
+    updateStatsBanner(allRides);
+    if (calendarWidget) {
+      calendarWidget.setRides(allRides);
+    }
+
+    const term = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    if (term) {
+      filterAndRenderRides(term);
+    } else {
+      renderRidesList(allRides);
+    }
+
+    // If deleted ride was currently selected, reset detail view
+    if (selectedRideId === targetId) {
+      clearSelectedRide();
+    }
+
+    closeDeleteModal();
+    showToast("Trening został trwale usunięty.", "success");
+  } catch (err) {
+    console.error("Failed to delete ride:", err);
+    showDeleteRideAlert(err.message || "Nie udało się usunąć treningu.");
+  } finally {
+    setDeleteRideLoading(false);
+  }
+}
+
+// ==========================================================================
+// User Profile Modal Handlers
+// ==========================================================================
+
+function openUserProfileModal() {
+  if (!currentUser) {
+    showToast("Zaloguj się, aby wyświetlić i edytować profil.", "info");
+    openAuthModal("login");
+    return;
+  }
+
+  const profile = currentUserProfile || {
+    gender: "male",
+    weightKg: 75.0,
+    heightCm: 175.0,
+    cyclingSpeedThresholdKmh: 1.5,
+    walkingSpeedThresholdKmh: 0.5
+  };
+
+  profileGender = profile.gender || "male";
+  updateGenderChips(profileGender);
+
+  if (profileWeight) profileWeight.value = profile.weightKg != null ? Number(profile.weightKg).toFixed(1) : "75.0";
+  if (profileHeight) profileHeight.value = profile.heightCm != null ? Math.round(Number(profile.heightCm)) : "175";
+
+  const cyclingTh = profile.cyclingSpeedThresholdKmh != null ? Number(profile.cyclingSpeedThresholdKmh) : 1.5;
+  if (profileCyclingThreshold) profileCyclingThreshold.value = cyclingTh;
+  if (valCyclingThreshold) valCyclingThreshold.textContent = `${cyclingTh.toFixed(1)} km/h`;
+
+  const walkingTh = profile.walkingSpeedThresholdKmh != null ? Number(profile.walkingSpeedThresholdKmh) : 0.5;
+  if (profileWalkingThreshold) profileWalkingThreshold.value = walkingTh;
+  if (valWalkingThreshold) valWalkingThreshold.textContent = `${walkingTh.toFixed(1)} km/h`;
+
+  hideProfileAlert();
+  setProfileLoading(false);
+
+  if (userProfileModal) {
+    userProfileModal.style.display = "flex";
+  }
+}
+
+function closeUserProfileModal() {
+  if (userProfileModal) {
+    userProfileModal.style.display = "none";
+  }
+  hideProfileAlert();
+  setProfileLoading(false);
+}
+
+function updateGenderChips(gender) {
+  profileGender = gender;
+  if (genderChipMale) {
+    genderChipMale.classList.toggle("active", gender === "male");
+  }
+  if (genderChipFemale) {
+    genderChipFemale.classList.toggle("active", gender === "female");
+  }
+}
+
+function showProfileAlert(msg) {
+  if (profileAlert && profileAlertMsg) {
+    profileAlertMsg.textContent = msg;
+    profileAlert.style.display = "flex";
+  }
+}
+
+function hideProfileAlert() {
+  if (profileAlert) {
+    profileAlert.style.display = "none";
+  }
+}
+
+function setProfileLoading(isLoading) {
+  if (btnUserProfileSubmit) btnUserProfileSubmit.disabled = isLoading;
+  if (btnUserProfileCancel) btnUserProfileCancel.disabled = isLoading;
+  if (profileSpinner) profileSpinner.style.display = isLoading ? "inline-block" : "none";
+  if (profileSubmitText) profileSubmitText.style.display = isLoading ? "none" : "inline";
+}
+
+async function handleProfileSubmit(e) {
+  e.preventDefault();
+  if (!currentUser) return;
+
+  const weight = Number.parseFloat(profileWeight?.value || "75");
+  const height = Number.parseFloat(profileHeight?.value || "175");
+  const cyclingTh = Number.parseFloat(profileCyclingThreshold?.value || "1.5");
+  const walkingTh = Number.parseFloat(profileWalkingThreshold?.value || "0.5");
+
+  if (Number.isNaN(weight) || weight <= 0) {
+    showProfileAlert("Podaj prawidłową wagę w kilogramach.");
+    return;
+  }
+  if (Number.isNaN(height) || height <= 0) {
+    showProfileAlert("Podaj prawidłowy wzrost w centymetrach.");
+    return;
+  }
+
+  setProfileLoading(true);
+  hideProfileAlert();
+
+  try {
+    const updated = {
+      gender: profileGender,
+      weightKg: weight,
+      heightCm: height,
+      cyclingSpeedThresholdKmh: cyclingTh,
+      walkingSpeedThresholdKmh: walkingTh,
+      displayName: currentUser.displayName || "",
+      email: currentUser.email || ""
+    };
+
+    await saveUserProfile(currentUser.uid, updated);
+    currentUserProfile = {...currentUserProfile, ...updated};
+
+    closeUserProfileModal();
+    showToast("Profil użytkownika został pomyślnie zaktualizowany! ✨", "success");
+  } catch (err) {
+    console.error("Failed to save profile:", err);
+    showProfileAlert(err.message || "Wystąpił błąd podczas zapisywania profilu.");
+  } finally {
+    setProfileLoading(false);
+  }
 }
 
 // Add spinning animation for loading spinner
