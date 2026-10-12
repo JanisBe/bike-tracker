@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Share
@@ -61,6 +62,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,6 +74,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.RouteProfilePoint
+import com.biketracker.domain.util.CalorieCalculator
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
@@ -184,11 +189,12 @@ fun RideDetailScreen(
                             .padding(paddingValues)
                             .verticalScroll(rememberScrollState())
                     ) {
-                        // Map View
+                        // Map View Card
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(260.dp)
+                                .clipToBounds()
                         ) {
                             DetailOsmMapView(
                                 coordinates = uiState.routeCoordinates,
@@ -197,7 +203,26 @@ fun RideDetailScreen(
                                         it.latitude,
                                         it.longitude
                                     )
-                                }
+                                },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clipToBounds()
+                            )
+
+                            // Subtle bottom gradient shadow overlay for smooth transition into dark content
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(36.dp)
+                                    .align(Alignment.BottomCenter)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color.Transparent,
+                                                DarkBackground
+                                            )
+                                        )
+                                    )
                             )
 
                             IconButton(
@@ -219,7 +244,12 @@ fun RideDetailScreen(
                         }
 
                     // Content details
-                    Column(modifier = Modifier.padding(16.dp)) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(DarkBackground)
+                                .padding(16.dp)
+                        ) {
                         val isWalking = ride.activityType == ActivityType.WALKING.id
                         val defaultTitle = if (isWalking) "Spacer" else "Trening rowerowy"
                         val activityIcon =
@@ -247,7 +277,10 @@ fun RideDetailScreen(
                             )
                         }
 
-                        if (ride.locationName.isNotBlank() && ride.locationName != displayTitle) {
+                            if (ride.locationName.isNotBlank() && ride.locationName != displayTitle && !displayTitle.startsWith(
+                                    ride.locationName
+                                )
+                            ) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
@@ -352,14 +385,39 @@ fun RideDetailScreen(
                             )
                         }
 
-                        ride.elevationGain?.let { ele ->
                             Spacer(modifier = Modifier.height(12.dp))
-                            DetailMetricCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                label = "Przewyższenie",
-                                value = "↑ %.0f m".format(ele),
-                                icon = Icons.AutoMirrored.Filled.TrendingUp,
-                                tint = TealAccent
+                            val caloriesKcal = ride.caloriesKcal ?: CalorieCalculator.calculateCalories(
+                                activityType = ride.activityType,
+                                avgSpeedKmh = ride.avgSpeedKmh,
+                                durationSeconds = ride.durationSeconds,
+                                elevationGainMeters = ride.elevationGain
+                            )
+
+                            if (ride.elevationGain != null) {
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    DetailMetricCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = "Spalone kalorie",
+                                        value = "$caloriesKcal kcal",
+                                        icon = Icons.Default.LocalFireDepartment,
+                                        tint = OrangeAccent
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    DetailMetricCard(
+                                        modifier = Modifier.weight(1f),
+                                        label = "Przewyższenie",
+                                        value = "↑ %.0f m".format(ride.elevationGain),
+                                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                                        tint = TealAccent
+                                    )
+                                }
+                            } else {
+                                DetailMetricCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    label = "Spalone kalorie",
+                                    value = "$caloriesKcal kcal",
+                                    icon = Icons.Default.LocalFireDepartment,
+                                    tint = OrangeAccent
                             )
                         }
 
@@ -609,7 +667,8 @@ private class ScrubMarker(mapView: MapView) : Marker(mapView)
 @Composable
 fun DetailOsmMapView(
     coordinates: List<Pair<Double, Double>>,
-    selectedPoint: Pair<Double, Double>? = null
+    selectedPoint: Pair<Double, Double>? = null,
+    modifier: Modifier = Modifier
 ) {
     val polylineColor = OrangeAccent.toArgb()
 
@@ -634,6 +693,7 @@ fun DetailOsmMapView(
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 isTilesScaledToDpi = true
+                clipToOutline = true
             }
         },
         update = { mapView ->
@@ -683,6 +743,6 @@ fun DetailOsmMapView(
                 mapView.invalidate()
             }
         },
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier
     )
 }

@@ -46,6 +46,7 @@ class TrackingViewModel @Inject constructor(
     val currentSpeedKmh = LocationTrackingService.currentSpeedKmh
     val averageSpeedKmh = LocationTrackingService.averageSpeedKmh
     val elapsedSeconds = LocationTrackingService.elapsedSeconds
+    val caloriesBurned = LocationTrackingService.caloriesBurned
     val activityType: StateFlow<String> = LocationTrackingService.activityType
 
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
@@ -148,6 +149,7 @@ class TrackingViewModel @Inject constructor(
 
     fun stopAndSaveRide(activityType: String = LocationTrackingService.activityType.value) {
         val pointsToSave = trackPoints.value
+        val caloriesToSave = caloriesBurned.value
 
         // Stop the foreground service
         val stopIntent = Intent(context, LocationTrackingService::class.java).apply {
@@ -162,7 +164,7 @@ class TrackingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, saveError = null) }
-            val result = rideRepository.saveRide(pointsToSave, activityType)
+            val result = rideRepository.saveRide(pointsToSave, activityType, caloriesToSave)
             if (result.isSuccess) {
                 _uiState.update { it.copy(isSaving = false, savedRideId = result.getOrNull()) }
             } else {

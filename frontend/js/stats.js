@@ -1,4 +1,70 @@
 /**
+ * Determines the Metabolic Equivalent of Task (MET) based on activity type and speed.
+ * Compendium of Physical Activities (Ainsworth et al.).
+ * @param {string} activityType
+ * @param {number} speedKmh
+ * @returns {number}
+ */
+export function getMet(activityType, speedKmh) {
+    const isWalking = activityType?.toLowerCase() === 'walking';
+    if (isWalking) {
+        if (speedKmh < 0.5) return 1.2;
+        if (speedKmh < 3.0) return 2.3;
+        if (speedKmh < 4.5) return 3.3;
+        if (speedKmh < 5.5) return 3.8;
+        if (speedKmh < 6.5) return 5.0;
+        return 6.5;
+    }
+    // Cycling
+    if (speedKmh < 1.0) return 1.2;
+    if (speedKmh < 15.0) return 4.5;
+    if (speedKmh < 19.0) return 6.8;
+    if (speedKmh < 22.5) return 8.0;
+    if (speedKmh < 26.0) return 10.0;
+    if (speedKmh < 30.0) return 12.0;
+    return 14.0;
+}
+
+/**
+ * Calculates additional calories burned climbing elevation.
+ * Formula: (weightKg * elevationGainMeters) / 94.0
+ * @param {number} elevationGainMeters
+ * @param {number} [weightKg=75]
+ * @returns {number}
+ */
+export function calculateElevationCalories(elevationGainMeters, weightKg = 75.0) {
+    if (!elevationGainMeters || elevationGainMeters <= 0) return 0;
+    const validWeight = weightKg > 0 ? weightKg : 75.0;
+    return (validWeight * elevationGainMeters) / 94.0;
+}
+
+/**
+ * Calculates total estimated calories burned for a ride.
+ * @param {Object} ride
+ * @param {number} [weightKg=75]
+ * @returns {number}
+ */
+export function calculateCaloriesBurned(ride, weightKg = 75.0) {
+    if (!ride) return 0;
+    if (ride.caloriesKcal != null && !Number.isNaN(Number(ride.caloriesKcal)) && Number(ride.caloriesKcal) > 0) {
+        return Math.round(Number(ride.caloriesKcal));
+    }
+    const durationSeconds = Number(ride.durationSeconds) || 0;
+    if (durationSeconds <= 0) return 0;
+    const avgSpeedKmh = Number(ride.avgSpeedKmh) || 0;
+    const activityType = ride.activityType || 'cycling';
+    const elevationGain = Number(ride.elevationGain) || 0;
+    const validWeight = weightKg > 0 ? weightKg : 75.0;
+
+    const met = getMet(activityType, avgSpeedKmh);
+    const durationHours = durationSeconds / 3600.0;
+    const baseCalories = met * validWeight * durationHours;
+    const elevationCalories = calculateElevationCalories(elevationGain, validWeight);
+
+    return Math.max(1, Math.round(baseCalories + elevationCalories));
+}
+
+/**
  * Calculates cumulative statistics from an array of rides.
  * @param {Array<Object>} rides
  * @returns {Object}
@@ -11,7 +77,8 @@ export function calculateOverallStats(rides) {
       totalDurationHours: 0,
       avgSpeedKmh: 0,
       maxSpeedKmh: 0,
-      totalElevationGain: 0
+        totalElevationGain: 0,
+        totalCaloriesKcal: 0
     };
   }
 
@@ -27,6 +94,7 @@ export function calculateOverallStats(rides) {
 
   const maxSpeedKmh = Math.max(0, ...rides.map(r => r.maxSpeedKmh || 0));
   const totalElevationGain = rides.reduce((sum, r) => sum + (r.elevationGain || 0), 0);
+    const totalCaloriesKcal = rides.reduce((sum, r) => sum + calculateCaloriesBurned(r), 0);
 
   return {
     totalRides,
@@ -34,7 +102,8 @@ export function calculateOverallStats(rides) {
     totalDurationHours: Number(totalDurationHours.toFixed(1)),
     avgSpeedKmh: Number(avgSpeedKmh.toFixed(1)),
     maxSpeedKmh: Number(maxSpeedKmh.toFixed(1)),
-    totalElevationGain: Math.round(totalElevationGain)
+      totalElevationGain: Math.round(totalElevationGain),
+      totalCaloriesKcal: Math.round(totalCaloriesKcal)
   };
 }
 

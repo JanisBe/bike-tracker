@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -126,6 +127,7 @@ fun TrackingScreen(
     val currentSpeedKmh by viewModel.currentSpeedKmh.collectAsStateWithLifecycle()
     val averageSpeedKmh by viewModel.averageSpeedKmh.collectAsStateWithLifecycle()
     val elapsedSeconds by viewModel.elapsedSeconds.collectAsStateWithLifecycle()
+    val caloriesBurned by viewModel.caloriesBurned.collectAsStateWithLifecycle()
     val isPowerSaveMode by viewModel.isPowerSaveMode.collectAsStateWithLifecycle()
     val serviceActivityType by viewModel.activityType.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -678,6 +680,12 @@ fun TrackingScreen(
                                     label = "Czas",
                                     value = durationStr,
                                     tint = TealAccent
+                                )
+                                LiveStatItem(
+                                    icon = Icons.Default.LocalFireDepartment,
+                                    label = "Kalorie",
+                                    value = "$caloriesBurned kcal",
+                                    tint = OrangeAccent
                                 )
 
                                 if (isPaceMode) {

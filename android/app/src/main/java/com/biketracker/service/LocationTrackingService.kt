@@ -24,6 +24,7 @@ import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.data.repository.UserRepository
+import com.biketracker.domain.util.CalorieCalculator
 import com.biketracker.domain.util.DistanceCalculator
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -61,6 +62,7 @@ class LocationTrackingService : Service() {
     private var gpsAlertDismissJob: Job? = null
     private var hadGpsFix = false
     private var lastLocationTimeMs = 0L
+    private var accumulatedCalories = 0.0
 
 
     private val gnssStatusCallback = object : GnssStatus.Callback() {
@@ -208,11 +210,20 @@ class LocationTrackingService : Service() {
                 _trackPoints.value = currentList + point
             }
         } else {
-            // Użytkownik w ruchu (prędkość >= 1.0 km/h): naliczamy dystans i rejestrujemy punkt
+            // Użytkownik w ruchu (prędkość >= próg): naliczamy dystans i rejestrujemy punkt
             if (distMeters >= MIN_MOVEMENT_DISTANCE_METERS) {
                 _currentDistanceKm.value += (distMeters / 1000.0)
                 _trackPoints.value = currentList + point
                 updateAverageSpeed()
+
+                if (point.elevation != null && lastPoint.elevation != null) {
+                    val eleDiff = point.elevation - lastPoint.elevation
+                    if (eleDiff > 1.0) {
+                        val weightKg = userRepository.getUserWeightKg()
+                        accumulatedCalories += CalorieCalculator.calculateElevationCalories(eleDiff, weightKg)
+                        _caloriesBurned.value = kotlin.math.round(accumulatedCalories).toInt()
+                    }
+                }
             }
         }
 
@@ -248,6 +259,10 @@ class LocationTrackingService : Service() {
         val pointsToSave = _trackPoints.value
         val distanceKm = _currentDistanceKm.value
         val currentType = _activityType.value
+
+        val caloriesToSave = _caloriesBurned.value
+        accumulatedCalories = 0.0
+        _caloriesBurned.value = 0
 
         _isTracking.value = false
         _isWaitingForGps.value = false
@@ -289,7 +304,7 @@ class LocationTrackingService : Service() {
 
         serviceScope.launch {
             try {
-                val result = rideRepository.saveRide(pointsToSave, currentType)
+                val result = rideRepository.saveRide(pointsToSave, currentType, caloriesToSave)
                 if (result.isSuccess) {
                     showRideSavedNotification(distanceKm, currentType)
                 } else {
@@ -351,6 +366,8 @@ class LocationTrackingService : Service() {
         _currentSpeedKmh.value = 0.0
         _averageSpeedKmh.value = 0.0
         _elapsedSeconds.value = 0L
+        accumulatedCalories = 0.0
+        _caloriesBurned.value = 0
         _isTracking.value = true
         _isWaitingForGps.value = waitForGps
         _isPaused.value = false
@@ -400,6 +417,8 @@ class LocationTrackingService : Service() {
         _isPaused.value = false
         _currentSpeedKmh.value = 0.0
         _averageSpeedKmh.value = 0.0
+        accumulatedCalories = 0.0
+        _caloriesBurned.value = 0
 
         hadGpsFix = false
         lastLocationTimeMs = 0L
@@ -468,6 +487,16 @@ class LocationTrackingService : Service() {
                 if (_isTracking.value && !_isPaused.value) {
                     _elapsedSeconds.value += 1
                     updateAverageSpeed()
+
+                    val weightKg = userRepository.getUserWeightKg()
+                    val kcalThisSec = CalorieCalculator.calculateCaloriesPerSecond(
+                        _activityType.value,
+                        _currentSpeedKmh.value,
+                        weightKg
+                    )
+                    accumulatedCalories += kcalThisSec
+                    _caloriesBurned.value = kotlin.math.round(accumulatedCalories).toInt()
+
                     // Jeśli przez >5s nie otrzymano nowej lokalizacji na postoju, wyzeruj licznik prędkości
                     val now = System.currentTimeMillis()
                     if (lastLocationTimeMs > 0 && (now - lastLocationTimeMs) > 5000L && _currentSpeedKmh.value > 0.0) {
@@ -720,6 +749,7 @@ class LocationTrackingService : Service() {
         }
         val distStr = "%.2f km".format(_currentDistanceKm.value)
         val speedStr = "%.1f km/h".format(_currentSpeedKmh.value)
+        val calStr = "${_caloriesBurned.value} kcal"
 
         val title = when {
             _isPaused.value -> if (isWalking) "⏸️ Spacer wstrzymany" else getString(R.string.notification_title_paused)
@@ -728,9 +758,9 @@ class LocationTrackingService : Service() {
         }
 
         val contentText = when {
-            _isPaused.value -> "Dystans: $distStr • Czas: $timeStr"
-            _isGpsLost.value -> "Dystans: $distStr • Czas: $timeStr (szukanie GPS)"
-            else -> "Dystans: $distStr • Czas: $timeStr ($speedStr)"
+            _isPaused.value -> "Dystans: $distStr • Czas: $timeStr • $calStr"
+            _isGpsLost.value -> "Dystans: $distStr • Czas: $timeStr • $calStr (szukanie GPS)"
+            else -> "Dystans: $distStr • Czas: $timeStr ($speedStr) • $calStr"
         }
 
         builder.setContentTitle(title)
@@ -840,5 +870,8 @@ class LocationTrackingService : Service() {
 
         private val _elapsedSeconds = MutableStateFlow(0L)
         val elapsedSeconds: StateFlow<Long> = _elapsedSeconds.asStateFlow()
+
+        private val _caloriesBurned = MutableStateFlow(0)
+        val caloriesBurned: StateFlow<Int> = _caloriesBurned.asStateFlow()
     }
 }

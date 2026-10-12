@@ -46,6 +46,7 @@ const ridesListContainer = document.getElementById("rides-list");
 const statTotalDistance = document.getElementById("stat-total-distance");
 const statTotalRides = document.getElementById("stat-total-rides");
 const statTotalHours = document.getElementById("stat-total-hours");
+const statTotalCalories = document.getElementById("stat-total-calories");
 const searchInput = document.getElementById("search-input");
 const btnOverview = document.getElementById("btn-overview");
 const btnImportGpx = document.getElementById("btn-import-gpx");
@@ -58,7 +59,9 @@ const detailDate = document.getElementById("detail-date");
 const detailDist = document.getElementById("detail-dist");
 const detailDur = document.getElementById("detail-dur");
 const detailAvg = document.getElementById("detail-avg");
+const detailMax = document.getElementById("detail-max");
 const detailEle = document.getElementById("detail-ele");
+const detailCalories = document.getElementById("detail-calories");
 const btnDetailGpx = document.getElementById("btn-detail-gpx");
 const btnEditRide = document.getElementById("btn-edit-ride");
 const btnShareRide = document.getElementById("btn-share-ride");
@@ -92,6 +95,7 @@ const importPreviewDist = document.getElementById("import-preview-dist");
 const importPreviewTime = document.getElementById("import-preview-time");
 const importPreviewSpeed = document.getElementById("import-preview-speed");
 const importPreviewElev = document.getElementById("import-preview-elev");
+const importPreviewCalories = document.getElementById("import-preview-calories");
 const importPreviewLocation = document.getElementById("import-preview-location");
 
 // Auth DOM Elements
@@ -477,6 +481,7 @@ function updateStatsBanner(rides) {
   if (statTotalDistance) statTotalDistance.textContent = `${stats.totalDistanceKm} km`;
   if (statTotalRides) statTotalRides.textContent = stats.totalRides.toString();
   if (statTotalHours) statTotalHours.textContent = `${stats.totalDurationHours} h`;
+  if (statTotalCalories) statTotalCalories.textContent = `${stats.totalCaloriesKcal.toLocaleString('pl-PL')} kcal`;
 }
 
 function renderRidesList(rides) {
@@ -520,6 +525,11 @@ function renderRidesList(rides) {
     const dateFormatted = formatDate(ride.startTime);
     const durationFormatted = formatDuration(ride.durationSeconds);
     const elevationStr = ride.elevationGain != null ? `↑ ${ride.elevationGain}m` : '';
+    const caloriesStr = ride.caloriesKcal != null ? `🔥 ${ride.caloriesKcal} kcal` : '';
+    const isWalking = ride.activityType?.toLowerCase() === 'walking';
+    const activityBadge = isWalking
+        ? '<span class="badge-activity" title="Marsz / Spacer">🚶 Marsz</span>'
+        : '<span class="badge-activity" title="Rower">🚴 Rower</span>';
     const locationBadge = ride.locationName
       ? `<span class="ride-location" title="${ride.locationName}">📍 ${ride.locationName}</span>`
       : '';
@@ -534,6 +544,7 @@ function renderRidesList(rides) {
       <div class="ride-card-header">
         <span class="ride-date">${dateFormatted}</span>
         <div class="ride-card-badges">
+          ${activityBadge}
           ${sharedBadge}
           ${locationBadge}
           ${ride.isDemo ? '<span class="badge-demo">Demo</span>' : ''}
@@ -550,6 +561,7 @@ function renderRidesList(rides) {
         <div class="ride-metric">
           <span>⚡</span> ${ride.avgSpeedKmh.toFixed(1)} km/h
           ${elevationStr ? `&nbsp;&nbsp;<span>⛰️</span> ${elevationStr}` : ''}
+          ${caloriesStr ? `&nbsp;&nbsp;<span>${caloriesStr}</span>` : ''}
         </div>
         <button class="btn-download-gpx" data-ride-id="${ride.id}" title="Pobierz plik GPX">
           <span>⬇</span> GPX
@@ -748,19 +760,22 @@ function showFloatingDetail(ride) {
 
   detailTitle.textContent = displayTitle;
 
-  const formattedDate = formatDate(ride.startTime);
+  const isWalking = ride.activityType?.toLowerCase() === 'walking';
+  const activityLabel = isWalking ? 'Marsz / Spacer' : 'Trening rowerowy';
   if (ride.locationName && ride.title && ride.title.trim().length > 0 && ride.locationName !== ride.title) {
-    detailDate.textContent = `📍 ${ride.locationName} • ${formattedDate}`;
+    detailDate.textContent = `📍 ${ride.locationName} • ${formattedDate} • ${activityLabel}`;
   } else if (ride.locationName) {
-    detailDate.textContent = `${formattedDate} • Trening rowerowy`;
+    detailDate.textContent = `${formattedDate} • ${activityLabel}`;
   } else {
-    detailDate.textContent = formattedDate;
+    detailDate.textContent = `${formattedDate} • ${activityLabel}`;
   }
 
   detailDist.textContent = `${ride.distanceKm.toFixed(2)} km`;
   detailDur.textContent = formatDuration(ride.durationSeconds);
   detailAvg.textContent = `${ride.avgSpeedKmh.toFixed(1)} km/h`;
+  if (detailMax) detailMax.textContent = ride.maxSpeedKmh > 0 ? `${ride.maxSpeedKmh.toFixed(1)} km/h` : '—';
   detailEle.textContent = ride.elevationGain != null ? `+${ride.elevationGain} m` : '—';
+  if (detailCalories) detailCalories.textContent = ride.caloriesKcal != null ? `${ride.caloriesKcal.toLocaleString('pl-PL')} kcal` : '—';
 
   const shareUrl = buildShareUrl(ride.id);
   if (btnShareRide) {
@@ -1290,6 +1305,9 @@ function openImportGpxModal(parsed) {
   }
   if (importPreviewElev) {
     importPreviewElev.textContent = parsed.elevationGain > 0 ? `+${Math.round(parsed.elevationGain)} m` : "—";
+  }
+  if (importPreviewCalories) {
+    importPreviewCalories.textContent = parsed.caloriesKcal ? `${parsed.caloriesKcal.toLocaleString('pl-PL')} kcal` : "—";
   }
   if (importPreviewLocation) {
     importPreviewLocation.textContent = parsed.locationName

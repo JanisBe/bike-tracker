@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
@@ -84,6 +85,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.Ride
+import com.biketracker.domain.util.CalorieCalculator
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
@@ -1016,19 +1018,27 @@ fun RideCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            val caloriesKcal = ride.caloriesKcal ?: CalorieCalculator.calculateCalories(
+                activityType = ride.activityType,
+                avgSpeedKmh = ride.avgSpeedKmh,
+                durationSeconds = ride.durationSeconds,
+                elevationGainMeters = ride.elevationGain
+            )
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(DarkSurfaceVariant, RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.Speed,
                         contentDescription = null,
                         tint = TextSecondary,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -1039,15 +1049,32 @@ fun RideCard(
                     )
                 }
 
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.LocalFireDepartment,
+                        contentDescription = null,
+                        tint = OrangeAccent,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "$caloriesKcal kcal",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
                 ride.elevationGain?.let { ele ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.AutoMirrored.Filled.TrendingUp,
                             contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
+                            tint = TealAccent,
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "↑ %.0f m".format(ele),
                             style = MaterialTheme.typography.bodyMedium,

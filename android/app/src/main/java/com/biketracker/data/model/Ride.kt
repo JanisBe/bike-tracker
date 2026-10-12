@@ -15,6 +15,7 @@ data class Ride(
     val avgSpeedKmh: Double = 0.0,
     val maxSpeedKmh: Double = 0.0,
     val elevationGain: Double? = null,
+    val caloriesKcal: Int? = null,
     val encodedPolyline: String = "",
     val createdAt: Date = Date()
 )

@@ -24,6 +24,7 @@ interface UserRepository {
     suspend fun getUserProfile(): Result<UserProfile>
     suspend fun saveUserProfile(profile: UserProfile): Result<Unit>
     fun getSpeedThreshold(activityType: String): Double
+    fun getUserWeightKg(): Double
 }
 
 @Singleton
@@ -140,6 +141,10 @@ class UserRepositoryImpl @Inject constructor(
         } else {
             prefs.getFloat(KEY_CYCLING_THRESHOLD, 1.5f).toDouble()
         }
+    }
+
+    override fun getUserWeightKg(): Double {
+        return prefs.getFloat(KEY_WEIGHT, 75.0f).toDouble()
     }
 
     private fun loadFromPrefs(): UserProfile {

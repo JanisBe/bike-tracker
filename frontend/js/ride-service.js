@@ -11,43 +11,91 @@ import {
     writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import {decodePolyline, encodePolyline} from './polyline-decoder.js';
-import {formatGpxFileName} from './stats.js';
+import {calculateCaloriesBurned, formatGpxFileName} from './stats.js';
 
 // Demo rides provided as high-quality fallback if no rides are recorded in Firestore yet
 const MOCK_RIDES = [
-  {
-    id: "demo-ride-kampinos",
-    userId: "demo-user",
-    title: "Puszcza Kampinoska 🌲",
-    locationName: "Kampinos, Izabelin",
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), // Wczoraj
-    endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 85),
-    distanceKm: 28.4,
-    durationSeconds: 5100,
-    avgSpeedKmh: 20.0,
-    maxSpeedKmh: 36.5,
-    elevationGain: 145,
-    // Realistic polyline in Kampinos National Park near Warsaw
-      encodedPolyline: "_{_iIe{m`Bg@k@_Ag@qAo@uAe@eAm@mB}@mCe@yAs@kC_AkDu@kCy@kCe@kBu@}Bq@cBk@_Bi@eBs@iBy@qB_AiB}@iBy@iBs@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB",
-    isDemo: true
-  },
-  {
-    id: "demo-ride-vistula",
-    userId: "demo-user",
-    title: "Bulwary Wiślane 🚴",
-    locationName: "Warszawa, Powiśle",
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 dni temu
-    endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 45),
-    distanceKm: 16.2,
-    durationSeconds: 2700,
-    avgSpeedKmh: 21.6,
-    maxSpeedKmh: 32.1,
-    elevationGain: 40,
-    // Realistic route along Warsaw Vistula
-      encodedPolyline: "y~}hIk}f|Ue@fBg@`C_@~B_@~Bs@|Ci@~B_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC",
-    isDemo: true
-  }
+    {
+        id: "demo-ride-kampinos",
+        userId: "demo-user",
+        title: "Puszcza Kampinoska 🌲",
+        locationName: "Kampinos, Izabelin",
+        startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), // Wczoraj
+        endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1 + 1000 * 60 * 85),
+        distanceKm: 28.4,
+        durationSeconds: 5100,
+        avgSpeedKmh: 20.0,
+        maxSpeedKmh: 36.5,
+        elevationGain: 145,
+        activityType: "cycling",
+        caloriesKcal: 965,
+        // Realistic polyline in Kampinos National Park near Warsaw
+        encodedPolyline: "_{_iIe{m`Bg@k@_Ag@qAo@uAe@eAm@mB}@mCe@yAs@kC_AkDu@kCy@kCe@kBu@}Bq@cBk@_Bi@eBs@iBy@qB_AiB}@iBy@iBs@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB_AkBy@kBu@mB{@oB",
+        isDemo: true
+    },
+    {
+        id: "demo-ride-vistula",
+        userId: "demo-user",
+        title: "Bulwary Wiślane 🚴",
+        locationName: "Warszawa, Powiśle",
+        startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), // 4 dni temu
+        endTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4 + 1000 * 60 * 45),
+        distanceKm: 16.2,
+        durationSeconds: 2700,
+        avgSpeedKmh: 21.6,
+        maxSpeedKmh: 32.1,
+        elevationGain: 40,
+        activityType: "cycling",
+        caloriesKcal: 481,
+        // Realistic route along Warsaw Vistula
+        encodedPolyline: "y~}hIk}f|Ue@fBg@`C_@~B_@~Bs@|Ci@~B_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC_@`Ca@bCq@bCw@bC{@dCs@bC",
+        isDemo: true
+    }
 ];
+
+/**
+ * Normalizes a raw Firestore document into a typed client Ride model.
+ * Handles fallback calorie calculation if caloriesKcal is absent in older documents.
+ * @param {string} id
+ * @param {Object} data
+ * @returns {Object}
+ */
+function mapFirestoreRide(id, data) {
+    const rawActivity = data.activityType || "cycling";
+    const rawCalories = data.caloriesKcal != null ? Number(data.caloriesKcal) : null;
+    const distanceKm = Number(data.distanceKm) || 0;
+    const durationSeconds = Number(data.durationSeconds) || 0;
+    const avgSpeedKmh = Number(data.avgSpeedKmh) || 0;
+    const maxSpeedKmh = Number(data.maxSpeedKmh) || 0;
+    const elevationGain = data.elevationGain != null ? Number(data.elevationGain) : null;
+
+    const calculatedCalories = rawCalories != null && rawCalories > 0
+        ? rawCalories
+        : calculateCaloriesBurned({
+            activityType: rawActivity,
+            durationSeconds,
+            avgSpeedKmh,
+            elevationGain
+        });
+
+    return {
+        id,
+        ...data,
+        title: data.title || "",
+        locationName: data.locationName || "",
+        activityType: rawActivity,
+        startTime: data.startTime && typeof data.startTime.toDate === 'function' ? data.startTime.toDate() : (data.startTime ? new Date(data.startTime) : new Date()),
+        endTime: data.endTime && typeof data.endTime.toDate === 'function' ? data.endTime.toDate() : (data.endTime ? new Date(data.endTime) : new Date()),
+        distanceKm,
+        durationSeconds,
+        avgSpeedKmh,
+        maxSpeedKmh,
+        elevationGain,
+        caloriesKcal: calculatedCalories,
+        encodedPolyline: data.encodedPolyline || "",
+        isDemo: false
+    };
+}
 
 /**
  * Fetches all rides belonging to a specific user from Firestore.
@@ -70,24 +118,7 @@ export async function fetchUserRides(userId) {
             return [];
         }
 
-        return snapshot.docs.map(docSnap => {
-            const data = docSnap.data();
-            return {
-                id: docSnap.id,
-                ...data,
-                title: data.title || "",
-                locationName: data.locationName || "",
-                startTime: data.startTime ? data.startTime.toDate() : new Date(),
-                endTime: data.endTime ? data.endTime.toDate() : new Date(),
-                distanceKm: Number(data.distanceKm) || 0,
-                durationSeconds: Number(data.durationSeconds) || 0,
-                avgSpeedKmh: Number(data.avgSpeedKmh) || 0,
-                maxSpeedKmh: Number(data.maxSpeedKmh) || 0,
-                elevationGain: data.elevationGain != null ? Number(data.elevationGain) : null,
-                encodedPolyline: data.encodedPolyline || "",
-                isDemo: false
-            };
-        });
+        return snapshot.docs.map(docSnap => mapFirestoreRide(docSnap.id, docSnap.data()));
     } catch (error) {
         console.error("Firestore fetch user rides error:", error);
         throw error;
@@ -116,22 +147,7 @@ export async function fetchRideById(rideId) {
             return null;
         }
 
-        const data = docSnap.data();
-        return {
-            id: docSnap.id,
-            ...data,
-            title: data.title || "",
-            locationName: data.locationName || "",
-            startTime: data.startTime ? data.startTime.toDate() : new Date(),
-            endTime: data.endTime ? data.endTime.toDate() : new Date(),
-            distanceKm: Number(data.distanceKm) || 0,
-            durationSeconds: Number(data.durationSeconds) || 0,
-            avgSpeedKmh: Number(data.avgSpeedKmh) || 0,
-            maxSpeedKmh: Number(data.maxSpeedKmh) || 0,
-            elevationGain: data.elevationGain != null ? Number(data.elevationGain) : null,
-            encodedPolyline: data.encodedPolyline || "",
-            isDemo: false
-        };
+        return mapFirestoreRide(docSnap.id, docSnap.data());
     } catch (error) {
         console.error("Firestore fetch ride by id error:", error);
         return null;
@@ -143,37 +159,20 @@ export async function fetchRideById(rideId) {
  * @returns {Promise<Array<Object>>}
  */
 export async function fetchAllRides() {
-  try {
-    const q = query(collection(db, "rides"), orderBy("startTime", "desc"));
-    const snapshot = await getDocs(q);
+    try {
+        const q = query(collection(db, "rides"), orderBy("startTime", "desc"));
+        const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-      console.info("No rides found in Firestore yet. Using demo rides for preview.");
-      return MOCK_RIDES;
+        if (snapshot.empty) {
+            console.info("No rides found in Firestore yet. Using demo rides for preview.");
+            return MOCK_RIDES;
+        }
+
+        return snapshot.docs.map(docSnap => mapFirestoreRide(docSnap.id, docSnap.data()));
+    } catch (error) {
+        console.warn("Firestore fetch error, displaying demo data:", error);
+        return MOCK_RIDES;
     }
-
-    return snapshot.docs.map(docSnap => {
-      const data = docSnap.data();
-      return {
-        id: docSnap.id,
-        ...data,
-        title: data.title || "",
-        locationName: data.locationName || "",
-        startTime: data.startTime ? data.startTime.toDate() : new Date(),
-        endTime: data.endTime ? data.endTime.toDate() : new Date(),
-        distanceKm: Number(data.distanceKm) || 0,
-        durationSeconds: Number(data.durationSeconds) || 0,
-        avgSpeedKmh: Number(data.avgSpeedKmh) || 0,
-        maxSpeedKmh: Number(data.maxSpeedKmh) || 0,
-        elevationGain: data.elevationGain != null ? Number(data.elevationGain) : null,
-        encodedPolyline: data.encodedPolyline || "",
-        isDemo: false
-      };
-    });
-  } catch (error) {
-    console.warn("Firestore fetch error, displaying demo data:", error);
-    return MOCK_RIDES;
-  }
 }
 
 /**
@@ -186,48 +185,48 @@ export async function downloadGpx(rideOrId, customFileName = null) {
     const rideId = isObj ? rideOrId.id : rideOrId;
     const rideDate = isObj ? rideOrId.startTime : null;
 
-  // Check if it's a demo ride
-  const demoRide = MOCK_RIDES.find(r => r.id === rideId);
+    // Check if it's a demo ride
+    const demoRide = MOCK_RIDES.find(r => r.id === rideId);
     const effectiveDate = rideDate || (demoRide ? demoRide.startTime : null);
     const fileName = customFileName || (effectiveDate ? formatGpxFileName(effectiveDate) : `ride_${rideId}.gpx`);
 
-  if (demoRide) {
-    const demoGpx = generateDemoGpx(demoRide);
-      triggerFileDownload(demoGpx, fileName);
-    return;
-  }
-
-  try {
-    const gpxDocRef = doc(db, "rides", rideId, "details", "gpx");
-    const snap = await getDoc(gpxDocRef);
-
-    if (!snap.exists() || !snap.data().gpxContent) {
-      throw new Error("No GPX file content found for this ride in Firestore.");
+    if (demoRide) {
+        const demoGpx = generateDemoGpx(demoRide);
+        triggerFileDownload(demoGpx, fileName);
+        return;
     }
 
-    const gpxXml = snap.data().gpxContent;
-      triggerFileDownload(gpxXml, fileName);
-  } catch (error) {
-    console.error("Failed to download GPX:", error);
-    alert(`Nie udało się pobrać pliku GPX: ${error.message}`);
-  }
+    try {
+        const gpxDocRef = doc(db, "rides", rideId, "details", "gpx");
+        const snap = await getDoc(gpxDocRef);
+
+        if (!snap.exists() || !snap.data().gpxContent) {
+            throw new Error("No GPX file content found for this ride in Firestore.");
+        }
+
+        const gpxXml = snap.data().gpxContent;
+        triggerFileDownload(gpxXml, fileName);
+    } catch (error) {
+        console.error("Failed to download GPX:", error);
+        alert(`Nie udało się pobrać pliku GPX: ${error.message}`);
+    }
 }
 
 
 function triggerFileDownload(content, filename) {
-  const blob = new Blob([content], { type: "application/gpx+xml;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+    const blob = new Blob([content], {type: "application/gpx+xml;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
 }
 
 function generateDemoGpx(ride) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
+    return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="BikeTracker Web Demo" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>${ride.title || 'Demo Ride'}</name>
@@ -479,7 +478,7 @@ export async function resolveLocationFromCoords(lat, lon) {
         });
         if (!res.ok) return '';
         const data = await res.json();
-        if (!data || !data.address) return '';
+        if (!data?.address) return '';
         const addr = data.address;
         const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || '';
         const district = addr.suburb || addr.neighbourhood || addr.city_district || '';
@@ -506,7 +505,7 @@ export function suggestTitleFromGpx(gpxName, locationName, startTime) {
         return trimmed;
     }
     const hour = startTime ? startTime.getHours() : new Date().getHours();
-    let prefix = "Trasa";
+    let prefix;
     if (hour >= 5 && hour < 12) {
         prefix = "Poranna trasa";
     } else if (hour >= 12 && hour < 18) {
@@ -516,7 +515,7 @@ export function suggestTitleFromGpx(gpxName, locationName, startTime) {
     } else {
         prefix = "Nocna trasa";
     }
-    if (locationName && locationName.trim()) {
+    if (locationName?.trim()) {
         return `${prefix} – ${locationName.trim()}`;
     }
     const dateStr = startTime ? startTime.toLocaleDateString("pl-PL") : new Date().toLocaleDateString("pl-PL");
@@ -549,7 +548,7 @@ export async function parseGpxFileForImport(gpxXml) {
 
     // Extract name if available
     let nameTag = xmlDoc.querySelector("metadata > name")?.textContent ||
-                  xmlDoc.querySelector("trk > name")?.textContent || null;
+        xmlDoc.querySelector("trk > name")?.textContent || null;
 
     const rawPoints = [];
     trkpts.forEach(pt => {
@@ -575,11 +574,11 @@ export async function parseGpxFileForImport(gpxXml) {
     const coords = [];
 
     const startTime = rawPoints[0].time ? new Date(rawPoints[0].time) : new Date();
-    const endTime = rawPoints[rawPoints.length - 1].time ? new Date(rawPoints[rawPoints.length - 1].time) : new Date();
+    const endTime = rawPoints.at(-1).time ? new Date(rawPoints.at(-1).time) : new Date();
     let durationSeconds = 0;
 
-    if (rawPoints[0].time && rawPoints[rawPoints.length - 1].time) {
-        durationSeconds = Math.max(1, (rawPoints[rawPoints.length - 1].time - rawPoints[0].time) / 1000);
+    if (rawPoints[0].time && rawPoints.at(-1).time) {
+        durationSeconds = Math.max(1, (rawPoints.at(-1).time - rawPoints[0].time) / 1000);
     }
 
     for (let i = 0; i < rawPoints.length; i++) {
@@ -626,17 +625,25 @@ export async function parseGpxFileForImport(gpxXml) {
     // Resolve location asynchronously
     const locationName = await resolveLocationFromCoords(rawPoints[0].lat, rawPoints[0].lon);
     const suggestedTitle = suggestTitleFromGpx(nameTag, locationName, startTime);
+    const caloriesKcal = calculateCaloriesBurned({
+        activityType: "cycling",
+        durationSeconds,
+        avgSpeedKmh,
+        elevationGain
+    });
 
     return {
         title: suggestedTitle,
         locationName: locationName,
+        activityType: "cycling",
         startTime: startTime,
         endTime: endTime,
         distanceKm: distanceKm,
         durationSeconds: durationSeconds,
         avgSpeedKmh: avgSpeedKmh,
         maxSpeedKmh: maxSpeedKmh,
-        elevationGain: elevationGain > 0 ? elevationGain : 0,
+        elevationGain: Math.max(elevationGain, 0),
+        caloriesKcal: caloriesKcal,
         encodedPolyline: encodedPolyline,
         rawPointsCount: rawPoints.length
     };
@@ -659,10 +666,20 @@ export async function saveImportedRide(rideData, gpxXml, userId) {
 
     const batch = writeBatch(db);
 
+    const caloriesToSave = rideData.caloriesKcal != null
+        ? Math.round(Number(rideData.caloriesKcal))
+        : calculateCaloriesBurned({
+            activityType: rideData.activityType || "cycling",
+            durationSeconds: rideData.durationSeconds,
+            avgSpeedKmh: rideData.avgSpeedKmh,
+            elevationGain: rideData.elevationGain
+        });
+
     const firestoreRideData = {
         userId: userId,
         title: (rideData.title || "Trening GPX").trim(),
         locationName: rideData.locationName || "",
+        activityType: rideData.activityType || "cycling",
         startTime: rideData.startTime instanceof Date ? rideData.startTime : new Date(rideData.startTime),
         endTime: rideData.endTime instanceof Date ? rideData.endTime : new Date(rideData.endTime),
         distanceKm: Number(Number(rideData.distanceKm).toFixed(2)),
@@ -670,6 +687,7 @@ export async function saveImportedRide(rideData, gpxXml, userId) {
         avgSpeedKmh: Number(Number(rideData.avgSpeedKmh).toFixed(1)),
         maxSpeedKmh: Number(Number(rideData.maxSpeedKmh).toFixed(1)),
         elevationGain: rideData.elevationGain != null ? Math.round(rideData.elevationGain) : 0,
+        caloriesKcal: caloriesToSave,
         encodedPolyline: rideData.encodedPolyline || ""
     };
 

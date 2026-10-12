@@ -4,7 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -275,7 +275,7 @@ fun RideProfileChart(
                         )
                     }
                     .pointerInput(points, showSpeed, showElevation) {
-                        detectDragGestures(
+                        detectHorizontalDragGestures(
                             onDragStart = { offset ->
                                 val frac = (offset.x / size.width).coerceIn(0f, 1f)
                                 scrubFraction = frac
@@ -284,7 +284,7 @@ fun RideProfileChart(
                                 activePoint = found
                                 onPointSelected(found)
                             },
-                            onDrag = { change, _ ->
+                            onHorizontalDrag = { change, _ ->
                                 change.consume()
                                 val frac = (change.position.x / size.width).coerceIn(0f, 1f)
                                 scrubFraction = frac

@@ -21,6 +21,7 @@ object RideMapper {
         "avgSpeedKmh" to ride.avgSpeedKmh,
         "maxSpeedKmh" to ride.maxSpeedKmh,
         "elevationGain" to ride.elevationGain,
+        "caloriesKcal" to ride.caloriesKcal,
         "encodedPolyline" to ride.encodedPolyline,
         "createdAt" to FieldValue.serverTimestamp()
     )
@@ -38,6 +39,7 @@ object RideMapper {
         avgSpeedKmh = doc.getDouble("avgSpeedKmh") ?: 0.0,
         maxSpeedKmh = doc.getDouble("maxSpeedKmh") ?: 0.0,
         elevationGain = doc.getDouble("elevationGain"),
+        caloriesKcal = doc.getLong("caloriesKcal")?.toInt(),
         encodedPolyline = doc.getString("encodedPolyline") ?: "",
         createdAt = doc.getTimestamp("createdAt")?.toDate() ?: Date()
     )

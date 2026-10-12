@@ -8,6 +8,7 @@ import com.biketracker.data.mapper.RideMapper
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.Ride
 import com.biketracker.data.model.TrackPoint
+import com.biketracker.domain.util.CalorieCalculator
 import com.biketracker.domain.util.GpxGenerator
 import com.biketracker.domain.util.PolylineEncoder
 import com.biketracker.domain.util.StatsCalculator
@@ -33,7 +34,8 @@ import kotlin.coroutines.resume
 interface RideRepository {
     suspend fun saveRide(
         points: List<TrackPoint>,
-        activityType: String = ActivityType.CYCLING.id
+        activityType: String = ActivityType.CYCLING.id,
+        caloriesBurned: Int? = null
     ): Result<String>
     suspend fun importGpxRide(
         points: List<TrackPoint>,
@@ -53,7 +55,8 @@ interface RideRepository {
 class RideRepositoryImpl @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val userRepository: UserRepository
 ) : RideRepository {
 
     private val ridesCollection = firestore.collection("rides")
@@ -110,7 +113,8 @@ class RideRepositoryImpl @Inject constructor(
 
     override suspend fun saveRide(
         points: List<TrackPoint>,
-        activityType: String
+        activityType: String,
+        caloriesBurned: Int?
     ): Result<String> = runCatching {
         val user = auth.currentUser ?: throw IllegalStateException("User not authenticated")
         require(points.size >= 2) { "At least 2 GPS points are required" }
@@ -135,7 +139,21 @@ class RideRepositoryImpl @Inject constructor(
         }
         val gpxXml = GpxGenerator.generate(points, rideTitle)
 
-        // 4. Create Ride model
+        // 4. Calculate or use calories
+        val userWeight = userRepository.getUserWeightKg()
+        val finalCalories = if (caloriesBurned != null && caloriesBurned > 0) {
+            caloriesBurned
+        } else {
+            CalorieCalculator.calculateCalories(
+                activityType = activityType,
+                avgSpeedKmh = stats.avgSpeedKmh,
+                durationSeconds = stats.durationSeconds,
+                elevationGainMeters = stats.elevationGain,
+                weightKg = userWeight
+            )
+        }
+
+        // 5. Create Ride model
         val ride = Ride(
             id = rideId,
             userId = user.uid,
@@ -149,10 +167,11 @@ class RideRepositoryImpl @Inject constructor(
             avgSpeedKmh = stats.avgSpeedKmh,
             maxSpeedKmh = stats.maxSpeedKmh,
             elevationGain = stats.elevationGain,
+            caloriesKcal = finalCalories,
             encodedPolyline = encodedPolyline
         )
 
-        // 5. Batch write to Firestore (Spark Plan / 0 MB Storage)
+        // 6. Batch write to Firestore (Spark Plan / 0 MB Storage)
         val batch = firestore.batch()
         val gpxDocRef = rideRef.collection("details").document("gpx")
 
@@ -180,12 +199,21 @@ class RideRepositoryImpl @Inject constructor(
 
         val stats = StatsCalculator.calculate(points)
         val encodedPolyline = PolylineEncoder.encode(points)
+        val userWeight = userRepository.getUserWeightKg()
+        val calculatedCalories = CalorieCalculator.calculateCalories(
+            activityType = ActivityType.CYCLING.id,
+            avgSpeedKmh = stats.avgSpeedKmh,
+            durationSeconds = stats.durationSeconds,
+            elevationGainMeters = stats.elevationGain,
+            weightKg = userWeight
+        )
 
         val ride = Ride(
             id = rideId,
             userId = user.uid,
             title = title.trim(),
             locationName = locationName,
+            activityType = ActivityType.CYCLING.id,
             startTime = Date(points.first().timestamp),
             endTime = Date(points.last().timestamp),
             distanceKm = stats.distanceKm,
@@ -193,6 +221,7 @@ class RideRepositoryImpl @Inject constructor(
             avgSpeedKmh = stats.avgSpeedKmh,
             maxSpeedKmh = stats.maxSpeedKmh,
             elevationGain = stats.elevationGain,
+            caloriesKcal = calculatedCalories,
             encodedPolyline = encodedPolyline
         )
 
