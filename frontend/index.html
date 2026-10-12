@@ -186,9 +186,145 @@
               </div>
           </header>
 
-          <!-- Map Wrapper with Fullscreen Button -->
+          <!-- Map Wrapper with Fullscreen Button & Layer Switcher -->
           <div class="map-wrapper" id="map-wrapper">
               <div id="map"></div>
+
+              <!-- Map Layer Switcher Control -->
+              <div class="map-layer-control" id="map-layer-control">
+                  <button aria-expanded="false" aria-haspopup="true" aria-label="Wybierz źródło mapy"
+                          class="btn-map-layers" id="btn-map-layers" title="Zmień źródło mapy i szlaki"
+                          type="button">
+                      <svg class="icon-layers" fill="none" height="17" stroke="currentColor"
+                           stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                           viewBox="0 0 24 24" width="17">
+                          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                          <polyline points="2 17 12 22 22 17"></polyline>
+                          <polyline points="2 12 12 17 22 12"></polyline>
+                      </svg>
+                      <span class="map-layer-badge" id="map-layer-badge">Ciemna</span>
+                      <svg class="icon-layer-chevron" fill="none" height="13" stroke="currentColor"
+                           stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                           viewBox="0 0 24 24" width="13">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                  </button>
+
+                  <div aria-label="Wybór warstw mapy" class="map-layers-dropdown"
+                       id="map-layers-dropdown" role="dialog">
+                      <div class="layers-dropdown-header">
+                          <span class="layers-dropdown-title">Źródło mapy</span>
+                          <span class="layers-dropdown-desc">Wybierz styl mapy i nakładki szlaków</span>
+                      </div>
+
+                      <div class="layers-section">
+                          <div class="layers-section-title">Podkład mapy</div>
+                          <div class="layers-options-list" role="radiogroup">
+                              <label class="layer-option">
+                                  <input checked name="basemap-option" type="radio" value="osm-dark">
+                                  <span class="layer-radio-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">OpenStreetMap</span>
+                                          <span class="layer-pill pill-dark">Ciemna</span>
+                                      </div>
+                                      <span class="layer-tag">Kontrastowy styl ciemny</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option">
+                                  <input name="basemap-option" type="radio" value="cyclosm">
+                                  <span class="layer-radio-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">CyclOSM</span>
+                                          <span class="layer-pill pill-cycling">Rowerowa</span>
+                                      </div>
+                                      <span class="layer-tag">Ścieżki i pasy rowerowe, nawierzchnie</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option">
+                                  <input name="basemap-option" type="radio" value="opentopomap">
+                                  <span class="layer-radio-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">OpenTopoMap</span>
+                                          <span class="layer-pill pill-topo">Topo</span>
+                                      </div>
+                                      <span class="layer-tag">Poziomice, rzeźba terenu, szlaki</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option">
+                                  <input name="basemap-option" type="radio" value="ump">
+                                  <span class="layer-radio-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">UMP-pcPL</span>
+                                          <span class="layer-pill pill-ump">Polska</span>
+                                      </div>
+                                      <span class="layer-tag">Siatka dróg i szlaków UMP Polska</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option">
+                                  <input name="basemap-option" type="radio" value="osm-standard">
+                                  <span class="layer-radio-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">OpenStreetMap</span>
+                                          <span class="layer-pill pill-standard">Jasna</span>
+                                      </div>
+                                      <span class="layer-tag">Klasyczny podkład OSM</span>
+                                  </div>
+                              </label>
+                          </div>
+                      </div>
+
+                      <div class="layers-section layers-section-overlays">
+                          <div class="layers-section-title">Szlaki turystyczne (Nakładki)</div>
+                          <div class="layers-options-list">
+                              <label class="layer-option overlay-option">
+                                  <input name="overlay-option" type="checkbox" value="waymarked-cycling">
+                                  <span class="layer-checkbox-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">Szlaki rowerowe</span>
+                                          <span class="layer-pill pill-cycling">Waymarked</span>
+                                      </div>
+                                      <span class="layer-tag">Oznakowane trasy rowerowe i EV</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option overlay-option">
+                                  <input name="overlay-option" type="checkbox" value="waymarked-hiking">
+                                  <span class="layer-checkbox-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">Szlaki piesze</span>
+                                          <span class="layer-pill pill-hiking">Waymarked</span>
+                                      </div>
+                                      <span class="layer-tag">Kolorowe szlaki turystyczne i górskie</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option overlay-option">
+                                  <input name="overlay-option" type="checkbox" value="waymarked-mtb">
+                                  <span class="layer-checkbox-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">Trasy MTB</span>
+                                          <span class="layer-pill pill-mtb">Waymarked</span>
+                                      </div>
+                                      <span class="layer-tag">Dedykowane trasy kolarstwa górskiego</span>
+                                  </div>
+                              </label>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
               <button aria-label="Pełny ekran mapy" class="btn-map-fullscreen"
                       id="btn-map-fullscreen" title="Pełny ekran mapy" type="button">
                   <svg class="icon-enter-fullscreen" fill="none" height="18" stroke="currentColor"

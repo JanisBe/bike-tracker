@@ -5,6 +5,232 @@ let currentRouteLayer = null;
 let markersLayer = null;
 let allRoutesLayerGroup = null;
 
+let currentBaseLayer = null;
+let currentBaseMapKey = 'osm-dark';
+const activeOverlayLayers = new Map();
+
+export const BASEMAPS = {
+  'osm-dark': {
+    name: 'OpenStreetMap (Ciemna)',
+    badge: 'Ciemna',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      className: 'tile-filter-dark'
+    }
+  },
+  'cyclosm': {
+    name: 'CyclOSM (Rowerowa)',
+    badge: 'CyclOSM',
+    url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+    options: {
+      subdomains: ['a', 'b', 'c'],
+      maxZoom: 20,
+      attribution: '&copy; <a href="https://www.cyclosm.org" target="_blank" rel="noopener">CyclOSM</a> | &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+    }
+  },
+  'opentopomap': {
+    name: 'OpenTopoMap (Topograficzna)',
+    badge: 'OpenTopo',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    options: {
+      subdomains: ['a', 'b', 'c'],
+      maxNativeZoom: 17,
+      maxZoom: 19,
+      attribution: 'Mapa: &copy; <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, SRTM | Widok: &copy; <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a>'
+    }
+  },
+  'ump': {
+    name: 'UMP-pcPL (Polska)',
+    badge: 'UMP-pcPL',
+    url: 'https://tiles.ump.waw.pl/ump_tiles/{z}/{x}/{y}.png',
+    options: {
+      maxNativeZoom: 18,
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://ump.waw.pl/" target="_blank" rel="noopener">UMP-pcPL</a> contributors'
+    }
+  },
+  'osm-standard': {
+    name: 'OpenStreetMap (Standardowa)',
+    badge: 'OSM Jasna',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    options: {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    }
+  }
+};
+
+export const OVERLAYS = {
+  'waymarked-cycling': {
+    name: 'Szlaki rowerowe',
+    url: 'https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png',
+    options: {
+      maxNativeZoom: 18,
+      maxZoom: 19,
+      opacity: 0.9,
+      attribution: 'Szlaki rowerowe: &copy; <a href="https://cycling.waymarkedtrails.org" target="_blank" rel="noopener">Waymarked Trails</a>'
+    }
+  },
+  'waymarked-hiking': {
+    name: 'Szlaki piesze',
+    url: 'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',
+    options: {
+      maxNativeZoom: 18,
+      maxZoom: 19,
+      opacity: 0.9,
+      attribution: 'Szlaki piesze: &copy; <a href="https://hiking.waymarkedtrails.org" target="_blank" rel="noopener">Waymarked Trails</a>'
+    }
+  },
+  'waymarked-mtb': {
+    name: 'Trasy MTB',
+    url: 'https://tile.waymarkedtrails.org/mtb/{z}/{x}/{y}.png',
+    options: {
+      maxNativeZoom: 18,
+      maxZoom: 19,
+      opacity: 0.9,
+      attribution: 'Trasy MTB: &copy; <a href="https://mtb.waymarkedtrails.org" target="_blank" rel="noopener">Waymarked Trails</a>'
+    }
+  }
+};
+
+/**
+ * Sets the active basemap tile layer.
+ * @param {string} key
+ */
+export function setBaseMap(key) {
+  if (!mapInstance || !BASEMAPS[key]) return;
+
+  if (currentBaseLayer) {
+    mapInstance.removeLayer(currentBaseLayer);
+    currentBaseLayer = null;
+  }
+
+  const def = BASEMAPS[key];
+  currentBaseMapKey = key;
+  currentBaseLayer = L.tileLayer(def.url, def.options);
+  currentBaseLayer.addTo(mapInstance);
+  currentBaseLayer.bringToBack();
+
+  try {
+    localStorage.setItem('bike_tracker_basemap', key);
+  } catch (err) {
+    console.warn('Unable to persist basemap preference:', err);
+  }
+
+  const badgeEl = document.getElementById('map-layer-badge');
+  if (badgeEl) {
+    badgeEl.textContent = def.badge;
+  }
+
+  const radio = document.querySelector(`input[name="basemap-option"][value="${key}"]`);
+  if (radio) {
+    radio.checked = true;
+  }
+}
+
+/**
+ * Enables or disables a tile overlay layer.
+ * @param {string} key
+ * @param {boolean} enable
+ */
+export function toggleOverlay(key, enable) {
+  if (!mapInstance || !OVERLAYS[key]) return;
+
+  const def = OVERLAYS[key];
+  if (enable) {
+    if (!activeOverlayLayers.has(key)) {
+      const layer = L.tileLayer(def.url, def.options);
+      layer.addTo(mapInstance);
+      activeOverlayLayers.set(key, layer);
+    }
+  } else if (activeOverlayLayers.has(key)) {
+    const layer = activeOverlayLayers.get(key);
+    mapInstance.removeLayer(layer);
+    activeOverlayLayers.delete(key);
+  }
+
+  try {
+    const activeKeys = Array.from(activeOverlayLayers.keys());
+    localStorage.setItem('bike_tracker_overlays', JSON.stringify(activeKeys));
+  } catch (err) {
+    console.warn('Unable to persist overlay preference:', err);
+  }
+
+  const checkbox = document.querySelector(`input[name="overlay-option"][value="${key}"]`);
+  if (checkbox) {
+    checkbox.checked = enable;
+  }
+}
+
+/**
+ * Hooks up event handlers for the map layer selector dropdown.
+ */
+export function initLayerControls() {
+  const container = document.getElementById('map-layer-control');
+  const btn = document.getElementById('btn-map-layers');
+  const dropdown = document.getElementById('map-layers-dropdown');
+  if (!btn || !dropdown) return;
+
+  if (container) {
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+  }
+
+  const openDropdown = () => {
+    dropdown.classList.add('is-open');
+    btn.setAttribute('aria-expanded', 'true');
+  };
+
+  const closeDropdown = () => {
+    dropdown.classList.remove('is-open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
+
+  btn.onclick = (e) => {
+    e?.stopPropagation();
+    if (dropdown.classList.contains('is-open')) {
+      closeDropdown();
+    } else {
+      openDropdown();
+    }
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && dropdown.classList.contains('is-open')) {
+      closeDropdown();
+      btn.focus();
+    }
+  });
+
+  if (mapInstance) {
+    mapInstance.on('movestart zoomstart', closeDropdown);
+  }
+
+  const basemapRadios = dropdown.querySelectorAll('input[name="basemap-option"]');
+  basemapRadios.forEach((radio) => {
+    radio.onchange = () => {
+      if (radio.checked) {
+        setBaseMap(radio.value);
+      }
+    };
+  });
+
+  const overlayCheckboxes = dropdown.querySelectorAll('input[name="overlay-option"]');
+  overlayCheckboxes.forEach((cb) => {
+    cb.onchange = () => {
+      toggleOverlay(cb.value, cb.checked);
+    };
+  });
+}
+
 // Custom SVG marker icons
 function createCustomMarkerIcon(type) {
   const isStart = type === 'start';
@@ -47,6 +273,8 @@ function createCustomMarkerIcon(type) {
 export function initMap(containerId = "map") {
   if (mapInstance) {
     mapInstance.remove();
+    activeOverlayLayers.clear();
+    currentBaseLayer = null;
   }
 
   // Default coordinates: Central Poland / Warsaw
@@ -58,14 +286,40 @@ export function initMap(containerId = "map") {
   // Add zoom control on top right
   L.control.zoom({ position: "topright" }).addTo(mapInstance);
 
-  // Standard OpenStreetMap tiles (100% free, no API key required)
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
-  }).addTo(mapInstance);
+  // Load saved preferences or defaults
+  let savedBaseMap = 'osm-dark';
+  let savedOverlays = [];
+  try {
+    const basemapPref = localStorage.getItem('bike_tracker_basemap');
+    if (basemapPref && BASEMAPS[basemapPref]) {
+      savedBaseMap = basemapPref;
+    }
+    const overlaysPref = localStorage.getItem('bike_tracker_overlays');
+    if (overlaysPref) {
+      const parsed = JSON.parse(overlaysPref);
+      if (Array.isArray(parsed)) {
+        savedOverlays = parsed;
+      }
+    }
+  } catch (err) {
+    console.warn('Error reading map preferences:', err);
+  }
+
+  // Set base layer
+  setBaseMap(savedBaseMap);
+
+  // Apply saved overlays
+  savedOverlays.forEach((key) => {
+    if (OVERLAYS[key]) {
+      toggleOverlay(key, true);
+    }
+  });
 
   markersLayer = L.layerGroup().addTo(mapInstance);
   allRoutesLayerGroup = L.layerGroup().addTo(mapInstance);
+
+  // Wire up UI layer controls
+  initLayerControls();
 
   return mapInstance;
 }

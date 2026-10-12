@@ -2,6 +2,8 @@ package com.biketracker.di
 
 import com.biketracker.data.repository.AuthRepository
 import com.biketracker.data.repository.AuthRepositoryImpl
+import com.biketracker.data.repository.MapPreferencesRepository
+import com.biketracker.data.repository.MapPreferencesRepositoryImpl
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.data.repository.RideRepositoryImpl
 import com.biketracker.data.repository.UserRepository
@@ -43,4 +45,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMapPreferencesRepository(impl: MapPreferencesRepositoryImpl): MapPreferencesRepository
 }

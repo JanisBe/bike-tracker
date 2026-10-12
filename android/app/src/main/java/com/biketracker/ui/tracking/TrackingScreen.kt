@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocationOff
 import androidx.compose.material.icons.filled.MyLocation
@@ -96,6 +97,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SignalQuality
 import com.biketracker.data.model.TrackPoint
+import com.biketracker.ui.map.MapBaseSource
+import com.biketracker.ui.map.MapLayersBottomSheet
+import com.biketracker.ui.map.MapOverlaySource
+import com.biketracker.ui.map.applyMapConfiguration
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
@@ -248,6 +253,9 @@ fun TrackingScreen(
     var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
     var isAutoCenter by rememberSaveable { mutableStateOf(true) }
     var recenterTrigger by remember { mutableIntStateOf(0) }
+    val baseSource by viewModel.mapBaseSource.collectAsStateWithLifecycle()
+    val activeOverlays by viewModel.mapActiveOverlays.collectAsStateWithLifecycle()
+    var showMapLayersSheet by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = isMapFullscreen) {
         isMapFullscreen = false
@@ -363,10 +371,30 @@ fun TrackingScreen(
                     if (hasLocationPermission) {
                         TrackingOsmMapView(
                             trackPoints = trackPoints,
+                            baseSource = baseSource,
+                            activeOverlays = activeOverlays,
                             isAutoCenter = isAutoCenter,
                             onUserPan = { isAutoCenter = false },
                             recenterTrigger = recenterTrigger
                         )
+
+                        // Map Layer Selector Button
+                        IconButton(
+                            onClick = { showMapLayersSheet = true },
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
+                                .size(36.dp)
+                                .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                .border(1.dp, CardBorder, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Layers,
+                                contentDescription = "Źródła mapy i szlaki",
+                                tint = OrangeAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
 
                         IconButton(
                             onClick = { isMapFullscreen = !isMapFullscreen },
@@ -1254,6 +1282,17 @@ fun TrackingScreen(
                 containerColor = DarkSurface
             )
         }
+
+        // Map Layers Selection Bottom Sheet
+        if (showMapLayersSheet) {
+            MapLayersBottomSheet(
+                selectedBaseSource = baseSource,
+                activeOverlays = activeOverlays,
+                onSelectBaseSource = { viewModel.setMapBaseSource(it) },
+                onToggleOverlay = { overlay, enabled -> viewModel.toggleMapOverlay(overlay, enabled) },
+                onDismissRequest = { showMapLayersSheet = false }
+            )
+        }
     }
 }
 
@@ -1326,6 +1365,8 @@ private class TrackingMapView(
 @Composable
 fun TrackingOsmMapView(
     trackPoints: List<TrackPoint>,
+    baseSource: MapBaseSource = MapBaseSource.OSM_DARK,
+    activeOverlays: Set<MapOverlaySource> = emptySet(),
     isAutoCenter: Boolean = true,
     onUserPan: () -> Unit = {},
     recenterTrigger: Int = 0
@@ -1336,13 +1377,14 @@ fun TrackingOsmMapView(
     AndroidView(
         factory = { ctx ->
             TrackingMapView(ctx, onUserPan).apply {
-                setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 controller.setZoom(17.0)
                 isTilesScaledToDpi = true
             }
         },
         update = { mapView ->
+            applyMapConfiguration(mapView, baseSource, activeOverlays)
+
             if (trackPoints.isNotEmpty()) {
                 mapView.overlays.removeAll { it is Polyline }
 

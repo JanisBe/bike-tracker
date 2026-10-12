@@ -9,10 +9,13 @@ import androidx.lifecycle.viewModelScope
 import com.biketracker.data.model.Ride
 import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.data.repository.AuthRepository
+import com.biketracker.data.repository.MapPreferencesRepository
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.domain.util.GpxGenerator
 import com.biketracker.domain.util.GpxParser
 import com.biketracker.domain.util.PolylineEncoder
+import com.biketracker.ui.map.MapBaseSource
+import com.biketracker.ui.map.MapOverlaySource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,13 +44,25 @@ class RideDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     @param:ApplicationContext private val context: Context,
     private val rideRepository: RideRepository,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val mapPreferencesRepository: MapPreferencesRepository
 ) : ViewModel() {
 
     private val rideId: String = checkNotNull(savedStateHandle["rideId"])
 
     private val _uiState = MutableStateFlow(RideDetailUiState())
     val uiState: StateFlow<RideDetailUiState> = _uiState.asStateFlow()
+
+    val mapBaseSource: StateFlow<MapBaseSource> = mapPreferencesRepository.baseSourceFlow
+    val mapActiveOverlays: StateFlow<Set<MapOverlaySource>> = mapPreferencesRepository.activeOverlaysFlow
+
+    fun setMapBaseSource(source: MapBaseSource) {
+        mapPreferencesRepository.setBaseSource(source)
+    }
+
+    fun toggleMapOverlay(source: MapOverlaySource, isEnabled: Boolean) {
+        mapPreferencesRepository.toggleOverlay(source, isEnabled)
+    }
 
     init {
         loadRide()

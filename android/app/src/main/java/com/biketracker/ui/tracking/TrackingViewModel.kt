@@ -11,8 +11,11 @@ import androidx.lifecycle.viewModelScope
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
+import com.biketracker.data.repository.MapPreferencesRepository
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.service.LocationTrackingService
+import com.biketracker.ui.map.MapBaseSource
+import com.biketracker.ui.map.MapOverlaySource
 import com.google.android.gms.location.LocationServices
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -33,8 +36,20 @@ data class TrackingUiState(
 @HiltViewModel
 class TrackingViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val rideRepository: RideRepository
+    private val rideRepository: RideRepository,
+    private val mapPreferencesRepository: MapPreferencesRepository
 ) : ViewModel() {
+
+    val mapBaseSource: StateFlow<MapBaseSource> = mapPreferencesRepository.baseSourceFlow
+    val mapActiveOverlays: StateFlow<Set<MapOverlaySource>> = mapPreferencesRepository.activeOverlaysFlow
+
+    fun setMapBaseSource(source: MapBaseSource) {
+        mapPreferencesRepository.setBaseSource(source)
+    }
+
+    fun toggleMapOverlay(source: MapOverlaySource, isEnabled: Boolean) {
+        mapPreferencesRepository.toggleOverlay(source, isEnabled)
+    }
 
     val isTracking = LocationTrackingService.isTracking
     val isPaused = LocationTrackingService.isPaused

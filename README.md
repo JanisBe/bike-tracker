@@ -23,14 +23,24 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
 
 ### Główne funkcje
 
-- 🛰️ **Śledzenie GPS w tle** – foreground service z WakeLock, który działa niezawodnie nawet przy wygaszonym ekranie
-- 📡 **Monitorowanie satelitów GNSS** – wyświetlanie liczby satelitów używanych do fiksacji (`used/total`)
-- ⚠️ **Wykrywanie utraty sygnału GPS** – powiadomienie i wibracja przy utracie/odzyskaniu sygnału
+- 🛰️ **Śledzenie GPS w tle** – foreground service z WakeLock, działający niezawodnie nawet przy wygaszonym ekranie
+- 🚴 / 🚶 **Rozróżnianie aktywności** – obsługa kolarstwa (`cycling`) oraz spaceru/marszu (`walking`), z automatycznym
+  doborem jednostek (km/h vs tempo min/km) i precyzyjnym licznikiem kalorii MET
+- 🗺️ **Zaawansowane źródła map i szlaki** – wybór podkładów (OpenStreetMap Ciemna/Jasna, CyclOSM, OpenTopoMap, UMP-pcPL)
+  oraz nakładek szlaków (Waymarked Trails: rowerowe, piesze, MTB) z trwałym zapamiętywaniem wyboru
+- 📡 **Monitorowanie satelitów GNSS** – wyświetlanie liczby satelitów używanych do fiksacji (`used/total`) oraz jakości
+  sygnału
+- 🔋 **Wykrywanie oszczędzania energii** – detekcja trybu Battery Saver i ostrzeżenie przed uśpieniem GPS z szybkim
+  skrótem do ustawień
+- ⚠️ **Wykrywanie utraty sygnału GPS** – konfigurowalne powiadomienia i wibracje przy utracie oraz odzyskaniu sygnału
+- 🎯 **Sterowanie mapą i wyśrodkowanie** – detekcja ręcznego przesuwania mapy przez użytkownika z przyciskiem ponownego
+  centrowania
 - ⏸️ **Pauza i wznowienie** – sterowanie treningiem bezpośrednio z powiadomienia systemowego
-- 📊 **Profil wysokości** – interaktywny wykres elewacji dla każdej trasy
-- 🗺️ **Mapa trasy** – wizualizacja przejechanych dróg na mapie OSM
-- 💾 **Zapis do Firestore** – automatyczny zapis po zakończeniu treningu z wyświetleniem podsumowania
-- 📤 **Eksport GPX** – pobieranie pliku GPX z każdej trasy
+- 📊 **Profil wysokości i prędkości** – interaktywny wykres elewacji i profilu trasy z podglądem scrubbingu
+- 📅 **Kalendarz aktywności** – miesięczny kalendarz z zaznaczonymi dniami treningowymi i podsumowaniami
+- 💾 **Zapis do Firestore** – atomowy zapis dokumentu trasy i subkolekcji `details/gpx` w Firebase
+- 📤 **Eksport i import GPX** – pobieranie oraz import plików GPX
+- 🤖 **Automatyczne wydania APK** – GitHub Actions automatycznie buduje i publikuje plik `.apk` w GitHub Releases
 
 ### Stos technologiczny
 
@@ -40,7 +50,7 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
 | Nawigacja                | Navigation Compose                          |
 | Wstrzykiwanie zależności | Hilt                                        |
 | Lokalizacja              | FusedLocationProviderClient (Play Services) |
-| Mapa                     | osmdroid                                    |
+| Mapa                     | osmdroid (obsługa wielu źródeł kafelków)    |
 | Backend / baza danych    | Firebase Firestore + Firebase Auth          |
 | Asynchroniczność         | Kotlin Coroutines + StateFlow               |
 | Min. Android             | API 26 (Android 8.0)                        |
@@ -48,24 +58,26 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
 ### Struktura kodu (`android/app/src/main/java/com/biketracker/`)
 
 ```
-├── BikeTrackerApp.kt       # Klasa Application (inicjalizacja Hilt)
+├── BikeTrackerApp.kt       # Klasa Application (inicjalizacja Hilt i osmdroid)
 ├── MainActivity.kt         # Punkt wejścia UI
 ├── data/
-│   ├── model/              # Modele danych (TrackPoint, SatelliteInfo, …)
+│   ├── model/              # Modele danych (TrackPoint, SatelliteInfo, UserProfile, …)
 │   ├── mapper/             # Mapowanie między modelami a Firestore
-│   └── repository/         # RideRepository – zapis/odczyt tras
+│   └── repository/         # RideRepository, UserRepository, MapPreferencesRepository
 ├── domain/
-│   └── util/               # Narzędzia domenowe (DistanceCalculator)
-├── di/                     # Moduły Hilt
+│   └── util/               # Narzędzia domenowe (GpxGenerator, GpxParser, CalorieCalculator)
+├── di/                     # Moduły wstrzykiwania zależności Hilt
 ├── service/
-│   └── LocationTrackingService.kt  # Foreground service GPS
+│   └── LocationTrackingService.kt  # Foreground service GPS z powiadomieniami
 └── ui/
-    ├── home/               # Ekran główny – lista jazd, kalendarz
-    ├── detail/             # Szczegóły trasy (mapa, profil, statystyki)
-    ├── tracking/           # Ekran aktywnego śledzenia
-    ├── login/              # Logowanie Google
+    ├── home/               # Ekran główny – lista jazd, kalendarz aktywności
+    ├── detail/             # Szczegóły trasy (mapa, profil, statystyki, pełny ekran)
+    ├── tracking/           # Ekran aktywnego śledzenia z mapą i telemetrią
+    ├── map/                # Definicje źródeł map, nakładki szlaków, arkusz wyboru warstw
+    ├── profile/            # Profil użytkownika, waga, preferencje powiadomień
+    ├── login/              # Logowanie Google i Email/Hasło
     ├── navigation/         # Graf nawigacji Compose
-    └── theme/              # Kolory, typografia, kształty Material 3
+    └── theme/              # Kolory, typografia, kształty Material 3 (ciemny motyw)
 ```
 
 ### Uprawnienia wymagane przez aplikację
@@ -82,16 +94,25 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
 
 ## 🌐 Frontend webowy
 
-Statyczna strona HTML/CSS/JS bez żadnego frameworka – wdrażana na **GitHub Pages** lub **Firebase Hosting**.
+Nowoczesna aplikacja Single Page Application (Vanilla ES Modules + Vanilla CSS) – wdrażana automatycznie na **GitHub
+Pages** pod adresem:
+👉 **[https://janisbe.github.io/bike-tracker/](https://janisbe.github.io/bike-tracker/)**
 
 ### Główne funkcje
 
-- 📅 **Widżet kalendarza** – przegląd jazd z zaznaczeniem aktywnych dni
-- 🗺️ **Renderowanie mapy** – trasy na mapie Leaflet.js z OpenStreetMap
-- 📈 **Profil wysokości** – interaktywny wykres Chart.js
-- 📊 **Statystyki** – dystans, czas, prędkość dla każdej jazdy
-- 🔐 **Firebase Auth** – tylko zalogowany użytkownik może przeglądać dane
-- 📥 **Pobieranie GPX** – eksport trasy do pliku GPX
+- 🗺️ **Wielowarstwowa mapa ze szlakami** – rozwijane menu wyboru podkładów (OpenStreetMap Ciemna/Jasna, CyclOSM
+  rowerowa, OpenTopoMap topograficzna, UMP-pcPL) oraz nakładek szlaków (Waymarked Trails: rowerowe, piesze, MTB) z
+  zapamiętywaniem w `localStorage`
+- 📅 **Interaktywny widżet kalendarza** – przegląd treningów w wybranym miesiącu z oznaczonymi dniami aktywności i
+  statystykami
+- 📈 **Profil wysokości i prędkości** – interaktywny wykres Canvas ze wskaźnikiem scrubbingu powiązanym z pulsującym
+  znacznikiem na mapie
+- 📱 **Responsywny interfejs mobilny** – dopasowany widok szczegółów na smartfonach oraz tryb pełnoekranowy mapy
+- 📊 **Zbiorcza telemetria** – łączny dystans, czas trwania, liczba treningów i spalone kalorie
+- 🔍 **Wyszukiwarka i filtry** – szybkie wyszukiwanie treningów po nazwie i lokalizacji
+- 🔐 **Firebase Auth** – logowanie Google / e-mail oraz tryb gościa
+- 📥 **Eksport i import GPX** – pobieranie tras do GPX oraz importowanie zewnętrznych plików GPX
+- 📲 **Pobieranie APK** – bezpośredni przycisk pobierania najnowszej wersji aplikacji Android z GitHub Releases
 
 ### Uruchomienie lokalne
 
@@ -99,13 +120,13 @@ Statyczna strona HTML/CSS/JS bez żadnego frameworka – wdrażana na **GitHub P
 cd frontend
 
 # Python
-python -m http.server 3000
+python -m http.server 8080
 
 # Node.js
 npx serve .
 ```
 
-Otwórz: `http://localhost:3000`
+Otwórz: `http://localhost:8080`
 
 ---
 

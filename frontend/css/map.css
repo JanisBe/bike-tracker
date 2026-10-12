@@ -70,8 +70,9 @@
     transform: scale(0.92);
 }
 
-/* Dark mode styling for OpenStreetMap tiles without requiring any API key */
-.leaflet-tile {
+/* Dark mode styling for OpenStreetMap tiles (only when dark-mode is active) */
+.leaflet-tile.tile-filter-dark,
+.tile-filter-dark .leaflet-tile {
     filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
 }
 
@@ -142,3 +143,344 @@
     right: 50px !important;
     z-index: 10006 !important;
 }
+
+.map-wrapper.is-fullscreen .map-layer-control {
+    top: 14px !important;
+    left: 14px !important;
+    z-index: 10006 !important;
+}
+
+/* ==========================================================================
+   Map Layer Selector & Overlays Control
+   ========================================================================== */
+.map-layer-control {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 800;
+}
+
+.btn-map-layers {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 12px;
+    background: rgba(15, 15, 35, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: var(--text-main);
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    user-select: none;
+}
+
+.btn-map-layers:hover {
+    border-color: var(--accent-orange);
+    background: rgba(26, 26, 52, 0.95);
+    box-shadow: 0 4px 18px rgba(255, 107, 53, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-map-layers:active {
+    transform: scale(0.96);
+}
+
+.btn-map-layers[aria-expanded="true"] {
+    border-color: var(--accent-orange);
+    background: rgba(26, 26, 52, 0.98);
+    box-shadow: 0 0 0 2px var(--accent-orange-glow);
+}
+
+.btn-map-layers .icon-layers {
+    color: var(--accent-orange);
+    flex-shrink: 0;
+}
+
+.map-layer-badge {
+    color: var(--text-main);
+    letter-spacing: 0.2px;
+}
+
+.icon-layer-chevron {
+    color: var(--text-muted);
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+}
+
+.btn-map-layers[aria-expanded="true"] .icon-layer-chevron {
+    transform: rotate(180deg);
+    color: var(--accent-orange);
+}
+
+/* Dropdown Card */
+.map-layers-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 295px;
+    background: rgba(15, 15, 35, 0.97);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 107, 53, 0.35);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 24px rgba(255, 107, 53, 0.15);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top left;
+    transition: opacity 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.map-layers-dropdown.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.layers-dropdown-header {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.layers-dropdown-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-main);
+    letter-spacing: 0.2px;
+}
+
+.layers-dropdown-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.layers-section {
+    margin-bottom: 8px;
+}
+
+.layers-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    padding-left: 2px;
+}
+
+.layers-section-overlays {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    margin-bottom: 0;
+}
+
+.layers-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Layer Option Item */
+.layer-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.15s ease;
+    user-select: none;
+}
+
+.layer-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.layer-option input[type="radio"],
+.layer-option input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+/* Custom Radio Indicator */
+.layer-radio-custom {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.layer-option input[type="radio"]:checked + .layer-radio-custom {
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 8px var(--accent-orange-glow);
+}
+
+.layer-option input[type="radio"]:checked + .layer-radio-custom::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--accent-orange);
+    border-radius: 50%;
+}
+
+/* Custom Checkbox Indicator */
+.layer-checkbox-custom {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.layer-option input[type="checkbox"]:checked + .layer-checkbox-custom {
+    border-color: var(--accent-cyan);
+    background: var(--accent-cyan);
+    box-shadow: 0 0 8px var(--accent-cyan-glow);
+}
+
+.layer-option input[type="checkbox"]:checked + .layer-checkbox-custom::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    width: 4px;
+    height: 8px;
+    border: solid #0B0B1A;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.layer-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.layer-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.layer-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.layer-tag {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Layer Badges / Pills */
+.layer-pill {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.pill-dark {
+    background: rgba(255, 255, 255, 0.08);
+    color: #A0A0C0;
+}
+
+.pill-cycling {
+    background: rgba(78, 205, 196, 0.18);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(78, 205, 196, 0.35);
+}
+
+.pill-topo {
+    background: rgba(46, 204, 113, 0.18);
+    color: var(--accent-green);
+    border: 1px solid rgba(46, 204, 113, 0.35);
+}
+
+.pill-ump {
+    background: rgba(255, 107, 53, 0.18);
+    color: var(--accent-orange);
+    border: 1px solid rgba(255, 107, 53, 0.35);
+}
+
+.pill-standard {
+    background: rgba(255, 255, 255, 0.08);
+    color: #C0C0D8;
+}
+
+.pill-hiking {
+    background: rgba(230, 126, 34, 0.18);
+    color: #E67E22;
+    border: 1px solid rgba(230, 126, 34, 0.35);
+}
+
+.pill-mtb {
+    background: rgba(155, 89, 182, 0.18);
+    color: #A569BD;
+    border: 1px solid rgba(155, 89, 182, 0.35);
+}
+
+/* Styled Leaflet Attribution */
+.leaflet-control-attribution {
+    background: rgba(11, 11, 26, 0.85) !important;
+    color: var(--text-dim) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    border-radius: 4px 0 0 0;
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.leaflet-control-attribution a {
+    color: var(--text-muted) !important;
+    text-decoration: none;
+}
+
+.leaflet-control-attribution a:hover {
+    color: var(--accent-orange) !important;
+    text-decoration: underline;
+}
+

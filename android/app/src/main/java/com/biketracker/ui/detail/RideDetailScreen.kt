@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
@@ -75,6 +76,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.domain.util.CalorieCalculator
+import com.biketracker.ui.map.MapBaseSource
+import com.biketracker.ui.map.MapLayersBottomSheet
+import com.biketracker.ui.map.MapOverlaySource
+import com.biketracker.ui.map.applyMapConfiguration
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
@@ -106,6 +111,9 @@ fun RideDetailScreen(
     var selectedProfilePoint by remember { mutableStateOf<RouteProfilePoint?>(null) }
     var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
     var showPaceInDetail by rememberSaveable { mutableStateOf(false) }
+    val baseSource by viewModel.mapBaseSource.collectAsStateWithLifecycle()
+    val activeOverlays by viewModel.mapActiveOverlays.collectAsStateWithLifecycle()
+    var showMapLayersSheet by rememberSaveable { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -198,6 +206,8 @@ fun RideDetailScreen(
                         ) {
                             DetailOsmMapView(
                                 coordinates = uiState.routeCoordinates,
+                                baseSource = baseSource,
+                                activeOverlays = activeOverlays,
                                 selectedPoint = selectedProfilePoint?.let {
                                     Pair(
                                         it.latitude,
@@ -224,6 +234,24 @@ fun RideDetailScreen(
                                         )
                                     )
                             )
+
+                            // Map Layer Selector Button
+                            IconButton(
+                                onClick = { showMapLayersSheet = true },
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .padding(12.dp)
+                                    .size(36.dp)
+                                    .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                    .border(1.dp, CardBorder, CircleShape)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Layers,
+                                    contentDescription = "Źródła mapy i szlaki",
+                                    tint = OrangeAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
 
                             IconButton(
                                 onClick = { isMapFullscreen = true },
@@ -575,6 +603,8 @@ fun RideDetailScreen(
             ) {
                 DetailOsmMapView(
                     coordinates = uiState.routeCoordinates,
+                    baseSource = baseSource,
+                    activeOverlays = activeOverlays,
                     selectedPoint = selectedProfilePoint?.let { Pair(it.latitude, it.longitude) }
                 )
 
@@ -602,22 +632,50 @@ fun RideDetailScreen(
                         )
                     }
 
-                    IconButton(
-                        onClick = { isMapFullscreen = false },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
-                            .border(1.dp, CardBorder, CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FullscreenExit,
-                            contentDescription = "Zmniejsz mapę",
-                            tint = TextPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        IconButton(
+                            onClick = { showMapLayersSheet = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                .border(1.dp, CardBorder, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Layers,
+                                contentDescription = "Źródła mapy i szlaki",
+                                tint = OrangeAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { isMapFullscreen = false },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                .border(1.dp, CardBorder, CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FullscreenExit,
+                                contentDescription = "Zmniejsz mapę",
+                                tint = TextPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        // Map Layers Selection Bottom Sheet
+        if (showMapLayersSheet) {
+            MapLayersBottomSheet(
+                selectedBaseSource = baseSource,
+                activeOverlays = activeOverlays,
+                onSelectBaseSource = { viewModel.setMapBaseSource(it) },
+                onToggleOverlay = { overlay, enabled -> viewModel.toggleMapOverlay(overlay, enabled) },
+                onDismissRequest = { showMapLayersSheet = false }
+            )
         }
     }
 }
@@ -667,6 +725,8 @@ private class ScrubMarker(mapView: MapView) : Marker(mapView)
 @Composable
 fun DetailOsmMapView(
     coordinates: List<Pair<Double, Double>>,
+    baseSource: MapBaseSource = MapBaseSource.OSM_DARK,
+    activeOverlays: Set<MapOverlaySource> = emptySet(),
     selectedPoint: Pair<Double, Double>? = null,
     modifier: Modifier = Modifier
 ) {
@@ -690,13 +750,14 @@ fun DetailOsmMapView(
                     return super.dispatchTouchEvent(ev)
                 }
             }.apply {
-                setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 isTilesScaledToDpi = true
                 clipToOutline = true
             }
         },
         update = { mapView ->
+            applyMapConfiguration(mapView, baseSource, activeOverlays)
+
             if (coordinates.isNotEmpty()) {
                 val hasPolyline = mapView.overlays.any { it is Polyline }
                 if (!hasPolyline) {
