@@ -5,6 +5,7 @@ import android.view.MotionEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -63,8 +66,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
@@ -82,6 +86,7 @@ import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,6 +100,7 @@ fun RideDetailScreen(
     var editTitleText by remember { mutableStateOf("") }
     var selectedProfilePoint by remember { mutableStateOf<RouteProfilePoint?>(null) }
     var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
+    var showPaceInDetail by rememberSaveable { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -214,14 +220,32 @@ fun RideDetailScreen(
 
                     // Content details
                     Column(modifier = Modifier.padding(16.dp)) {
+                        val isWalking = ride.activityType == ActivityType.WALKING.id
+                        val defaultTitle = if (isWalking) "Spacer" else "Trening rowerowy"
+                        val activityIcon =
+                            if (isWalking) Icons.AutoMirrored.Filled.DirectionsWalk else Icons.AutoMirrored.Filled.DirectionsBike
+                        val activityColor = if (isWalking) TealAccent else OrangeAccent
                         val displayTitle =
-                            ride.title.ifBlank { ride.locationName.ifBlank { "Trening rowerowy" } }
-                        Text(
-                            text = displayTitle,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
+                            ride.title.ifBlank { ride.locationName.ifBlank { defaultTitle } }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = activityIcon,
+                                contentDescription = null,
+                                tint = activityColor,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = displayTitle,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
 
                         if (ride.locationName.isNotBlank() && ride.locationName != displayTitle) {
                             Spacer(modifier = Modifier.height(4.dp))
@@ -289,12 +313,34 @@ fun RideDetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Row(modifier = Modifier.fillMaxWidth()) {
+                            val avgSpeedOrPaceValue = if (isWalking && showPaceInDetail) {
+                                if (ride.avgSpeedKmh > 0.5) {
+                                    val paceSec = (3600.0 / ride.avgSpeedKmh).roundToLong()
+                                    "%d:%02d min/km".format(paceSec / 60, paceSec % 60)
+                                } else "--:--"
+                            } else {
+                                "%.1f km/h".format(ride.avgSpeedKmh)
+                            }
+                            val avgSpeedOrPaceLabel = if (isWalking) {
+                                if (showPaceInDetail) "Śr. tempo (stuknij: km/h)" else "Śr. prędkość (stuknij: tempo)"
+                            } else {
+                                "Śr. prędkość"
+                            }
+
                             DetailMetricCard(
-                                modifier = Modifier.weight(1f),
-                                label = "Śr. prędkość",
-                                value = "%.1f km/h".format(ride.avgSpeedKmh),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .then(
+                                        if (isWalking) {
+                                            Modifier.clickable {
+                                                showPaceInDetail = !showPaceInDetail
+                                            }
+                                        } else Modifier
+                                    ),
+                                label = avgSpeedOrPaceLabel,
+                                value = avgSpeedOrPaceValue,
                                 icon = Icons.Default.Speed,
-                                tint = TextPrimary
+                                tint = activityColor
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             DetailMetricCard(

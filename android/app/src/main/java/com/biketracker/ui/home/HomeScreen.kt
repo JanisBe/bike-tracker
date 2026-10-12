@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -29,17 +30,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +51,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -76,8 +80,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.Ride
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
@@ -98,8 +103,9 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onStartRide: () -> Unit,
+    onStartRide: (String) -> Unit,
     onRideSelected: (String) -> Unit,
+    onProfileClick: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
@@ -114,6 +120,7 @@ fun HomeScreen(
     var rideToEdit by remember { mutableStateOf<Ride?>(null) }
     var editTitleText by remember { mutableStateOf("") }
     var rideToDelete by remember { mutableStateOf<Ride?>(null) }
+    var showActivityPickerSheet by remember { mutableStateOf(false) }
 
     val gpxPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -171,12 +178,21 @@ fun HomeScreen(
                             tint = TealAccent
                         )
                     }
-                    IconButton(onClick = { viewModel.signOut(onLoggedOut) }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Wyloguj się",
-                            tint = TextSecondary
-                        )
+                    IconButton(onClick = onProfileClick) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(OrangeAccent.copy(alpha = 0.15f), CircleShape)
+                                .border(1.dp, OrangeAccent.copy(alpha = 0.35f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Mój profil",
+                                tint = OrangeAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -184,7 +200,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onStartRide,
+                onClick = { showActivityPickerSheet = true },
                 containerColor = OrangeAccent,
                 contentColor = DarkBackground,
                 shape = CircleShape,
@@ -545,6 +561,134 @@ fun HomeScreen(
             shape = RoundedCornerShape(16.dp)
         )
     }
+
+    // Modal Bottom Sheet for selecting activity type (Cycling vs Walking)
+    if (showActivityPickerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showActivityPickerSheet = false },
+            containerColor = DarkSurface,
+            contentColor = TextPrimary,
+            dragHandle = {
+                BottomSheetDefaults.DragHandle(
+                    color = TextSecondary.copy(alpha = 0.5f)
+                )
+            },
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 36.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Wybierz aktywność",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+
+                ActivityOptionCard(
+                    title = "Rower",
+                    subtitle = "Rejestruj prędkość (km/h), dystans i trasę rowerową",
+                    icon = Icons.AutoMirrored.Filled.DirectionsBike,
+                    accentColor = OrangeAccent,
+                    onClick = {
+                        showActivityPickerSheet = false
+                        onStartRide(ActivityType.CYCLING.id)
+                    }
+                )
+
+                ActivityOptionCard(
+                    title = "Spacer / Marsz",
+                    subtitle = "Rejestruj trasę, prędkość (km/h) i tempo (min/km)",
+                    icon = Icons.AutoMirrored.Filled.DirectionsWalk,
+                    accentColor = TealAccent,
+                    onClick = {
+                        showActivityPickerSheet = false
+                        onStartRide(ActivityType.WALKING.id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ActivityOptionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = DarkSurfaceVariant,
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f, fill = false)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Surface(
+                color = accentColor,
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.padding(start = 12.dp)
+            ) {
+                Text(
+                    text = "Wybierz",
+                    color = DarkBackground,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -753,7 +897,12 @@ fun RideCard(
     val seconds = ride.durationSeconds % 60
     val durationStr = "%02d:%02d".format(minutes, seconds)
 
-    val displayTitle = ride.title.ifBlank { ride.locationName.ifBlank { "Trening rowerowy" } }
+    val isWalking = ride.activityType == ActivityType.WALKING.id
+    val defaultTitle = if (isWalking) "Spacer" else "Trening rowerowy"
+    val activityIcon =
+        if (isWalking) Icons.AutoMirrored.Filled.DirectionsWalk else Icons.AutoMirrored.Filled.DirectionsBike
+    val activityColor = if (isWalking) TealAccent else OrangeAccent
+    val displayTitle = ride.title.ifBlank { ride.locationName.ifBlank { defaultTitle } }
 
     Card(
         modifier = Modifier
@@ -765,14 +914,26 @@ fun RideCard(
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = displayTitle,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = activityIcon,
+                    contentDescription = null,
+                    tint = activityColor,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = displayTitle,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 

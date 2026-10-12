@@ -7,7 +7,7 @@ import {
   saveImportedRide,
   updateRideTitle
 } from './ride-service.js';
-import { decodePolyline } from './polyline-decoder.js';
+import {decodePolyline} from './polyline-decoder.js';
 import {
   clearScrubMarker,
   displayAllRoutesOverview,
@@ -16,10 +16,10 @@ import {
   invalidateMapSize,
   setScrubMarker
 } from './map-renderer.js?v=3';
-import { calculateOverallStats, formatDate, formatDuration } from './stats.js';
-import { CalendarWidget } from './calendar-widget.js';
-import { ProfileChart } from './profile-chart.js';
-import { onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, signUpWithEmail } from './auth-service.js';
+import {calculateOverallStats, formatDate, formatDuration} from './stats.js';
+import {CalendarWidget} from './calendar-widget.js';
+import {ProfileChart} from './profile-chart.js';
+import {onAuthStateChange, signInWithEmail, signInWithGoogle, signOutUser, signUpWithEmail} from './auth-service.js';
 
 let allRides = [];
 let selectedRideId = null;
@@ -129,7 +129,7 @@ function getRideIdFromUrl() {
 
   const hash = window.location.hash;
   if (hash) {
-    const hashMatch = new RegExp(/(?:#|\/|\?|&)ride=([^&]+)/).exec(hash) || hash.match(/#\/?ride\/(.+)/);
+    const hashMatch = new RegExp(/[#\\/?&]ride=([^&]+)/).exec(hash) || new RegExp(/#\/?ride\/(.+)/).exec(hash);
     if (hashMatch?.[1]) {
       return decodeURIComponent(hashMatch[1]).trim();
     }
@@ -291,7 +291,7 @@ async function initApp() {
   if (calendarContainer) {
     calendarWidget = new CalendarWidget(calendarContainer, {
       onSelectRide: (rideId) => {
-        selectRide(rideId);
+        void selectRide(rideId);
         const card = document.getElementById(`card-${rideId}`);
         if (card) {
           card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -301,85 +301,89 @@ async function initApp() {
   }
 
   // 5. Watch Auth State
-  onAuthStateChange(async (user) => {
-    currentUser = user;
-    if (user) {
-      // User signed in
-      if (userInfoEl) userInfoEl.style.display = "flex";
-      if (userGuestEl) userGuestEl.style.display = "none";
+  onAuthStateChange((user) => {
+    void (async () => {
+      currentUser = user;
+      if (user) {
+        // User signed in
+        if (userInfoEl) userInfoEl.style.display = "flex";
+        if (userGuestEl) userGuestEl.style.display = "none";
 
-      const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Użytkownik');
-      if (userNameEl) userNameEl.textContent = displayName;
-      if (userEmailEl) userEmailEl.textContent = user.email || '';
+        const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Użytkownik');
+        if (userNameEl) userNameEl.textContent = displayName;
+        if (userEmailEl) userEmailEl.textContent = user.email || '';
 
-      if (userAvatarEl) {
-        if (user.photoURL) {
-          userAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" referrerpolicy="no-referrer">`;
-        } else {
-          userAvatarEl.textContent = displayName.charAt(0).toUpperCase();
-        }
-      }
-
-      closeAuthModal();
-      await loadUserRides(user.uid);
-    } else {
-      // User signed out
-      if (userInfoEl) userInfoEl.style.display = "none";
-      if (userGuestEl) userGuestEl.style.display = "flex";
-
-      const urlRideId = getRideIdFromUrl();
-
-      if (urlRideId) {
-        // Guest opened a shared ride link directly!
-        closeAuthModal();
-        ridesListContainer.innerHTML = `
-                  <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                    <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--accent-orange); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    <p style="margin-top: 12px; font-size: 13px;">Wczytywanie udostępnionego treningu...</p>
-                  </div>
-                `;
-
-        try {
-          const sharedRide = await fetchRideById(urlRideId);
-          if (sharedRide) {
-            sharedRide.isShared = true;
-            allRides = [sharedRide];
-            updateStatsBanner(allRides);
-            if (calendarWidget) calendarWidget.setRides(allRides);
-            renderRidesList(allRides);
-            enrichRidesWithLocation(allRides);
-            selectRide(sharedRide.id);
-            showToast("Wyświetlasz udostępniony trening", "info");
-            return;
+        if (userAvatarEl) {
+          if (user.photoURL) {
+            userAvatarEl.innerHTML = `<img src="${user.photoURL}" alt="Avatar" referrerpolicy="no-referrer">`;
           } else {
-            showToast("Nie znaleziono wskazanego treningu", "error");
+            userAvatarEl.textContent = displayName.charAt(0).toUpperCase();
           }
-        } catch (err) {
-          console.error("Error loading shared ride for guest:", err);
+        }
+
+        closeAuthModal();
+        await loadUserRides(user.uid);
+      } else {
+        // User signed out
+        if (userInfoEl) userInfoEl.style.display = "none";
+        if (userGuestEl) userGuestEl.style.display = "flex";
+
+        const urlRideId = getRideIdFromUrl();
+
+        if (urlRideId) {
+          // Guest opened a shared ride link directly!
+          closeAuthModal();
+          ridesListContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                      <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid var(--accent-orange); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                      <p style="margin-top: 12px; font-size: 13px;">Wczytywanie udostępnionego treningu...</p>
+                    </div>
+                  `;
+
+          try {
+            const sharedRide = await fetchRideById(urlRideId);
+            if (sharedRide) {
+              sharedRide.isShared = true;
+              allRides = [sharedRide];
+              updateStatsBanner(allRides);
+              if (calendarWidget) calendarWidget.setRides(allRides);
+              renderRidesList(allRides);
+              void enrichRidesWithLocation(allRides);
+              await selectRide(sharedRide.id);
+              showToast("Wyświetlasz udostępniony trening", "info");
+              return;
+            } else {
+              showToast("Nie znaleziono wskazanego treningu", "error");
+            }
+          } catch (err) {
+            console.error("Error loading shared ride for guest:", err);
+          }
+        }
+
+        allRides = [];
+        selectedRideId = null;
+
+        updateStatsBanner([]);
+        if (calendarWidget) {
+          calendarWidget.setRides([]);
+        }
+        if (floatingDetail) {
+          floatingDetail.classList.remove("active");
+        }
+        if (profileChart) {
+          profileChart.hide();
+        }
+        clearScrubMarker();
+        displayAllRoutesOverview([]);
+        renderRidesList([]);
+
+        if (!urlRideId) {
+          openAuthModal('login');
         }
       }
-
-      allRides = [];
-      selectedRideId = null;
-
-      updateStatsBanner([]);
-      if (calendarWidget) {
-        calendarWidget.setRides([]);
-      }
-      if (floatingDetail) {
-        floatingDetail.classList.remove("active");
-      }
-      if (profileChart) {
-        profileChart.hide();
-      }
-      clearScrubMarker();
-      displayAllRoutesOverview([]);
-      renderRidesList([]);
-
-      if (!urlRideId) {
-        openAuthModal('login');
-      }
-    }
+    })().catch((err) => {
+      console.error("Auth state change error:", err);
+    });
   });
 }
 
@@ -443,11 +447,11 @@ async function loadUserRides(userId) {
     renderRidesList(allRides);
 
     // Enrich legacy rides with location from OSM in background
-    enrichRidesWithLocation(allRides);
+    void enrichRidesWithLocation(allRides);
 
     // Select targeted ride or clear map
     if (targetRideId) {
-      selectRide(targetRideId);
+      await selectRide(targetRideId);
       const card = document.getElementById(`card-${targetRideId}`);
       if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -556,14 +560,17 @@ function renderRidesList(rides) {
     // Click on card selects route on map
     card.addEventListener("click", (e) => {
       if (e.target.closest(".btn-download-gpx")) return;
-      selectRide(ride.id);
+      void selectRide(ride.id);
     });
 
     // GPX download click
     const downloadBtn = card.querySelector(".btn-download-gpx");
     downloadBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      downloadGpx(ride);
+      void downloadGpx(ride).catch((err) => {
+        console.error("Error downloading GPX:", err);
+        showToast("Nie udało się pobrać pliku GPX.", "error");
+      });
     });
 
     ridesListContainer.appendChild(card);
@@ -775,7 +782,10 @@ function showFloatingDetail(ride) {
   }
 
   btnDetailGpx.onclick = () => {
-    downloadGpx(ride);
+    void downloadGpx(ride).catch((err) => {
+      console.error("Error downloading GPX:", err);
+      showToast("Nie udało się pobrać pliku GPX.", "error");
+    });
   };
 
   floatingDetail.classList.add("active");
@@ -811,7 +821,9 @@ function setupEventListeners() {
 
   // Mobile top-bar share button
   if (btnMobileShare) {
-    btnMobileShare.addEventListener("click", handleShareClick);
+    btnMobileShare.addEventListener("click", (e) => {
+      void handleShareClick(e);
+    });
   }
 
   // Fullscreen map button
@@ -833,7 +845,9 @@ function setupEventListeners() {
 
   // Share button click in detail panel
   if (btnShareRide) {
-    btnShareRide.addEventListener("click", handleShareClick);
+    btnShareRide.addEventListener("click", (e) => {
+      void handleShareClick(e);
+    });
   }
 
   // Edit Ride Title Modal listeners
@@ -854,49 +868,51 @@ function setupEventListeners() {
   }
 
   if (editTitleForm) {
-    editTitleForm.addEventListener("submit", async (e) => {
+    editTitleForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!editingRideId) return;
+      void (async () => {
+        if (!editingRideId) return;
 
-      const ride = allRides.find(r => r.id === editingRideId);
-      if (!ride) return;
+        const ride = allRides.find(r => r.id === editingRideId);
+        if (!ride) return;
 
-      const newTitle = editTitleInput ? editTitleInput.value.trim() : "";
-      if (!newTitle) {
-        showEditTitleAlert("Podaj nazwę treningu.");
-        return;
-      }
-
-      setEditTitleLoading(true);
-      hideEditTitleAlert();
-
-      try {
-        await updateRideTitle(ride.id, newTitle);
-
-        // Update local object
-        ride.title = newTitle;
-
-        // If currently displayed in detail panel, refresh panel
-        if (selectedRideId === ride.id) {
-          showFloatingDetail(ride);
+        const newTitle = editTitleInput ? editTitleInput.value.trim() : "";
+        if (!newTitle) {
+          showEditTitleAlert("Podaj nazwę treningu.");
+          return;
         }
 
-        // Re-render list so card displays the new title
-        renderRidesList(allRides);
+        setEditTitleLoading(true);
+        hideEditTitleAlert();
 
-        // Update calendar widget
-        if (calendarWidget) {
-          calendarWidget.setRides(allRides);
+        try {
+          await updateRideTitle(ride.id, newTitle);
+
+          // Update local object
+          ride.title = newTitle;
+
+          // If currently displayed in detail panel, refresh panel
+          if (selectedRideId === ride.id) {
+            showFloatingDetail(ride);
+          }
+
+          // Re-render list so card displays the new title
+          renderRidesList(allRides);
+
+          // Update calendar widget
+          if (calendarWidget) {
+            calendarWidget.setRides(allRides);
+          }
+
+          closeEditTitleModal();
+          showToast("Zaktualizowano nazwę treningu!", "success");
+        } catch (err) {
+          console.error("Error updating ride title:", err);
+          showEditTitleAlert(err.message || "Nie udało się zaktualizować nazwy treningu.");
+        } finally {
+          setEditTitleLoading(false);
         }
-
-        closeEditTitleModal();
-        showToast("Zaktualizowano nazwę treningu!", "success");
-      } catch (err) {
-        console.error("Error updating ride title:", err);
-        showEditTitleAlert(err.message || "Nie udało się zaktualizować nazwy treningu.");
-      } finally {
-        setEditTitleLoading(false);
-      }
+      })();
     });
   }
 
@@ -912,23 +928,25 @@ function setupEventListeners() {
       gpxFileInput.click();
     });
 
-    gpxFileInput.addEventListener("change", async (e) => {
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
+    gpxFileInput.addEventListener("change", (e) => {
+      void (async () => {
+        const file = e.target.files?.[0];
+        if (!file) return;
 
-      try {
-        showToast("Wczytywanie i analiza pliku GPX...", "info");
-        const gpxXml = await file.text();
-        const parsed = await parseGpxFileForImport(gpxXml);
+        try {
+          showToast("Wczytywanie i analiza pliku GPX...", "info");
+          const gpxXml = await file.text();
+          const parsed = await parseGpxFileForImport(gpxXml);
 
-        pendingImportData = parsed;
-        pendingImportGpxXml = gpxXml;
+          pendingImportData = parsed;
+          pendingImportGpxXml = gpxXml;
 
-        openImportGpxModal(parsed);
-      } catch (err) {
-        console.error("Failed to parse GPX file:", err);
-        showToast(err.message || "Błąd podczas parsowania pliku GPX.", "error");
-      }
+          openImportGpxModal(parsed);
+        } catch (err) {
+          console.error("Failed to parse GPX file:", err);
+          showToast(err.message || "Błąd podczas parsowania pliku GPX.", "error");
+        }
+      })();
     });
   }
 
@@ -950,72 +968,79 @@ function setupEventListeners() {
   }
 
   if (importGpxForm) {
-    importGpxForm.addEventListener("submit", async (e) => {
+    importGpxForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      if (!pendingImportData || !pendingImportGpxXml) return;
+      void (async () => {
+        if (!pendingImportData || !pendingImportGpxXml) return;
 
-      const title = importGpxTitleInput ? importGpxTitleInput.value.trim() : "";
-      if (!title) {
-        showImportGpxAlert("Podaj nazwę treningu.");
-        return;
-      }
-
-      if (!currentUser) {
-        showImportGpxAlert("Musisz być zalogowany, aby zapisać trening.");
-        return;
-      }
-
-      setImportGpxLoading(true);
-      hideImportGpxAlert();
-
-      try {
-        pendingImportData.title = title;
-        const newRide = await saveImportedRide(pendingImportData, pendingImportGpxXml, currentUser.uid);
-
-        // Add to allRides at beginning
-        allRides = [newRide, ...allRides.filter(r => !r.isDemo)];
-
-        // Update UI
-        updateOverallStats();
-        renderRidesList(allRides);
-        if (calendarWidget) {
-          calendarWidget.setRides(allRides);
+        const title = importGpxTitleInput ? importGpxTitleInput.value.trim() : "";
+        if (!title) {
+          showImportGpxAlert("Podaj nazwę treningu.");
+          return;
         }
 
-        closeImportGpxModal();
-        showToast("Trening został pomyślnie zaimportowany! 🎉", "success");
+        if (!currentUser) {
+          showImportGpxAlert("Musisz być zalogowany, aby zapisać trening.");
+          return;
+        }
 
-        // Select the newly imported ride
-        selectRide(newRide.id);
-      } catch (err) {
-        console.error("Error saving imported ride:", err);
-        showImportGpxAlert(err.message || "Nie udało się zapisać zaimportowanego treningu.");
-      } finally {
-        setImportGpxLoading(false);
-      }
+        setImportGpxLoading(true);
+        hideImportGpxAlert();
+
+        try {
+          pendingImportData.title = title;
+          const newRide = await saveImportedRide(pendingImportData, pendingImportGpxXml, currentUser.uid);
+
+          // Add to allRides at beginning
+          allRides = [newRide, ...allRides.filter(r => !r.isDemo)];
+
+          // Update UI
+          updateStatsBanner(allRides);
+          renderRidesList(allRides);
+          if (calendarWidget) {
+            calendarWidget.setRides(allRides);
+          }
+
+          closeImportGpxModal();
+          showToast("Trening został pomyślnie zaimportowany! 🎉", "success");
+
+          // Select the newly imported ride
+          await selectRide(newRide.id);
+        } catch (err) {
+          console.error("Error saving imported ride:", err);
+          showImportGpxAlert(err.message || "Nie udało się zapisać zaimportowanego treningu.");
+        } finally {
+          setImportGpxLoading(false);
+        }
+      })();
     });
   }
 
   // Handle browser back/forward history navigation
   window.addEventListener("popstate", () => {
-    const urlRideId = getRideIdFromUrl();
-    if (urlRideId && urlRideId !== selectedRideId) {
-      const found = allRides.find(r => r.id === urlRideId);
-      if (found) {
-        selectRide(found.id);
-      } else {
-        fetchRideById(urlRideId).then(sharedRide => {
-          if (sharedRide) {
-            sharedRide.isShared = true;
-            allRides = [sharedRide, ...allRides];
-            renderRidesList(allRides);
-            selectRide(sharedRide.id);
+    void (async () => {
+      const urlRideId = getRideIdFromUrl();
+      if (urlRideId && urlRideId !== selectedRideId) {
+        const found = allRides.find(r => r.id === urlRideId);
+        if (found) {
+          await selectRide(found.id);
+        } else {
+          try {
+            const sharedRide = await fetchRideById(urlRideId);
+            if (sharedRide) {
+              sharedRide.isShared = true;
+              allRides = [sharedRide, ...allRides];
+              renderRidesList(allRides);
+              await selectRide(sharedRide.id);
+            }
+          } catch (err) {
+            console.error("Error fetching shared ride on popstate:", err);
           }
-        });
+        }
+      } else if (!urlRideId && selectedRideId) {
+        clearSelectedRide();
       }
-    } else if (!urlRideId && selectedRideId) {
-      clearSelectedRide();
-    }
+    })();
   });
 }
 
@@ -1112,61 +1137,67 @@ function setupAuthListeners() {
 
   // Logout button
   if (btnLogout) {
-    btnLogout.addEventListener("click", async () => {
-      try {
-        await signOutUser();
-      } catch (err) {
-        console.error("Sign out error:", err);
-      }
+    btnLogout.addEventListener("click", () => {
+      void (async () => {
+        try {
+          await signOutUser();
+        } catch (err) {
+          console.error("Sign out error:", err);
+        }
+      })();
     });
   }
 
   // Email/password form submission
   if (authForm) {
-    authForm.addEventListener("submit", async (e) => {
+    authForm.addEventListener("submit", (e) => {
       e.preventDefault();
-      const email = authEmailInput ? authEmailInput.value.trim() : '';
-      const password = authPasswordInput ? authPasswordInput.value : '';
+      void (async () => {
+        const email = authEmailInput ? authEmailInput.value.trim() : '';
+        const password = authPasswordInput ? authPasswordInput.value : '';
 
-      if (!email || !password) {
-        showAuthAlert("Wypełnij wszystkie pola formularza.");
-        return;
-      }
-
-      setAuthLoading(true);
-      hideAuthAlert();
-
-      try {
-        if (authMode === 'login') {
-          await signInWithEmail(email, password);
-        } else {
-          await signUpWithEmail(email, password);
+        if (!email || !password) {
+          showAuthAlert("Wypełnij wszystkie pola formularza.");
+          return;
         }
-        // onAuthStateChange callback handles UI update & modal close
-      } catch (err) {
-        console.error("Auth error:", err);
-        showAuthAlert(err.message || "Wystąpił błąd autoryzacji.");
-      } finally {
-        setAuthLoading(false);
-      }
+
+        setAuthLoading(true);
+        hideAuthAlert();
+
+        try {
+          if (authMode === 'login') {
+            await signInWithEmail(email, password);
+          } else {
+            await signUpWithEmail(email, password);
+          }
+          // onAuthStateChange callback handles UI update & modal close
+        } catch (err) {
+          console.error("Auth error:", err);
+          showAuthAlert(err.message || "Wystąpił błąd autoryzacji.");
+        } finally {
+          setAuthLoading(false);
+        }
+      })();
     });
   }
 
   // Google sign in button
   if (btnGoogleAuth) {
-    btnGoogleAuth.addEventListener("click", async () => {
-      setAuthLoading(true);
-      hideAuthAlert();
+    btnGoogleAuth.addEventListener("click", () => {
+      void (async () => {
+        setAuthLoading(true);
+        hideAuthAlert();
 
-      try {
-        await signInWithGoogle();
-        // onAuthStateChange callback handles UI update & modal close
-      } catch (err) {
-        console.error("Google auth error:", err);
-        showAuthAlert(err.message || "Błąd logowania przez Google.");
-      } finally {
-        setAuthLoading(false);
-      }
+        try {
+          await signInWithGoogle();
+          // onAuthStateChange callback handles UI update & modal close
+        } catch (err) {
+          console.error("Google auth error:", err);
+          showAuthAlert(err.message || "Błąd logowania przez Google.");
+        } finally {
+          setAuthLoading(false);
+        }
+      })();
     });
   }
 }
@@ -1318,4 +1349,8 @@ style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
 document.head.appendChild(style);
 
 // Start on DOMContentLoaded
-document.addEventListener("DOMContentLoaded", initApp);
+document.addEventListener("DOMContentLoaded", () => {
+  void initApp().catch((err) => {
+    console.error("Failed to initialize app:", err);
+  });
+});

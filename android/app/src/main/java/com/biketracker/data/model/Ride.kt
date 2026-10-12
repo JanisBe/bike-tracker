@@ -7,6 +7,7 @@ data class Ride(
     val userId: String = "",
     val title: String = "",
     val locationName: String = "",
+    val activityType: String = ActivityType.CYCLING.id,
     val startTime: Date = Date(),
     val endTime: Date = Date(),
     val distanceKm: Double = 0.0,

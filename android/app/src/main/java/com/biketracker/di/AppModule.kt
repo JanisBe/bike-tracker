@@ -4,6 +4,8 @@ import com.biketracker.data.repository.AuthRepository
 import com.biketracker.data.repository.AuthRepositoryImpl
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.data.repository.RideRepositoryImpl
+import com.biketracker.data.repository.UserRepository
+import com.biketracker.data.repository.UserRepositoryImpl
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Binds
@@ -37,4 +39,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindRideRepository(impl: RideRepositoryImpl): RideRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserRepository(impl: UserRepositoryImpl): UserRepository
 }

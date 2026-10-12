@@ -10,6 +10,7 @@ import androidx.navigation.navDeepLink
 import com.biketracker.ui.detail.RideDetailScreen
 import com.biketracker.ui.home.HomeScreen
 import com.biketracker.ui.login.LoginScreen
+import com.biketracker.ui.profile.ProfileScreen
 import com.biketracker.ui.tracking.TrackingScreen
 
 @Composable
@@ -33,11 +34,14 @@ fun NavGraph(
 
         composable(Screen.Home.route) {
             HomeScreen(
-                onStartRide = {
-                    navController.navigate(Screen.Tracking.route)
+                onStartRide = { activityType ->
+                    navController.navigate(Screen.Tracking.createRoute(activityType))
                 },
                 onRideSelected = { rideId ->
                     navController.navigate(Screen.RideDetail.createRoute(rideId))
+                },
+                onProfileClick = {
+                    navController.navigate(Screen.Profile.route)
                 },
                 onLoggedOut = {
                     navController.navigate(Screen.Login.route) {
@@ -47,8 +51,31 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.Tracking.route) {
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onLoggedOut = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Screen.Tracking.route,
+            arguments = listOf(
+                navArgument("activityType") {
+                    type = NavType.StringType
+                    defaultValue = "cycling"
+                }
+            )
+        ) { backStackEntry ->
+            val activityType = backStackEntry.arguments?.getString("activityType") ?: "cycling"
             TrackingScreen(
+                activityType = activityType,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

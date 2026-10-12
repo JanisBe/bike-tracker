@@ -1,5 +1,6 @@
 package com.biketracker.data.mapper
 
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.Ride
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.DocumentSnapshot
@@ -12,6 +13,7 @@ object RideMapper {
         "userId" to ride.userId,
         "title" to ride.title,
         "locationName" to ride.locationName,
+        "activityType" to ride.activityType,
         "startTime" to Timestamp(ride.startTime),
         "endTime" to Timestamp(ride.endTime),
         "distanceKm" to ride.distanceKm,
@@ -28,6 +30,7 @@ object RideMapper {
         userId = doc.getString("userId") ?: "",
         title = doc.getString("title") ?: "",
         locationName = doc.getString("locationName") ?: "",
+        activityType = doc.getString("activityType") ?: ActivityType.CYCLING.id,
         startTime = doc.getTimestamp("startTime")?.toDate() ?: Date(),
         endTime = doc.getTimestamp("endTime")?.toDate() ?: Date(),
         distanceKm = doc.getDouble("distanceKm") ?: 0.0,

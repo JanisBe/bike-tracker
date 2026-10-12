@@ -8,6 +8,7 @@ import android.location.LocationManager
 import android.os.PowerManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.data.repository.RideRepository
@@ -43,7 +44,9 @@ class TrackingViewModel @Inject constructor(
     val trackPoints: StateFlow<List<TrackPoint>> = LocationTrackingService.trackPoints
     val currentDistanceKm = LocationTrackingService.currentDistanceKm
     val currentSpeedKmh = LocationTrackingService.currentSpeedKmh
+    val averageSpeedKmh = LocationTrackingService.averageSpeedKmh
     val elapsedSeconds = LocationTrackingService.elapsedSeconds
+    val activityType: StateFlow<String> = LocationTrackingService.activityType
 
     private val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
     private val _isPowerSaveMode = MutableStateFlow(powerManager?.isPowerSaveMode == true)
@@ -113,10 +116,11 @@ class TrackingViewModel @Inject constructor(
         }
     }
 
-    fun startTracking(waitForGps: Boolean = false) {
+    fun startTracking(waitForGps: Boolean = false, activityType: String = ActivityType.CYCLING.id) {
         val intent = Intent(context, LocationTrackingService::class.java).apply {
             action = LocationTrackingService.ACTION_START
             putExtra(LocationTrackingService.EXTRA_WAIT_FOR_GPS, waitForGps)
+            putExtra(LocationTrackingService.EXTRA_ACTIVITY_TYPE, activityType)
         }
         context.startForegroundService(intent)
     }
@@ -142,7 +146,7 @@ class TrackingViewModel @Inject constructor(
         context.startService(intent)
     }
 
-    fun stopAndSaveRide() {
+    fun stopAndSaveRide(activityType: String = LocationTrackingService.activityType.value) {
         val pointsToSave = trackPoints.value
 
         // Stop the foreground service
@@ -158,7 +162,7 @@ class TrackingViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, saveError = null) }
-            val result = rideRepository.saveRide(pointsToSave)
+            val result = rideRepository.saveRide(pointsToSave, activityType)
             if (result.isSuccess) {
                 _uiState.update { it.copy(isSaving = false, savedRideId = result.getOrNull()) }
             } else {

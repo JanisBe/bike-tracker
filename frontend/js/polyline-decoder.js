@@ -72,9 +72,9 @@ function encodeSignedValue(val) {
   let sgn = val < 0 ? ~(val << 1) : (val << 1);
   let str = '';
   while (sgn >= 0x20) {
-    str += String.fromCharCode((0x20 | (sgn & 0x1f)) + 63);
+    str += String.fromCodePoint((0x20 | (sgn & 0x1f)) + 63);
     sgn >>= 5;
   }
-  str += String.fromCharCode(sgn + 63);
+  str += String.fromCodePoint(sgn + 63);
   return str;
 }

@@ -5,6 +5,7 @@ import android.location.Address
 import android.location.Geocoder
 import android.os.Build
 import com.biketracker.data.mapper.RideMapper
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.Ride
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.domain.util.GpxGenerator
@@ -30,7 +31,10 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 
 interface RideRepository {
-    suspend fun saveRide(points: List<TrackPoint>): Result<String>
+    suspend fun saveRide(
+        points: List<TrackPoint>,
+        activityType: String = ActivityType.CYCLING.id
+    ): Result<String>
     suspend fun importGpxRide(
         points: List<TrackPoint>,
         gpxXml: String,
@@ -104,7 +108,10 @@ class RideRepositoryImpl @Inject constructor(
             }
         }
 
-    override suspend fun saveRide(points: List<TrackPoint>): Result<String> = runCatching {
+    override suspend fun saveRide(
+        points: List<TrackPoint>,
+        activityType: String
+    ): Result<String> = runCatching {
         val user = auth.currentUser ?: throw IllegalStateException("User not authenticated")
         require(points.size >= 2) { "At least 2 GPS points are required" }
         val rideRef = ridesCollection.document()
@@ -120,10 +127,11 @@ class RideRepositoryImpl @Inject constructor(
         val locationName = resolveLocationName(points.first().latitude, points.first().longitude)
         val gpxDateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("pl", "PL"))
         val formattedDate = gpxDateFormat.format(Date(points.first().timestamp))
+        val defaultPrefix = if (activityType == ActivityType.WALKING.id) "Spacer" else "Trening"
         val rideTitle = if (locationName.isNotBlank()) {
             "$locationName • $formattedDate"
         } else {
-            "Trening $formattedDate"
+            "$defaultPrefix $formattedDate"
         }
         val gpxXml = GpxGenerator.generate(points, rideTitle)
 
@@ -133,6 +141,7 @@ class RideRepositoryImpl @Inject constructor(
             userId = user.uid,
             title = rideTitle,
             locationName = locationName,
+            activityType = activityType,
             startTime = Date(points.first().timestamp),
             endTime = Date(points.last().timestamp),
             distanceKm = stats.distanceKm,

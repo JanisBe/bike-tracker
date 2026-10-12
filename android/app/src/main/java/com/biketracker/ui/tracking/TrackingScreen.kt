@@ -28,6 +28,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.DirectionsBike
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Fullscreen
@@ -40,6 +42,7 @@ import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,6 +72,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -78,12 +82,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.launch
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SignalQuality
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.ui.theme.CardBorder
@@ -96,14 +100,17 @@ import com.biketracker.ui.theme.SuccessGreen
 import com.biketracker.ui.theme.TealAccent
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polyline
+import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackingScreen(
+    activityType: String = ActivityType.CYCLING.id,
     onNavigateBack: () -> Unit,
     onRideSaved: (String) -> Unit,
     viewModel: TrackingViewModel = hiltViewModel()
@@ -117,9 +124,15 @@ fun TrackingScreen(
     val trackPoints by viewModel.trackPoints.collectAsStateWithLifecycle()
     val currentDistanceKm by viewModel.currentDistanceKm.collectAsStateWithLifecycle()
     val currentSpeedKmh by viewModel.currentSpeedKmh.collectAsStateWithLifecycle()
+    val averageSpeedKmh by viewModel.averageSpeedKmh.collectAsStateWithLifecycle()
     val elapsedSeconds by viewModel.elapsedSeconds.collectAsStateWithLifecycle()
     val isPowerSaveMode by viewModel.isPowerSaveMode.collectAsStateWithLifecycle()
+    val serviceActivityType by viewModel.activityType.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val currentActivityType = if (isTracking) serviceActivityType else activityType
+    val isWalking = currentActivityType == ActivityType.WALKING.id
+    val primaryAccent = if (isWalking) TealAccent else OrangeAccent
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -127,6 +140,7 @@ fun TrackingScreen(
     var showGpsWarningDialog by remember { mutableStateOf(false) }
     var showPowerSaverDialog by remember { mutableStateOf(false) }
     var powerSaverWarningDismissed by remember { mutableStateOf(false) }
+    var showPaceInsteadOfSpeed by rememberSaveable { mutableStateOf(false) }
 
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -160,11 +174,11 @@ fun TrackingScreen(
         coroutineScope.launch {
             val hasFix = viewModel.checkHasGpsFix()
             if (hasFix) {
-                viewModel.startTracking(waitForGps = false)
+                viewModel.startTracking(waitForGps = false, activityType = currentActivityType)
             } else {
                 showGpsWarningDialog = true
                 if (viewModel.isLocationServiceEnabled()) {
-                    viewModel.startTracking(waitForGps = true)
+                    viewModel.startTracking(waitForGps = true, activityType = currentActivityType)
                 }
             }
         }
@@ -248,20 +262,29 @@ fun TrackingScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = when {
-                            isWaitingForGps -> "Oczekiwanie na GPS..."
-                            isPaused -> "Trening wstrzymany"
-                            else -> "Rejestrowanie treningu"
-                        },
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            isWaitingForGps -> OrangeAccent
-                            isPaused -> TealAccent
-                            else -> OrangeAccent
-                        }
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = if (isWalking) Icons.AutoMirrored.Filled.DirectionsWalk else Icons.AutoMirrored.Filled.DirectionsBike,
+                            contentDescription = null,
+                            tint = primaryAccent,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = when {
+                                isWaitingForGps -> "Oczekiwanie na GPS..."
+                                isPaused -> if (isWalking) "Spacer wstrzymany" else "Trening wstrzymany"
+                                else -> if (isWalking) "Rejestrowanie spaceru" else "Rejestrowanie treningu"
+                            },
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = when {
+                                isWaitingForGps -> OrangeAccent
+                                isPaused -> TealAccent
+                                else -> primaryAccent
+                            }
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = {
@@ -555,42 +578,100 @@ fun TrackingScreen(
                                 }
                             }
 
-                            // Main Speed Display
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.Bottom
+                            // Main Speed / Pace Display
+                            val isPaceMode = isWalking && showPaceInsteadOfSpeed
+                            val speedOrPaceValue = if (isPaceMode) {
+                                if (currentSpeedKmh <= 0.5) {
+                                    "--:--"
+                                } else {
+                                    val totalSec = (3600.0 / currentSpeedKmh).roundToLong()
+                                    if (totalSec > 3600) "--:--" else "%d:%02d".format(
+                                        totalSec / 60,
+                                        totalSec % 60
+                                    )
+                                }
+                            } else {
+                                "%.1f".format(currentSpeedKmh)
+                            }
+                            val unitLabel = if (isPaceMode) "min/km" else "km/h"
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        if (isWalking) {
+                                            Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .clickable {
+                                                    showPaceInsteadOfSpeed = !showPaceInsteadOfSpeed
+                                                }
+                                                .padding(vertical = 4.dp)
+                                        } else Modifier
+                                    ),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(
-                                    text = "%.1f".format(currentSpeedKmh),
-                                    fontSize = 56.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = TextPrimary
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "km/h",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = OrangeAccent,
-                                    modifier = Modifier.padding(bottom = 10.dp)
-                                )
+                                Row(
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    Text(
+                                        text = speedOrPaceValue,
+                                        fontSize = 56.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = TextPrimary
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(bottom = 10.dp)
+                                    ) {
+                                        Text(
+                                            text = unitLabel,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = primaryAccent
+                                        )
+                                        if (isWalking) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.SwapVert,
+                                                contentDescription = "Przełącz na tempo/prędkość",
+                                                tint = primaryAccent.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (isWalking) {
+                                    Text(
+                                        text = if (isPaceMode) "Stuknij, aby wyświetlić prędkość (km/h)" else "Stuknij, aby wyświetlić tempo (min/km)",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary.copy(alpha = 0.8f),
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
                             }
 
-                            // Secondary Stats Row (Distance & Time)
+                            // Secondary Stats Row (Distance, Time & Average Speed/Pace)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceAround
                             ) {
-                                val minutes = elapsedSeconds / 60
+                                val hours = elapsedSeconds / 3600
+                                val minutes = (elapsedSeconds % 3600) / 60
                                 val seconds = elapsedSeconds % 60
-                                val durationStr = "%02d:%02d".format(minutes, seconds)
+                                val durationStr = if (hours > 0) {
+                                    "%02d:%02d:%02d".format(hours, minutes, seconds)
+                                } else {
+                                    "%02d:%02d".format(minutes, seconds)
+                                }
 
                                 LiveStatItem(
                                     icon = Icons.Default.Straighten,
                                     label = "Dystans",
                                     value = "%.2f km".format(currentDistanceKm),
-                                    tint = OrangeAccent
+                                    tint = primaryAccent
                                 )
                                 LiveStatItem(
                                     icon = Icons.Default.Schedule,
@@ -598,12 +679,36 @@ fun TrackingScreen(
                                     value = durationStr,
                                     tint = TealAccent
                                 )
-                                LiveStatItem(
-                                    icon = Icons.Default.Speed,
-                                    label = "Punkty",
-                                    value = "${trackPoints.size}",
-                                    tint = TextSecondary
-                                )
+
+                                if (isPaceMode) {
+                                    val avgPaceStr =
+                                        if (currentDistanceKm > 0.05 && elapsedSeconds > 5) {
+                                            val paceSec =
+                                                (elapsedSeconds / currentDistanceKm).roundToLong()
+                                            if (paceSec > 3600) "--:--" else "%d:%02d min/km".format(
+                                                paceSec / 60,
+                                                paceSec % 60
+                                            )
+                                        } else if (averageSpeedKmh > 0.5) {
+                                            val paceSec = (3600.0 / averageSpeedKmh).roundToLong()
+                                            "%d:%02d min/km".format(paceSec / 60, paceSec % 60)
+                                        } else {
+                                            "--:--"
+                                        }
+                                    LiveStatItem(
+                                        icon = Icons.Default.Speed,
+                                        label = "Śr. tempo",
+                                        value = avgPaceStr,
+                                        tint = primaryAccent
+                                    )
+                                } else {
+                                    LiveStatItem(
+                                        icon = Icons.Default.Speed,
+                                        label = "Śr. prędkość",
+                                        value = "%.1f km/h".format(averageSpeedKmh),
+                                        tint = primaryAccent
+                                    )
+                                }
                             }
 
                             // Action Buttons Row
@@ -622,7 +727,7 @@ fun TrackingScreen(
                                     modifier = Modifier.size(64.dp),
                                     shape = CircleShape,
                                     colors = IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = if (isPaused) SuccessGreen else OrangeAccent
+                                        containerColor = if (isPaused) SuccessGreen else primaryAccent
                                     )
                                 ) {
                                     Icon(
@@ -1014,13 +1119,18 @@ fun TrackingScreen(
         if (showFinishDialog) {
             AlertDialog(
                 onDismissRequest = { showFinishDialog = false },
-                title = { Text(text = "Zakończyć trening?", color = TextPrimary) },
+                title = {
+                    Text(
+                        text = if (isWalking) "Zakończyć spacer?" else "Zakończyć trening?",
+                        color = TextPrimary
+                    )
+                },
                 text = {
                     Text(
                         text = if (trackPoints.size < 2) {
-                            "Zarejestrowano mniej niż 2 punkty GPS. Czy chcesz zakończyć bez zapisywania, czy kontynuować jazdę?"
+                            "Zarejestrowano mniej niż 2 punkty GPS. Czy chcesz zakończyć bez zapisywania, czy kontynuować?"
                         } else {
-                            "Czy na pewno chcesz zakończyć rejestrowanie i zapisać ten trening w Firebase?"
+                            "Czy na pewno chcesz zakończyć rejestrowanie i zapisać ten ${if (isWalking) "spacer" else "trening"} w Firebase?"
                         },
                         color = TextSecondary
                     )
@@ -1030,9 +1140,9 @@ fun TrackingScreen(
                         Button(
                             onClick = {
                                 showFinishDialog = false
-                                viewModel.stopAndSaveRide()
+                                viewModel.stopAndSaveRide(currentActivityType)
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent)
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryAccent)
                         ) {
                             Text(
                                 text = "Zapisz",

@@ -19,9 +19,11 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import com.biketracker.MainActivity
 import com.biketracker.R
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.data.repository.RideRepository
+import com.biketracker.data.repository.UserRepository
 import com.biketracker.domain.util.DistanceCalculator
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -46,6 +48,9 @@ class LocationTrackingService : Service() {
 
     @Inject
     lateinit var rideRepository: RideRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
@@ -161,8 +166,9 @@ class LocationTrackingService : Service() {
 
         val candidateSpeedKmh = rawSpeedKmh ?: estimatedSpeedKmh ?: 0.0
 
-        // Zero speed below 1.0 km/h or when measurement is noisy
-        val filteredSpeedKmh = if (candidateSpeedKmh < MIN_SPEED_THRESHOLD_KMH || isSpeedNoisy) {
+        // Zero speed below activity threshold or when measurement is noisy
+        val thresholdKmh = userRepository.getSpeedThreshold(_activityType.value)
+        val filteredSpeedKmh = if (candidateSpeedKmh < thresholdKmh || isSpeedNoisy) {
             0.0
         } else {
             candidateSpeedKmh
@@ -206,6 +212,7 @@ class LocationTrackingService : Service() {
             if (distMeters >= MIN_MOVEMENT_DISTANCE_METERS) {
                 _currentDistanceKm.value += (distMeters / 1000.0)
                 _trackPoints.value = currentList + point
+                updateAverageSpeed()
             }
         }
 
@@ -223,6 +230,8 @@ class LocationTrackingService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 val waitForGps = intent.getBooleanExtra(EXTRA_WAIT_FOR_GPS, false)
+                val type = intent.getStringExtra(EXTRA_ACTIVITY_TYPE) ?: ActivityType.CYCLING.id
+                _activityType.value = type
                 startTracking(waitForGps)
             }
 
@@ -238,11 +247,13 @@ class LocationTrackingService : Service() {
     private fun stopAndSaveTracking() {
         val pointsToSave = _trackPoints.value
         val distanceKm = _currentDistanceKm.value
+        val currentType = _activityType.value
 
         _isTracking.value = false
         _isWaitingForGps.value = false
         _isPaused.value = false
         _currentSpeedKmh.value = 0.0
+        _averageSpeedKmh.value = 0.0
 
         hadGpsFix = false
         lastLocationTimeMs = 0L
@@ -261,10 +272,16 @@ class LocationTrackingService : Service() {
             return
         }
 
+        val iconRes =
+            if (currentType == ActivityType.WALKING.id) R.drawable.ic_walk else R.drawable.ic_bike
         val savingNotification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.notification_title_active))
-            .setContentText("Zapisywanie treningu...")
-            .setSmallIcon(R.drawable.ic_bike)
+            .setContentTitle(
+                if (currentType == ActivityType.WALKING.id) "🚶 Zapisywanie spaceru" else getString(
+                    R.string.notification_title_active
+                )
+            )
+            .setContentText("Zapisywanie...")
+            .setSmallIcon(iconRes)
             .setOngoing(true)
             .build()
         val manager = getSystemService(NotificationManager::class.java)
@@ -272,9 +289,9 @@ class LocationTrackingService : Service() {
 
         serviceScope.launch {
             try {
-                val result = rideRepository.saveRide(pointsToSave)
+                val result = rideRepository.saveRide(pointsToSave, currentType)
                 if (result.isSuccess) {
-                    showRideSavedNotification(distanceKm)
+                    showRideSavedNotification(distanceKm, currentType)
                 } else {
                     showRideSaveFailedNotification()
                 }
@@ -288,7 +305,7 @@ class LocationTrackingService : Service() {
         }
     }
 
-    private fun showRideSavedNotification(distanceKm: Double) {
+    private fun showRideSavedNotification(distanceKm: Double, currentType: String) {
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -297,11 +314,14 @@ class LocationTrackingService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val text = "Zapisano %.2f km treningu".format(distanceKm)
+        val workoutName = if (currentType == ActivityType.WALKING.id) "spaceru" else "treningu"
+        val text = "Zapisano %.2f km $workoutName".format(distanceKm)
+        val iconRes =
+            if (currentType == ActivityType.WALKING.id) R.drawable.ic_walk else R.drawable.ic_bike
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.notification_ride_saved_title))
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_bike)
+            .setSmallIcon(iconRes)
             .setAutoCancel(true)
             .setTimeoutAfter(8000L)
             .setContentIntent(pendingIntent)
@@ -329,6 +349,7 @@ class LocationTrackingService : Service() {
         _trackPoints.value = emptyList()
         _currentDistanceKm.value = 0.0
         _currentSpeedKmh.value = 0.0
+        _averageSpeedKmh.value = 0.0
         _elapsedSeconds.value = 0L
         _isTracking.value = true
         _isWaitingForGps.value = waitForGps
@@ -378,6 +399,7 @@ class LocationTrackingService : Service() {
         _isWaitingForGps.value = false
         _isPaused.value = false
         _currentSpeedKmh.value = 0.0
+        _averageSpeedKmh.value = 0.0
 
         hadGpsFix = false
         lastLocationTimeMs = 0L
@@ -445,6 +467,7 @@ class LocationTrackingService : Service() {
                 delay(1000L)
                 if (_isTracking.value && !_isPaused.value) {
                     _elapsedSeconds.value += 1
+                    updateAverageSpeed()
                     // Jeśli przez >5s nie otrzymano nowej lokalizacji na postoju, wyzeruj licznik prędkości
                     val now = System.currentTimeMillis()
                     if (lastLocationTimeMs > 0 && (now - lastLocationTimeMs) > 5000L && _currentSpeedKmh.value > 0.0) {
@@ -454,6 +477,16 @@ class LocationTrackingService : Service() {
                     updateNotification()
                 }
             }
+        }
+    }
+
+    private fun updateAverageSpeed() {
+        val seconds = _elapsedSeconds.value
+        val distance = _currentDistanceKm.value
+        _averageSpeedKmh.value = if (seconds > 0) {
+            distance / (seconds / 3600.0)
+        } else {
+            0.0
         }
     }
 
@@ -473,11 +506,8 @@ class LocationTrackingService : Service() {
             handleGpsLost()
         } else if (!isSignalLostNow && _isGpsLost.value && satellitesUsed >= 4 && timeSinceLocation <= 4000L) {
             handleGpsRecovered()
-        } else if (!isSignalLostNow && !_isGpsLost.value && satellitesUsed >= 4) {
-            // Gdy sygnał jest stabilny i silny, upewniamy się, że powiadomienie ostrzegawcze jest wyczyszczone
-            if (gpsAlertDismissJob == null || gpsAlertDismissJob?.isActive == false) {
+        } else if (!isSignalLostNow && !_isGpsLost.value && satellitesUsed >= 4 && (gpsAlertDismissJob == null || gpsAlertDismissJob?.isActive == false)) {
                 clearGpsLostNotification()
-            }
         }
     }
 
@@ -627,8 +657,10 @@ class LocationTrackingService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        val isWalking = _activityType.value == ActivityType.WALKING.id
+        val iconRes = if (isWalking) R.drawable.ic_walk else R.drawable.ic_bike
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_bike)
+            .setSmallIcon(iconRes)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setContentIntent(pendingIntent)
@@ -690,9 +722,9 @@ class LocationTrackingService : Service() {
         val speedStr = "%.1f km/h".format(_currentSpeedKmh.value)
 
         val title = when {
-            _isPaused.value -> getString(R.string.notification_title_paused)
+            _isPaused.value -> if (isWalking) "⏸️ Spacer wstrzymany" else getString(R.string.notification_title_paused)
             _isGpsLost.value -> "⚠️ Utrata sygnału GPS"
-            else -> getString(R.string.notification_title_active)
+            else -> if (isWalking) "🚶 Rejestrowanie spaceru" else getString(R.string.notification_title_active)
         }
 
         val contentText = when {
@@ -764,6 +796,7 @@ class LocationTrackingService : Service() {
         const val ACTION_STOP_AND_SAVE = "com.biketracker.action.STOP_AND_SAVE"
 
         const val EXTRA_WAIT_FOR_GPS = "extra_wait_for_gps"
+        const val EXTRA_ACTIVITY_TYPE = "extra_activity_type"
         const val MIN_SPEED_THRESHOLD_KMH = 1.0
         const val MIN_MOVEMENT_DISTANCE_METERS = 1.0
 
@@ -774,6 +807,9 @@ class LocationTrackingService : Service() {
         private const val GPS_ALERT_CHANNEL_ID = "bike_gps_alert_channel"
 
         // Global state flows observable by UI ViewModels
+        private val _activityType = MutableStateFlow(ActivityType.CYCLING.id)
+        val activityType: StateFlow<String> = _activityType.asStateFlow()
+
         private val _isTracking = MutableStateFlow(false)
         val isTracking: StateFlow<Boolean> = _isTracking.asStateFlow()
 
@@ -798,6 +834,9 @@ class LocationTrackingService : Service() {
 
         private val _currentSpeedKmh = MutableStateFlow(0.0)
         val currentSpeedKmh: StateFlow<Double> = _currentSpeedKmh.asStateFlow()
+
+        private val _averageSpeedKmh = MutableStateFlow(0.0)
+        val averageSpeedKmh: StateFlow<Double> = _averageSpeedKmh.asStateFlow()
 
         private val _elapsedSeconds = MutableStateFlow(0L)
         val elapsedSeconds: StateFlow<Long> = _elapsedSeconds.asStateFlow()
