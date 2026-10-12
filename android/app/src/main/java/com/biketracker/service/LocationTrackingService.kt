@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.location.GnssStatus
+import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Handler
@@ -115,7 +116,7 @@ class LocationTrackingService : Service() {
         }
     }
 
-    private fun processLocation(location: android.location.Location) {
+    private fun processLocation(location: Location) {
         if (_isPaused.value) return
         // Filter inaccurate readings
         if (location.accuracy > 25.0f) return
@@ -141,32 +142,88 @@ class LocationTrackingService : Service() {
             }
         }
 
-        val rawSpeedKmh = if (location.hasSpeed()) {
+        val currentList = _trackPoints.value
+
+        // Initial fix warmup: require good accuracy (<= 20m) for the initial anchor point
+        if (currentList.isEmpty() && location.accuracy > 20.0f) {
+            return
+        }
+
+        // When starting from standstill, anchor the first point with zero speed
+        if (currentList.isEmpty()) {
+            _currentSpeedKmh.value = 0.0
+            val initialPoint = TrackPoint(
+                latitude = location.latitude,
+                longitude = location.longitude,
+                elevation = if (location.hasAltitude()) location.altitude else null,
+                timestamp = location.time,
+                accuracy = location.accuracy,
+                speedKmh = 0.0
+            )
+            _trackPoints.value = listOf(initialPoint)
+            updateNotification()
+            return
+        }
+
+        // Check if speed reading is noisy or unreliable (Android 8.0+)
+        val isSpeedNoisy =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasSpeedAccuracy()) {
+                location.hasSpeed() && (
+                        (location.speedAccuracyMetersPerSecond > 0 && location.speed < location.speedAccuracyMetersPerSecond) ||
+                                location.speedAccuracyMetersPerSecond > MAX_ACCEPTABLE_SPEED_ACCURACY_MPS
+                        )
+            } else false
+
+        val rawSpeedKmh = if (location.hasSpeed() && !isSpeedNoisy) {
             (location.speed * 3.6).coerceAtLeast(0.0)
         } else null
 
-        // Check if speed reading is within noise margin (Android 8.0+)
-        val isSpeedNoisy =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && location.hasSpeedAccuracy()) {
-                location.hasSpeed() && location.speedAccuracyMetersPerSecond > 0 && location.speed < location.speedAccuracyMetersPerSecond
-            } else false
-
-        val currentList = _trackPoints.value
+        val lastPoint = currentList.last()
+        val distMeters = DistanceCalculator.distanceBetweenMeters(
+            lastPoint.latitude, lastPoint.longitude,
+            location.latitude, location.longitude
+        )
+        val timeDiffSec = (location.time - lastPoint.timestamp) / 1000.0
 
         // If provider did not supply speed, estimate from distance to previous point
-        val estimatedSpeedKmh = if (rawSpeedKmh == null && currentList.isNotEmpty()) {
-            val lastPoint = currentList.last()
-            val timeDiffSec = (location.time - lastPoint.timestamp) / 1000.0
-            if (timeDiffSec > 0.5) {
-                val distMeters = DistanceCalculator.distanceBetweenMeters(
-                    lastPoint.latitude, lastPoint.longitude,
-                    location.latitude, location.longitude
-                )
-                (distMeters / timeDiffSec) * 3.6
-            } else 0.0
+        val estimatedSpeedKmh = if (rawSpeedKmh == null && timeDiffSec > 0.5) {
+            (distMeters / timeDiffSec) * 3.6
         } else null
 
-        val candidateSpeedKmh = rawSpeedKmh ?: estimatedSpeedKmh ?: 0.0
+        var candidateSpeedKmh = rawSpeedKmh ?: estimatedSpeedKmh ?: 0.0
+
+        // Anti-jump filter for stationary state and initial GPS fix jumps:
+        val lastSpeedKmh = lastPoint.speedKmh ?: 0.0
+        val isPreviouslyStationary = lastSpeedKmh == 0.0
+
+        if (isPreviouslyStationary) {
+            // 1. If previously stationary, movement distance must exceed GPS accuracy noise radius
+            // unless genuine high-accuracy sensor speed confirms motion.
+            val minSignificantMoveMeters = ((location.accuracy + (lastPoint.accuracy ?: location.accuracy)) * 0.45f)
+                .coerceIn(5.0f, 20.0f)
+            val hasValidSensorSpeed = rawSpeedKmh != null && rawSpeedKmh >= MIN_SPEED_THRESHOLD_KMH
+
+            if (distMeters < minSignificantMoveMeters && !hasValidSensorSpeed) {
+                candidateSpeedKmh = 0.0
+            }
+
+            // 2. Physical acceleration check from standstill:
+            // A human/cyclist cannot accelerate faster than ~12 km/h per second from 0.
+            if (timeDiffSec in 0.1..5.0) {
+                val maxPlausibleStartSpeedKmh = (MAX_START_ACCELERATION_KMH_PER_SEC * timeDiffSec).coerceAtLeast(15.0)
+                if (candidateSpeedKmh > maxPlausibleStartSpeedKmh && !hasValidSensorSpeed) {
+                    candidateSpeedKmh = 0.0
+                }
+            }
+        }
+
+        // Cap extreme GPS spikes based on activity type
+        val maxActivitySpeedKmh = if (_activityType.value == ActivityType.WALKING.id) {
+            MAX_WALKING_SPEED_KMH
+        } else {
+            MAX_CYCLING_SPEED_KMH
+        }
+        candidateSpeedKmh = candidateSpeedKmh.coerceAtMost(maxActivitySpeedKmh)
 
         // Zero speed below activity threshold or when measurement is noisy
         val thresholdKmh = userRepository.getSpeedThreshold(_activityType.value)
@@ -185,18 +242,6 @@ class LocationTrackingService : Service() {
             timestamp = location.time,
             accuracy = location.accuracy,
             speedKmh = filteredSpeedKmh
-        )
-
-        if (currentList.isEmpty()) {
-            _trackPoints.value = listOf(point)
-            updateNotification()
-            return
-        }
-
-        val lastPoint = currentList.last()
-        val distMeters = DistanceCalculator.distanceBetweenMeters(
-            lastPoint.latitude, lastPoint.longitude,
-            point.latitude, point.longitude
         )
 
         val isStationary = filteredSpeedKmh == 0.0
@@ -829,6 +874,10 @@ class LocationTrackingService : Service() {
         const val EXTRA_ACTIVITY_TYPE = "extra_activity_type"
         const val MIN_SPEED_THRESHOLD_KMH = 1.0
         const val MIN_MOVEMENT_DISTANCE_METERS = 1.0
+        private const val MAX_ACCEPTABLE_SPEED_ACCURACY_MPS = 2.5f
+        private const val MAX_START_ACCELERATION_KMH_PER_SEC = 12.0
+        private const val MAX_CYCLING_SPEED_KMH = 85.0
+        private const val MAX_WALKING_SPEED_KMH = 25.0
 
         private const val NOTIFICATION_ID = 101
         private const val NOTIFICATION_SAVED_ID = 103

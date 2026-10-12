@@ -1,6 +1,5 @@
 package com.biketracker.domain.util
 
-import android.location.Location
 import android.util.Xml
 import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.data.model.TrackPoint
@@ -263,8 +262,6 @@ object GpxParser {
         var totalDistanceM = 0.0
         var lastEle = rawPoints.firstOrNull()?.ele ?: 0.0
 
-        val resultsArray = FloatArray(1)
-
         for (i in 0 until count) {
             val pt = rawPoints[i]
 
@@ -279,16 +276,23 @@ object GpxParser {
                 rawSpeedsKmh[i] = 0.0
             } else {
                 val prev = rawPoints[i - 1]
-                Location.distanceBetween(prev.lat, prev.lon, pt.lat, pt.lon, resultsArray)
-                val distStepM = resultsArray[0].toDouble()
+                val distStepM = DistanceCalculator.distanceBetweenMeters(prev.lat, prev.lon, pt.lat, pt.lon)
                 totalDistanceM += distStepM
                 cumulativeDistancesKm[i] = totalDistanceM / 1000.0
 
                 val deltaSeconds = (pt.time - prev.time) / 1000.0
                 if (deltaSeconds in 0.5..120.0 && distStepM > 0.5) {
                     val speed = (distStepM / deltaSeconds) * 3.6
-                    // Cap extreme GPS jump spikes (e.g. 100 km/h for bike)
-                    rawSpeedsKmh[i] = speed.coerceIn(0.0, 95.0)
+                    val prevSpeed = rawSpeedsKmh[i - 1]
+                    // Reject initial GPS fix jump spike from standstill
+                    val isStartSpike =
+                        prevSpeed == 0.0 && deltaSeconds <= 3.0 && speed > (15.0 * deltaSeconds).coerceAtLeast(20.0)
+                    if (isStartSpike) {
+                        rawSpeedsKmh[i] = 0.0
+                    } else {
+                        // Cap extreme GPS jump spikes (e.g. 100 km/h for bike)
+                        rawSpeedsKmh[i] = speed.coerceIn(0.0, 95.0)
+                    }
                 } else if (i > 1) {
                     rawSpeedsKmh[i] = rawSpeedsKmh[i - 1]
                 } else {
@@ -297,9 +301,20 @@ object GpxParser {
             }
         }
 
+        // Filter isolated 1-point spikes where user was stationary before and after
+        for (i in 1 until count - 1) {
+            if (rawSpeedsKmh[i] > 15.0 && rawSpeedsKmh[i - 1] == 0.0 && rawSpeedsKmh[i + 1] == 0.0) {
+                rawSpeedsKmh[i] = 0.0
+            }
+        }
+
         // Apply a 3-point rolling average window for smooth speed curves
         val smoothedSpeedsKmh = DoubleArray(count)
         for (i in 0 until count) {
+            if (i == 0 && rawSpeedsKmh[0] == 0.0) {
+                smoothedSpeedsKmh[0] = 0.0
+                continue
+            }
             var sum = 0.0
             var sampleCount = 0
             for (j in (i - 2).coerceAtLeast(0)..(i + 2).coerceAtMost(count - 1)) {
@@ -332,14 +347,14 @@ object GpxParser {
     ): List<RouteProfilePoint> {
         if (coordinates.isEmpty()) return emptyList()
 
-        val resultsArray = FloatArray(1)
         var totalDistM = 0.0
 
         return coordinates.mapIndexed { index, pair ->
             if (index > 0) {
                 val prev = coordinates[index - 1]
-                Location.distanceBetween(prev.first, prev.second, pair.first, pair.second, resultsArray)
-                totalDistM += resultsArray[0].toDouble()
+                val distStepM =
+                    DistanceCalculator.distanceBetweenMeters(prev.first, prev.second, pair.first, pair.second)
+                totalDistM += distStepM
             }
             RouteProfilePoint(
                 distanceKm = totalDistM / 1000.0,
