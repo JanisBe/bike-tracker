@@ -1,0 +1,144 @@
+/* ==========================================================================
+   Map Styling, Tiles Dark Mode, Scrub Markers & Fullscreen Mode
+   ========================================================================== */
+
+/* Map Area */
+.map-container {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    background: #101018;
+}
+
+.map-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+.ride-detail-content {
+    display: contents;
+}
+
+.mobile-detail-nav {
+    display: none;
+}
+
+.profile-chart-hint {
+    display: none;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: -2px;
+    margin-bottom: 2px;
+}
+
+.btn-map-fullscreen {
+    position: absolute;
+    top: 10px;
+    right: 50px;
+    width: 34px;
+    height: 34px;
+    background: rgba(15, 15, 35, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 800;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-map-fullscreen:hover {
+    background: var(--accent-orange);
+    color: var(--bg-dark);
+    border-color: var(--accent-orange);
+    transform: translateY(-1px);
+}
+
+.btn-map-fullscreen:active {
+    transform: scale(0.92);
+}
+
+/* Dark mode styling for OpenStreetMap tiles without requiring any API key */
+.leaflet-tile {
+    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.leaflet-container {
+    background: #0B0B1A !important;
+}
+
+/* Scrub pulsing map pin marker */
+.scrub-pulsing-wrapper {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scrub-pulsing-glow {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 107, 53, 0.45);
+    border-radius: 50%;
+    animation: scrub-pulse 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.scrub-pulsing-dot {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    background: #FF6B35;
+    border: 3px solid #FFFFFF;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.95);
+    z-index: 2;
+}
+
+@keyframes scrub-pulse {
+    0% {
+        transform: scale(0.6);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.7);
+        opacity: 0;
+    }
+}
+
+/* Fullscreen Map Mode (Mobile & Desktop) */
+.map-wrapper.is-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 10005 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+.map-wrapper.is-fullscreen #map {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.map-wrapper.is-fullscreen .btn-map-fullscreen {
+    top: 14px !important;
+    right: 50px !important;
+    z-index: 10006 !important;
+}

@@ -1,0 +1,271 @@
+/* ==========================================================================
+   Application Layout & Sidebar Styles
+   ========================================================================== */
+
+/* App Container */
+.app-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 440px;
+    min-width: 380px;
+    height: 100%;
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    box-shadow: var(--shadow-card);
+    transition: transform 0.3s ease;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    padding: 24px 24px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.brand-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, var(--accent-orange), #FF8E53);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px var(--accent-orange-glow);
+}
+
+.brand-icon svg {
+    width: 26px;
+    height: 26px;
+    fill: var(--bg-dark);
+}
+
+.brand-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.brand-title {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+}
+
+.brand-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.btn-apk-download {
+    margin-left: auto;
+    background: rgba(46, 204, 113, 0.12);
+    border: 1px solid rgba(46, 204, 113, 0.35);
+    color: var(--accent-green);
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+}
+
+.btn-apk-download:hover {
+    background: rgba(46, 204, 113, 0.24);
+    border-color: var(--accent-green);
+    box-shadow: 0 0 12px rgba(46, 204, 113, 0.4);
+    transform: translateY(-1px);
+    color: #2ecc71;
+}
+
+.btn-apk-download svg {
+    flex-shrink: 0;
+}
+
+/* User Profile Bar in Sidebar */
+.user-profile-bar {
+    margin: 10px 0 14px 0;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-info .user-avatar,
+.user-info .user-text {
+    cursor: pointer;
+}
+
+.user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-orange), #9B51E0);
+    color: #FFF;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 3px 12px rgba(255, 107, 53, 0.5);
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.user-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.2s ease;
+}
+
+.user-text:hover .user-name {
+    color: var(--accent-orange);
+}
+
+.user-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s ease;
+}
+
+.user-email {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.btn-user-import-gpx {
+    background: rgba(46, 204, 113, 0.12);
+    border: 1px solid rgba(46, 204, 113, 0.35);
+    color: var(--accent-green);
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 9px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-user-import-gpx:hover {
+    background: rgba(46, 204, 113, 0.24);
+    border-color: var(--accent-green);
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.35);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.btn-user-import-gpx:active {
+    transform: scale(0.95);
+}
+
+.btn-logout {
+    background: rgba(255, 71, 87, 0.12);
+    border: 1px solid rgba(255, 71, 87, 0.3);
+    color: var(--accent-red);
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 71, 87, 0.25);
+    border-color: var(--accent-red);
+    transform: translateY(-1px);
+}
+
+.user-guest {
+    display: flex;
+}
+
+.btn-login-open {
+    width: 100%;
+    background: rgba(255, 107, 53, 0.12);
+    border: 1px solid rgba(255, 107, 53, 0.35);
+    color: var(--accent-orange);
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-login-open:hover {
+    background: rgba(255, 107, 53, 0.22);
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 12px var(--accent-orange-glow);
+}

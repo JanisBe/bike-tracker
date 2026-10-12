@@ -1,0 +1,326 @@
+/* ==========================================================================
+   Responsive & Mobile Specific Styles
+   ========================================================================== */
+
+/* Mobile Toggle Bar */
+.mobile-nav-toggle {
+    display: none;
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--border-active);
+    padding: 8px 16px;
+    border-radius: 30px;
+    z-index: 1001;
+    box-shadow: var(--shadow-card);
+}
+
+.mobile-nav-toggle button {
+    background: none;
+    border: none;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.mobile-nav-toggle button.active {
+    background: var(--accent-orange);
+    color: var(--bg-dark);
+}
+
+/* Responsive Breakpoint: Mobile Devices <= 860px */
+@media (max-width: 860px) {
+    .app-container {
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* List view (no workout selected) */
+    body:not(.has-selected-ride) .app-container {
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body:not(.has-selected-ride) .mobile-detail-nav {
+        display: none !important;
+    }
+
+    body:not(.has-selected-ride) .sidebar {
+        width: 100%;
+        min-width: 100%;
+        height: auto;
+        min-height: auto;
+        flex-shrink: 0;
+        overflow: visible;
+        order: 2;
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    body:not(.has-selected-ride) .rides-list {
+        overflow: visible;
+        height: auto;
+        flex: none;
+        min-height: 120px;
+        padding-bottom: 40px;
+    }
+
+    body:not(.has-selected-ride) .map-container {
+        height: 280px;
+        min-height: 280px;
+        flex-shrink: 0;
+        order: 1;
+        position: relative;
+    }
+
+    body:not(.has-selected-ride) .map-wrapper {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    body:not(.has-selected-ride) .floating-detail-panel,
+    body:not(.has-selected-ride) .profile-chart-panel {
+        display: none !important;
+    }
+
+    /* Workout Detail view on mobile (has-selected-ride) */
+    body.has-selected-ride .sidebar {
+        display: none !important;
+    }
+
+    body.has-selected-ride .map-container {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        order: 1;
+        background: var(--bg-dark);
+    }
+
+    .mobile-detail-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 52px;
+        padding: 0 16px;
+        background: rgba(11, 11, 26, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border-subtle);
+        position: sticky;
+        top: 0;
+        z-index: 1002;
+        flex-shrink: 0;
+    }
+
+    .btn-back-list {
+        background: transparent;
+        border: none;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+    }
+
+    .btn-back-list:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-back-list:active {
+        transform: scale(0.92);
+    }
+
+    .mobile-nav-title {
+        font-family: var(--font-heading);
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+        letter-spacing: -0.3px;
+    }
+
+    .mobile-nav-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-mobile-edit,
+    .btn-mobile-share {
+        background: rgba(255, 107, 53, 0.12);
+        border: 1px solid rgba(255, 107, 53, 0.3);
+        color: var(--accent-orange);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-mobile-edit:active,
+    .btn-mobile-share:active {
+        transform: scale(0.92);
+    }
+
+    .btn-mobile-edit:hover {
+        background: rgba(255, 107, 53, 0.22);
+        border-color: rgba(255, 107, 53, 0.5);
+        color: #fff;
+    }
+
+    .btn-mobile-share.copied {
+        background: rgba(46, 204, 113, 0.2);
+        border-color: rgba(46, 204, 113, 0.6);
+        color: var(--accent-green);
+    }
+
+    .btn-mobile-share.copied .icon-share {
+        display: none !important;
+    }
+
+    .btn-mobile-share.copied .icon-check {
+        display: block !important;
+    }
+
+    .btn-mobile-delete {
+        background: rgba(255, 71, 87, 0.12);
+        border: 1px solid rgba(255, 71, 87, 0.3);
+        color: var(--accent-red);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-mobile-delete:hover {
+        background: rgba(255, 71, 87, 0.25);
+        border-color: var(--accent-red);
+        color: #fff;
+    }
+
+    .btn-mobile-delete:active {
+        transform: scale(0.92);
+    }
+
+    /* Map in mobile detail view */
+    body.has-selected-ride .map-wrapper {
+        position: relative;
+        width: 100%;
+        height: 270px;
+        min-height: 270px;
+        flex-shrink: 0;
+        z-index: 1;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    body.has-selected-ride #map {
+        width: 100%;
+        height: 100%;
+    }
+
+    .btn-map-fullscreen {
+        top: 10px;
+        right: 50px;
+    }
+
+    /* Content area below map */
+    body.has-selected-ride .ride-detail-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px 14px 36px 14px;
+        width: 100%;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
+
+    body.has-selected-ride .floating-detail-panel.active {
+        position: static;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        animation: none;
+    }
+
+    body.has-selected-ride .floating-detail-panel .detail-title {
+        font-size: 18px;
+    }
+
+    body.has-selected-ride .floating-detail-panel .btn-share-ride {
+        display: none; /* Already in top bar */
+    }
+
+    body.has-selected-ride .profile-chart-panel.active {
+        position: static;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        animation: none;
+    }
+
+    body.has-selected-ride .profile-chart-hint {
+        display: block;
+    }
+
+    body.has-selected-ride .profile-chart-body {
+        height: 130px;
+    }
+
+    .calendar-container {
+        padding: 0 16px 12px;
+    }
+
+    .rides-list {
+        padding: 6px 16px 20px;
+    }
+
+    .controls-bar {
+        padding: 12px 16px;
+    }
+
+    .sidebar-header {
+        padding: 16px 16px 12px;
+    }
+}

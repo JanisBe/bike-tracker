@@ -302,7 +302,7 @@ fun RideDetailScreen(
 
                         Spacer(modifier = Modifier.height(4.dp))
                         val dateFormat =
-                            SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm", Locale("pl", "PL"))
+                            SimpleDateFormat("EEEE, dd MMMM yyyy • HH:mm", Locale.forLanguageTag("pl-PL"))
                         Text(
                             text = dateFormat.format(ride.startTime),
                             style = MaterialTheme.typography.bodyMedium,

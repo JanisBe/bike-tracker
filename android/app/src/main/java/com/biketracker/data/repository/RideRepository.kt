@@ -37,12 +37,14 @@ interface RideRepository {
         activityType: String = ActivityType.CYCLING.id,
         caloriesBurned: Int? = null
     ): Result<String>
+
     suspend fun importGpxRide(
         points: List<TrackPoint>,
         gpxXml: String,
         title: String,
         locationName: String
     ): Result<String>
+
     suspend fun resolveLocation(lat: Double, lng: Double): String
     fun getRides(): Flow<List<Ride>>
     suspend fun getRide(rideId: String): Result<Ride>
@@ -65,7 +67,7 @@ class RideRepositoryImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             try {
                 if (!Geocoder.isPresent()) return@withContext ""
-                val geocoder = Geocoder(context, Locale("pl", "PL"))
+                val geocoder = Geocoder(context, Locale.forLanguageTag("pl-PL"))
                 val addresses: List<Address> =
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         suspendCancellableCoroutine { cont ->
@@ -129,7 +131,7 @@ class RideRepositoryImpl @Inject constructor(
 
         // 3. Resolve location name and ride title
         val locationName = resolveLocationName(points.first().latitude, points.first().longitude)
-        val gpxDateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("pl", "PL"))
+        val gpxDateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.forLanguageTag("pl-PL"))
         val formattedDate = gpxDateFormat.format(Date(points.first().timestamp))
         val defaultPrefix = if (activityType == ActivityType.WALKING.id) "Spacer" else "Trening"
         val rideTitle = if (locationName.isNotBlank()) {
@@ -277,5 +279,5 @@ class RideRepositoryImpl @Inject constructor(
     override suspend fun updateRideTitle(rideId: String, title: String): Result<Unit> =
         runCatching {
             ridesCollection.document(rideId).update("title", title).await()
-    }
+        }
 }

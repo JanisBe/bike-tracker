@@ -1,10 +1,13 @@
 package com.biketracker.ui.tracking
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import android.view.MotionEvent
+import android.view.ViewConfiguration
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +39,7 @@ import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
@@ -66,6 +70,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -106,6 +111,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polyline
+import kotlin.math.abs
 import kotlin.math.roundToLong
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -240,6 +246,8 @@ fun TrackingScreen(
     }
 
     var isMapFullscreen by rememberSaveable { mutableStateOf(false) }
+    var isAutoCenter by rememberSaveable { mutableStateOf(true) }
+    var recenterTrigger by remember { mutableIntStateOf(0) }
 
     BackHandler(enabled = isMapFullscreen) {
         isMapFullscreen = false
@@ -353,7 +361,12 @@ fun TrackingScreen(
                         .weight(if (isMapFullscreen) 1f else 0.55f)
                 ) {
                     if (hasLocationPermission) {
-                        TrackingOsmMapView(trackPoints = trackPoints)
+                        TrackingOsmMapView(
+                            trackPoints = trackPoints,
+                            isAutoCenter = isAutoCenter,
+                            onUserPan = { isAutoCenter = false },
+                            recenterTrigger = recenterTrigger
+                        )
 
                         IconButton(
                             onClick = { isMapFullscreen = !isMapFullscreen },
@@ -369,6 +382,32 @@ fun TrackingScreen(
                                 contentDescription = if (isMapFullscreen) "Zmniejsz mapę" else "Pełny ekran",
                                 tint = TextPrimary,
                                 modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                isAutoCenter = !isAutoCenter
+                                if (isAutoCenter) {
+                                    recenterTrigger++
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(12.dp)
+                                .size(36.dp)
+                                .background(DarkBackground.copy(alpha = 0.85f), CircleShape)
+                                .border(
+                                    1.dp,
+                                    if (isAutoCenter) OrangeAccent.copy(alpha = 0.6f) else CardBorder,
+                                    CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MyLocation,
+                                contentDescription = if (isAutoCenter) "Śledzenie pozycji aktywne (kliknij, aby wyłączyć)" else "Wyśrodkuj na mojej pozycji",
+                                tint = if (isAutoCenter) OrangeAccent else TextSecondary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     } else {
@@ -1251,15 +1290,52 @@ fun LiveStatItem(
     }
 }
 
+private class TrackingMapView(
+    context: Context,
+    private val onUserPan: () -> Unit
+) : MapView(context) {
+    private var startX = 0f
+    private var startY = 0f
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                startX = ev.x
+                startY = ev.y
+                parent?.requestDisallowInterceptTouchEvent(true)
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val dx = abs(ev.x - startX)
+                val dy = abs(ev.y - startY)
+                if (dx > touchSlop || dy > touchSlop || ev.pointerCount > 1) {
+                    onUserPan()
+                }
+            }
+
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL -> {
+                parent?.requestDisallowInterceptTouchEvent(false)
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+}
+
 @Composable
 fun TrackingOsmMapView(
-    trackPoints: List<TrackPoint>
+    trackPoints: List<TrackPoint>,
+    isAutoCenter: Boolean = true,
+    onUserPan: () -> Unit = {},
+    recenterTrigger: Int = 0
 ) {
     val polylineColor = OrangeAccent.toArgb()
+    var lastHandledRecenterTrigger by remember { mutableIntStateOf(recenterTrigger) }
 
     AndroidView(
         factory = { ctx ->
-            MapView(ctx).apply {
+            TrackingMapView(ctx, onUserPan).apply {
                 setTileSource(TileSourceFactory.MAPNIK)
                 setMultiTouchControls(true)
                 controller.setZoom(17.0)
@@ -1280,7 +1356,13 @@ fun TrackingOsmMapView(
                 mapView.overlays.add(polyline)
 
                 val latest = geoPoints.last()
-                mapView.controller.animateTo(latest)
+                val forceRecenter = recenterTrigger != lastHandledRecenterTrigger
+                if (forceRecenter) {
+                    lastHandledRecenterTrigger = recenterTrigger
+                    mapView.controller.animateTo(latest)
+                } else if (isAutoCenter) {
+                    mapView.controller.animateTo(latest)
+                }
                 mapView.invalidate()
             }
         },
