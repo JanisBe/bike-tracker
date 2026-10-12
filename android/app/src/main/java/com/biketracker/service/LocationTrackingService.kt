@@ -587,16 +587,24 @@ class LocationTrackingService : Service() {
 
     private fun handleGpsLost() {
         _isGpsLost.value = true
-        vibrate(longArrayOf(0, 400, 200, 400))
-        showGpsLostNotification()
+        if (userRepository.isGpsLostVibrationEnabled()) {
+            vibrate(longArrayOf(0, 400, 200, 400))
+        }
+        if (userRepository.isGpsLostNotificationEnabled()) {
+            showGpsLostNotification()
+        }
         updateNotification()
     }
 
     private fun handleGpsRecovered() {
         _isGpsLost.value = false
         clearGpsLostNotification()
-        showGpsRecoveredNotification()
-        vibrate(longArrayOf(0, 150))
+        if (userRepository.isGpsLostNotificationEnabled()) {
+            showGpsRecoveredNotification()
+        }
+        if (userRepository.isGpsLostVibrationEnabled()) {
+            vibrate(longArrayOf(0, 150))
+        }
         updateNotification()
     }
 
@@ -626,7 +634,13 @@ class LocationTrackingService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = NotificationCompat.Builder(this, GPS_ALERT_CHANNEL_ID)
+        val channelId = if (userRepository.isGpsLostVibrationEnabled()) {
+            GPS_ALERT_CHANNEL_ID
+        } else {
+            GPS_ALERT_SILENT_CHANNEL_ID
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.gps_lost_title))
             .setContentText(getString(R.string.gps_lost_desc))
             .setSmallIcon(R.drawable.ic_bike)
@@ -656,7 +670,13 @@ class LocationTrackingService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = NotificationCompat.Builder(this, GPS_ALERT_CHANNEL_ID)
+        val channelId = if (userRepository.isGpsLostVibrationEnabled()) {
+            GPS_ALERT_CHANNEL_ID
+        } else {
+            GPS_ALERT_SILENT_CHANNEL_ID
+        }
+
+        val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.gps_recovered_title))
             .setContentText(getString(R.string.gps_recovered_desc))
             .setSmallIcon(R.drawable.ic_bike)
@@ -720,6 +740,18 @@ class LocationTrackingService : Service() {
             setShowBadge(true)
         }
         manager.createNotificationChannel(alertChannel)
+
+        val alertSilentChannel = NotificationChannel(
+            GPS_ALERT_SILENT_CHANNEL_ID,
+            getString(R.string.gps_alert_channel_name) + " (bez wibracji)",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(R.string.gps_alert_channel_desc)
+            enableVibration(false)
+            vibrationPattern = null
+            setShowBadge(true)
+        }
+        manager.createNotificationChannel(alertSilentChannel)
     }
 
     private fun buildTrackingNotification(): Notification {
@@ -884,6 +916,7 @@ class LocationTrackingService : Service() {
         private const val CHANNEL_ID = "bike_tracking_channel"
         private const val GPS_ALERT_NOTIFICATION_ID = 102
         private const val GPS_ALERT_CHANNEL_ID = "bike_gps_alert_channel"
+        private const val GPS_ALERT_SILENT_CHANNEL_ID = "bike_gps_alert_silent_channel"
 
         // Global state flows observable by UI ViewModels
         private val _activityType = MutableStateFlow(ActivityType.CYCLING.id)

@@ -30,8 +30,11 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Height
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LocationOff
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,6 +54,8 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -64,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -160,6 +166,34 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface)
                 ) {
+                    val isGoogle = uiState.authProvider == "google"
+                    val isAnonymous = uiState.authProvider == "anonymous"
+
+                    val primaryText = when {
+                        isGoogle && uiState.displayName.isNotBlank() -> uiState.displayName
+                        uiState.email.isNotBlank() -> uiState.email
+                        uiState.displayName.isNotBlank() -> uiState.displayName
+                        isAnonymous -> "Konto gościa"
+                        else -> "Użytkownik"
+                    }
+
+                    val secondaryText = when {
+                        isGoogle && uiState.displayName.isNotBlank() && uiState.email.isNotBlank() ->
+                            uiState.email
+
+                        isGoogle ->
+                            "Zalogowano przez Google"
+
+                        uiState.email.isNotBlank() ->
+                            "Zalogowano przez e-mail"
+
+                        isAnonymous ->
+                            "Tymczasowe konto gościa"
+
+                        else ->
+                            "Konto zsynchronizowane z chmurą Firebase"
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -169,33 +203,63 @@ fun ProfileScreen(
                         Box(
                             modifier = Modifier
                                 .size(52.dp)
-                                .background(OrangeAccent.copy(alpha = 0.15f), CircleShape),
+                                .background(OrangeAccent.copy(alpha = 0.15f), CircleShape)
+                                .border(1.dp, OrangeAccent.copy(alpha = 0.35f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = OrangeAccent,
-                                modifier = Modifier.size(28.dp)
-                            )
+                            if (primaryText.isNotBlank() && primaryText != "Użytkownik" && !isAnonymous) {
+                                Text(
+                                    text = primaryText.take(1).uppercase(),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OrangeAccent
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = OrangeAccent,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(14.dp))
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = uiState.email.ifBlank { "Użytkownik" },
+                                text = primaryText,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Konto zsynchronizowane z chmurą Firebase",
+                                text = secondaryText,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
                                 fontSize = 12.sp
                             )
+                            if (isGoogle || uiState.email.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Surface(
+                                    color = if (isGoogle) TealAccent.copy(alpha = 0.15f) else OrangeAccent.copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (isGoogle) TealAccent.copy(alpha = 0.3f) else OrangeAccent.copy(alpha = 0.25f)
+                                    )
+                                ) {
+                                    Text(
+                                        text = if (isGoogle) "Google Account" else "Email & Hasło",
+                                        color = if (isGoogle) TealAccent else OrangeAccent,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -396,7 +460,68 @@ fun ProfileScreen(
                     }
                 }
 
-                // 4. Save Button
+                // 4. GPS Signal Alerts Section (Vibrations & Notifications)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOff,
+                                contentDescription = null,
+                                tint = OrangeAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Utrata sygnału GPS podczas treningu",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                        }
+
+                        Text(
+                            text = "Wybierz sposób powiadamiania o utracie połączenia z satelitami GPS podczas aktywnego treningu:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+
+                        // Vibration switch
+                        SettingsSwitchItem(
+                            icon = Icons.Default.Vibration,
+                            title = "Wibracje",
+                            description = "Wibracja telefonu przy zerwaniu sygnału GPS",
+                            checked = uiState.gpsLostVibration,
+                            accentColor = OrangeAccent,
+                            onCheckedChange = { viewModel.onGpsLostVibrationChanged(it) }
+                        )
+
+                        // Notification switch
+                        SettingsSwitchItem(
+                            icon = Icons.Default.Notifications,
+                            title = "Powiadomienia",
+                            description = "Powiadomienie na pasku stanu przy utracie GPS",
+                            checked = uiState.gpsLostNotification,
+                            accentColor = TealAccent,
+                            onCheckedChange = { viewModel.onGpsLostNotificationChanged(it) }
+                        )
+                    }
+                }
+
+                // 5. Save Button
                 Button(
                     onClick = { viewModel.saveProfile() },
                     enabled = !uiState.isSaving,
@@ -539,7 +664,7 @@ fun ThresholdSliderItem(
     label: String,
     currentValue: Double,
     valueRange: ClosedFloatingPointRange<Float>,
-    accentColor: androidx.compose.ui.graphics.Color,
+    accentColor: Color,
     onValueChange: (Double) -> Unit
 ) {
     Column(
@@ -596,6 +721,77 @@ fun ThresholdSliderItem(
                 inactiveTrackColor = CardBorder
             ),
             modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun SettingsSwitchItem(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    checked: Boolean,
+    accentColor: Color,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(DarkSurfaceVariant, RoundedCornerShape(12.dp))
+            .clickable { onCheckedChange(!checked) }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        if (checked) accentColor.copy(alpha = 0.15f) else CardBorder.copy(alpha = 0.3f),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = if (checked) accentColor else TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    fontSize = 11.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = DarkBackground,
+                checkedTrackColor = accentColor,
+                uncheckedThumbColor = TextSecondary,
+                uncheckedTrackColor = DarkSurface
+            )
         )
     }
 }

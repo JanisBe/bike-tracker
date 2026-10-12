@@ -1,14 +1,20 @@
 package com.biketracker.ui.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +44,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,6 +52,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -213,7 +222,32 @@ fun ActivityCalendarCard(
                 enter = fadeIn(tween(200)) + expandVertically(tween(200)),
                 exit = fadeOut(tween(150)) + shrinkVertically(tween(150))
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
+                val density = LocalDensity.current
+                val swipeThresholdPx = remember(density) { with(density) { 40.dp.toPx() } }
+                var totalDragX by remember { mutableFloatStateOf(0f) }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragStart = { totalDragX = 0f },
+                                onDragEnd = {
+                                    if (totalDragX < -swipeThresholdPx) {
+                                        currentMonth = currentMonth.plusMonths(1)
+                                    } else if (totalDragX > swipeThresholdPx) {
+                                        currentMonth = currentMonth.minusMonths(1)
+                                    }
+                                    totalDragX = 0f
+                                },
+                                onDragCancel = { totalDragX = 0f },
+                                onHorizontalDrag = { change, dragAmount ->
+                                    change.consume()
+                                    totalDragX += dragAmount
+                                }
+                            )
+                        }
+                ) {
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // Weekdays Row (Pn - Nd)
@@ -236,38 +270,58 @@ fun ActivityCalendarCard(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Calendar Days Grid
-                    val calendarDays = remember(currentMonth, ridesByDate, selectedDate) {
-                        calculateCalendarDays(currentMonth, ridesByDate, selectedDate)
-                    }
+                    // Calendar Days Grid with slide animation
+                    AnimatedContent(
+                        targetState = currentMonth,
+                        transitionSpec = {
+                            if (targetState > initialState) {
+                                (slideInHorizontally(animationSpec = tween(220)) { width -> width } + fadeIn(tween(180)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(220)) { width -> -width } + fadeOut(
+                                        tween(140)
+                                    ))
+                            } else {
+                                (slideInHorizontally(animationSpec = tween(220)) { width -> -width } + fadeIn(tween(180)))
+                                    .togetherWith(slideOutHorizontally(animationSpec = tween(220)) { width -> width } + fadeOut(
+                                        tween(140)
+                                    ))
+                            }
+                        },
+                        label = "MonthDaysAnimation"
+                    ) { targetMonth ->
+                        val calendarDays = remember(targetMonth, ridesByDate, selectedDate) {
+                            calculateCalendarDays(targetMonth, ridesByDate, selectedDate)
+                        }
 
-                    // Group into rows of 7 days
-                    val rows = calendarDays.chunked(7)
-                    for (week in rows) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            for (day in week) {
-                                Box(
+                        // Group into rows of 7 days
+                        val rows = calendarDays.chunked(7)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            for (week in rows) {
+                                Row(
                                     modifier = Modifier
-                                        .weight(1f)
-                                        .aspectRatio(1f)
-                                        .padding(2.dp),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    CalendarDayCell(
-                                        day = day,
-                                        onClick = {
-                                            if (day.isSelected) {
-                                                onDateSelected(null)
-                                            } else {
-                                                onDateSelected(day.date)
-                                            }
+                                    for (day in week) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .aspectRatio(1f)
+                                                .padding(2.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CalendarDayCell(
+                                                day = day,
+                                                onClick = {
+                                                    if (day.isSelected) {
+                                                        onDateSelected(null)
+                                                    } else {
+                                                        onDateSelected(day.date)
+                                                    }
+                                                }
+                                            )
                                         }
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -287,7 +341,7 @@ fun ActivityCalendarCard(
                 Surface(
                     color = OrangeAccent.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(10.dp),
-                    border = androidx.compose.foundation.BorderStroke(
+                    border = BorderStroke(
                         1.dp,
                         OrangeAccent.copy(alpha = 0.35f)
                     ),

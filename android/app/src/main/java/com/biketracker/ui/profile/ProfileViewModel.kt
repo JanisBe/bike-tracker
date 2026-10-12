@@ -15,11 +15,15 @@ import javax.inject.Inject
 
 data class ProfileUiState(
     val email: String = "",
+    val displayName: String = "",
+    val authProvider: String = "",
     val gender: String = "male",
     val weightText: String = "75.0",
     val heightText: String = "175.0",
     val cyclingThreshold: Double = 1.5,
     val walkingThreshold: Double = 0.5,
+    val gpsLostVibration: Boolean = true,
+    val gpsLostNotification: Boolean = true,
     val isLoading: Boolean = false,
     val isSaving: Boolean = false,
     val saveSuccess: Boolean = false,
@@ -42,26 +46,42 @@ class ProfileViewModel @Inject constructor(
     private fun loadProfile() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            val currentUser = authRepository.currentUser
+            val isGoogle = currentUser?.providerData?.any { it.providerId == "google.com" } == true
+            val isPassword = currentUser?.providerData?.any { it.providerId == "password" } == true
+            val provider = when {
+                isGoogle -> "google"
+                isPassword -> "password"
+                currentUser?.isAnonymous == true -> "anonymous"
+                else -> if (!currentUser?.email.isNullOrBlank()) "password" else "anonymous"
+            }
+
             val result = userRepository.getUserProfile()
             if (result.isSuccess) {
                 val profile = result.getOrNull() ?: UserProfile()
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        email = profile.email.ifBlank { authRepository.currentUser?.email ?: "" },
+                        email = profile.email.ifBlank { currentUser?.email ?: "" },
+                        displayName = profile.displayName.ifBlank { currentUser?.displayName ?: "" },
+                        authProvider = provider,
                         gender = profile.gender,
                         weightText = if (profile.weightKg > 0) "%.1f".format(profile.weightKg)
                             .replace(',', '.') else "75.0",
                         heightText = if (profile.heightCm > 0) "%.0f".format(profile.heightCm) else "175",
                         cyclingThreshold = profile.cyclingSpeedThresholdKmh,
-                        walkingThreshold = profile.walkingSpeedThresholdKmh
+                        walkingThreshold = profile.walkingSpeedThresholdKmh,
+                        gpsLostVibration = profile.gpsLostVibration,
+                        gpsLostNotification = profile.gpsLostNotification
                     )
                 }
             } else {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        email = authRepository.currentUser?.email ?: "",
+                        email = currentUser?.email ?: "",
+                        displayName = currentUser?.displayName ?: "",
+                        authProvider = provider,
                         errorMessage = result.exceptionOrNull()?.localizedMessage
                     )
                 }
@@ -89,6 +109,16 @@ class ProfileViewModel @Inject constructor(
         _uiState.update { it.copy(walkingThreshold = threshold, saveSuccess = false) }
     }
 
+    fun onGpsLostVibrationChanged(enabled: Boolean) {
+        _uiState.update { it.copy(gpsLostVibration = enabled, saveSuccess = false) }
+        userRepository.setGpsLostVibrationEnabled(enabled)
+    }
+
+    fun onGpsLostNotificationChanged(enabled: Boolean) {
+        _uiState.update { it.copy(gpsLostNotification = enabled, saveSuccess = false) }
+        userRepository.setGpsLostNotificationEnabled(enabled)
+    }
+
     fun saveProfile() {
         val state = _uiState.value
         val weight = state.weightText.replace(',', '.').toDoubleOrNull() ?: 75.0
@@ -98,11 +128,14 @@ class ProfileViewModel @Inject constructor(
             _uiState.update { it.copy(isSaving = true, errorMessage = null, saveSuccess = false) }
             val profile = UserProfile(
                 email = state.email,
+                displayName = state.displayName,
                 gender = state.gender,
                 weightKg = weight,
                 heightCm = height,
                 cyclingSpeedThresholdKmh = state.cyclingThreshold,
-                walkingSpeedThresholdKmh = state.walkingThreshold
+                walkingSpeedThresholdKmh = state.walkingThreshold,
+                gpsLostVibration = state.gpsLostVibration,
+                gpsLostNotification = state.gpsLostNotification
             )
             val result = userRepository.saveUserProfile(profile)
             if (result.isSuccess) {

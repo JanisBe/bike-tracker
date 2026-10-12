@@ -24,6 +24,7 @@ export class CalendarWidget {
     this.popoverEl = null;
     this.activeHoverDate = null;
     this.popoverTimeout = null;
+      this.wasSwiping = false;
 
     this.init();
   }
@@ -33,6 +34,7 @@ export class CalendarWidget {
     this.renderSkeleton();
     this.createPopover();
     this.setupGlobalEvents();
+      this.setupSwipeGestures();
   }
 
   createPopover() {
@@ -76,6 +78,79 @@ export class CalendarWidget {
     }, true);
   }
 
+    setupSwipeGestures() {
+        let startX = 0;
+        let startY = 0;
+        let startTime = 0;
+        let isTracking = false;
+        let isMouseDown = false;
+
+        const onStart = (clientX, clientY) => {
+            startX = clientX;
+            startY = clientY;
+            startTime = Date.now();
+            isTracking = true;
+        };
+
+        const onEnd = (clientX, clientY) => {
+            if (!isTracking) return;
+            isTracking = false;
+
+            const diffX = clientX - startX;
+            const diffY = clientY - startY;
+            const duration = Date.now() - startTime;
+
+            // Threshold: horizontal move >= 35px, predominantly horizontal, within 800ms
+            const minDistance = 35;
+            if (Math.abs(diffX) >= minDistance && Math.abs(diffX) > Math.abs(diffY) * 1.2 && duration < 800) {
+                this.wasSwiping = true;
+                setTimeout(() => {
+                    this.wasSwiping = false;
+                }, 150);
+
+                if (diffX < 0) {
+                    // Swipe left -> next month
+                    this.changeMonth(1, 'left');
+                } else {
+                    // Swipe right -> previous month
+                    this.changeMonth(-1, 'right');
+                }
+            }
+        };
+
+        // Touch events (passive to ensure fluid scrolling)
+        this.container.addEventListener('touchstart', (e) => {
+            if (e.target.closest('button')) return;
+            if (e.touches.length === 1) {
+                onStart(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, {passive: true});
+
+        this.container.addEventListener('touchend', (e) => {
+            if (e.changedTouches.length === 1) {
+                onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+            }
+        }, {passive: true});
+
+        this.container.addEventListener('touchcancel', () => {
+            isTracking = false;
+        }, {passive: true});
+
+        // Mouse drag events for desktop
+        this.container.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || e.target.closest('button')) return;
+            isMouseDown = true;
+            onStart(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                onEnd(e.clientX, e.clientY);
+            }
+        });
+    }
+
   renderSkeleton() {
     this.container.innerHTML = `
       <div class="calendar-header">
@@ -101,18 +176,24 @@ export class CalendarWidget {
     this.todayBtn = this.container.querySelector("#cal-today-btn");
     this.nextBtn = this.container.querySelector("#cal-next-month");
 
-    this.prevBtn.addEventListener("click", () => this.changeMonth(-1));
-    this.nextBtn.addEventListener("click", () => this.changeMonth(1));
+      this.prevBtn.addEventListener("click", () => this.changeMonth(-1, 'right'));
+      this.nextBtn.addEventListener("click", () => this.changeMonth(1, 'left'));
     this.todayBtn.addEventListener("click", () => {
-      this.currentDate = new Date();
-      this.render();
+        const now = new Date();
+        const currentYear = this.currentDate.getFullYear();
+        const currentMonth = this.currentDate.getMonth();
+        const dir = (now.getFullYear() > currentYear || (now.getFullYear() === currentYear && now.getMonth() > currentMonth))
+            ? 'left'
+            : 'right';
+        this.currentDate = now;
+        this.render(dir);
     });
   }
 
-  changeMonth(delta) {
+    changeMonth(delta, direction = null) {
     this.hidePopover();
     this.currentDate.setMonth(this.currentDate.getMonth() + delta);
-    this.render();
+        this.render(direction || (delta > 0 ? 'left' : 'right'));
   }
 
   /**
@@ -154,7 +235,7 @@ export class CalendarWidget {
     return `${y}-${m}-${d}`;
   }
 
-  render() {
+    render(direction = null) {
     const year = this.currentDate.getFullYear();
     const month = this.currentDate.getMonth();
 
@@ -164,6 +245,15 @@ export class CalendarWidget {
     this.monthLabelEl.textContent = monthName;
 
     this.gridEl.innerHTML = "";
+        if (direction === 'left') {
+            this.gridEl.classList.remove('cal-anim-slide-left', 'cal-anim-slide-right');
+            void this.gridEl.offsetWidth; // trigger reflow
+            this.gridEl.classList.add('cal-anim-slide-left');
+        } else if (direction === 'right') {
+            this.gridEl.classList.remove('cal-anim-slide-left', 'cal-anim-slide-right');
+            void this.gridEl.offsetWidth; // trigger reflow
+            this.gridEl.classList.add('cal-anim-slide-right');
+        }
 
     // Days in current month
     const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Monday = 0
@@ -224,6 +314,7 @@ export class CalendarWidget {
 
         // Click event: on mobile or desktop click
         cell.addEventListener("click", () => {
+            if (this.wasSwiping) return;
           this.showPopover(cell, dateKey, ridesOnDay);
         });
       }
