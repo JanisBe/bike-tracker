@@ -64,11 +64,26 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs(file("build/generated/assets/changelog"))
+        }
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+val copyChangelog = tasks.register<Copy>("copyChangelog") {
+    from("$rootDir/../frontend/CHANGELOG.md")
+    into(file("build/generated/assets/changelog"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyChangelog)
 }
 
 dependencies {
