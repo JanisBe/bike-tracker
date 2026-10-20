@@ -181,9 +181,30 @@
         transition: all 0.2s ease;
     }
 
+    .btn-mobile-import {
+        background: rgba(46, 204, 113, 0.12);
+        border: 1px solid rgba(46, 204, 113, 0.3);
+        color: var(--accent-green);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
     .btn-mobile-edit:active,
-    .btn-mobile-share:active {
+    .btn-mobile-share:active,
+    .btn-mobile-import:active {
         transform: scale(0.92);
+    }
+
+    .btn-mobile-import:hover {
+        background: rgba(46, 204, 113, 0.25);
+        border-color: var(--accent-green);
+        color: #fff;
     }
 
     .btn-mobile-edit:hover {

@@ -750,4 +750,59 @@ export async function saveImportedRide(rideData, gpxXml, userId) {
     };
 }
 
+/**
+ * Imports a shared ride into the current user's rides collection in Firestore.
+ * @param {Object} sharedRide
+ * @param {string} userId
+ * @returns {Promise<Object>} The newly created ride model
+ */
+export async function importSharedRide(sharedRide, userId) {
+    if (!userId) {
+        throw new Error("Musisz być zalogowany, aby zaimportować trening.");
+    }
+    if (!sharedRide) {
+        throw new Error("Brak danych treningu do zaimportowania.");
+    }
+
+    let gpxXml = "";
+    if (sharedRide.isDemo) {
+        gpxXml = generateDemoGpx(sharedRide);
+    } else {
+        try {
+            const gpxDocRef = doc(db, "rides", sharedRide.id, "details", "gpx");
+            const snap = await getDoc(gpxDocRef);
+            if (snap.exists() && snap.data()?.gpxContent) {
+                gpxXml = snap.data().gpxContent;
+            }
+        } catch (err) {
+            console.warn("Could not fetch original GPX content for shared ride import:", err);
+        }
+    }
+
+    if (!gpxXml && sharedRide.encodedPolyline) {
+        try {
+            const coords = decodePolyline(sharedRide.encodedPolyline);
+            if (coords && coords.length > 0) {
+                const trkpts = coords.map(([lat, lon]) => `      <trkpt lat="${lat}" lon="${lon}"></trkpt>`).join("\n");
+                gpxXml = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="BikeTracker Web" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>${sharedRide.title || 'Zaimportowany trening'}</name>
+  </metadata>
+  <trk>
+    <name>${sharedRide.title || 'Zaimportowany trening'}</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+            }
+        } catch (err) {
+            console.warn("Fallback GPX generation error:", err);
+        }
+    }
+
+    return await saveImportedRide(sharedRide, gpxXml, userId);
+}
+
 

@@ -32,10 +32,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import android.widget.Toast
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
@@ -125,6 +127,8 @@ fun HomeScreen(
     var rideToDelete by remember { mutableStateOf<Ride?>(null) }
     var showActivityPickerSheet by remember { mutableStateOf(false) }
     var showChangelogSheet by remember { mutableStateOf(false) }
+    var showImportLinkDialog by remember { mutableStateOf(false) }
+    var sharedLinkInput by remember { mutableStateOf("") }
 
     val gpxPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -175,6 +179,13 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { showImportLinkDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Link,
+                            contentDescription = "Otwórz trening z linku",
+                            tint = OrangeAccent
+                        )
+                    }
                     IconButton(onClick = { gpxPickerLauncher.launch("*/*") }) {
                         Icon(
                             imageVector = Icons.Default.FileUpload,
@@ -442,6 +453,100 @@ fun HomeScreen(
             },
             dismissButton = {
                 TextButton(onClick = { rideToDelete = null }) {
+                    Text("Anuluj", color = TextSecondary)
+                }
+            },
+            containerColor = DarkSurface,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Dialog for opening shared workout from link
+    if (showImportLinkDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showImportLinkDialog = false
+                sharedLinkInput = ""
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Link,
+                        contentDescription = null,
+                        tint = OrangeAccent,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Otwórz udostępniony trening",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                }
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Wklej link do treningu udostępniony przez innego użytkownika:",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = sharedLinkInput,
+                        onValueChange = { sharedLinkInput = it },
+                        label = { Text("Link lub ID treningu") },
+                        placeholder = { Text("https://.../?ride=...") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = OrangeAccent,
+                            unfocusedBorderColor = CardBorder,
+                            focusedLabelColor = OrangeAccent,
+                            cursorColor = OrangeAccent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val trimmed = sharedLinkInput.trim()
+                        val rideId = if (trimmed.contains("ride=")) {
+                            Regex("""(?:[?&]ride=|\/ride\/)([^&#]+)""").find(trimmed)?.groupValues?.getOrNull(1)
+                        } else if (trimmed.contains("/")) {
+                            trimmed.substringAfterLast("/").takeIf { it.isNotBlank() }
+                        } else {
+                            trimmed.takeIf { it.isNotBlank() }
+                        }
+
+                        if (!rideId.isNullOrBlank()) {
+                            showImportLinkDialog = false
+                            sharedLinkInput = ""
+                            onRideSelected(rideId)
+                        } else {
+                            Toast.makeText(context, "Podaj poprawny link lub identyfikator treningu", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    enabled = sharedLinkInput.isNotBlank()
+                ) {
+                    Text(
+                        "Otwórz",
+                        color = if (sharedLinkInput.isNotBlank()) OrangeAccent else TextSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showImportLinkDialog = false
+                        sharedLinkInput = ""
+                    }
+                ) {
                     Text("Anuluj", color = TextSecondary)
                 }
             },

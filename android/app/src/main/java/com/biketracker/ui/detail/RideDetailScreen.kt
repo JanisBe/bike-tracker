@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import android.widget.Toast
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,11 +28,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
@@ -67,6 +70,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -85,6 +89,7 @@ import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
+import com.biketracker.ui.theme.SuccessGreen
 import com.biketracker.ui.theme.TealAccent
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
@@ -104,6 +109,7 @@ fun RideDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: RideDetailViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showEditTitleDialog by remember { mutableStateOf(false) }
@@ -162,6 +168,33 @@ fun RideDetailScreen(
                                     contentDescription = "Usuń",
                                     tint = ErrorRed
                                 )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    viewModel.importSharedRide {
+                                        Toast.makeText(
+                                            context,
+                                            "Trening został zaimportowany!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                enabled = !uiState.isImporting
+                            ) {
+                                if (uiState.isImporting) {
+                                    CircularProgressIndicator(
+                                        color = SuccessGreen,
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.BookmarkAdd,
+                                        contentDescription = "Zapisz w moich treningach",
+                                        tint = SuccessGreen
+                                    )
+                                }
                             }
                         }
                     },
@@ -337,6 +370,34 @@ fun RideDetailScreen(
                             color = TextSecondary
                         )
 
+                        if (!uiState.isOwner) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .background(
+                                        color = SuccessGreen.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .border(1.dp, SuccessGreen.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Link,
+                                    contentDescription = null,
+                                    tint = SuccessGreen,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Udostępniony trening",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = SuccessGreen
+                                )
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(14.dp))
 
                         // Interactive Elevation & Speed Chart
@@ -450,6 +511,47 @@ fun RideDetailScreen(
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
+
+                        if (!uiState.isOwner) {
+                            Button(
+                                onClick = {
+                                    viewModel.importSharedRide {
+                                        Toast.makeText(
+                                            context,
+                                            "Trening został pomyślnie zaimportowany!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(52.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                                enabled = !uiState.isImporting
+                            ) {
+                                if (uiState.isImporting) {
+                                    CircularProgressIndicator(
+                                        color = DarkBackground,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.BookmarkAdd,
+                                        contentDescription = null,
+                                        tint = DarkBackground
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Zapisz w moich treningach",
+                                        color = DarkBackground,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
 
                         // Share / Export GPX button
                         Button(

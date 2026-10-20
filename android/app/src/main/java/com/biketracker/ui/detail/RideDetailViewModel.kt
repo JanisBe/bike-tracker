@@ -36,6 +36,8 @@ data class RideDetailUiState(
     val isLoadingProfile: Boolean = false,
     val errorMessage: String? = null,
     val isSharing: Boolean = false,
+    val isImporting: Boolean = false,
+    val isImported: Boolean = false,
     val isDeleted: Boolean = false
 )
 
@@ -189,9 +191,41 @@ class RideDetailViewModel @Inject constructor(
         }
     }
 
-    fun deleteRide(onSuccess: () -> Unit) {
+    fun importSharedRide(onSuccess: (newRideId: String) -> Unit) {
+        val currentRide = _uiState.value.ride ?: return
+        val currentUser = authRepository.currentUser
+        if (currentUser == null) {
+            _uiState.update { it.copy(errorMessage = "Zaloguj się, aby zapisać trening w swoim profilu") }
+            return
+        }
+
         viewModelScope.launch {
-            val result = rideRepository.deleteRide(rideId)
+            _uiState.update { it.copy(isImporting = true) }
+            val result = rideRepository.importSharedRide(currentRide)
+            _uiState.update { it.copy(isImporting = false) }
+
+            if (result.isSuccess) {
+                val newRideId = result.getOrThrow()
+                _uiState.update {
+                    it.copy(
+                        isImported = true,
+                        isOwner = true,
+                        ride = currentRide.copy(id = newRideId, userId = currentUser.uid)
+                    )
+                }
+                onSuccess(newRideId)
+            } else {
+                _uiState.update {
+                    it.copy(errorMessage = "Nie udało się zaimportować treningu: ${result.exceptionOrNull()?.message}")
+                }
+            }
+        }
+    }
+
+    fun deleteRide(onSuccess: () -> Unit) {
+        val targetRideId = _uiState.value.ride?.id ?: rideId
+        viewModelScope.launch {
+            val result = rideRepository.deleteRide(targetRideId)
             if (result.isSuccess) {
                 _uiState.update { it.copy(isDeleted = true) }
                 onSuccess()
@@ -206,9 +240,10 @@ class RideDetailViewModel @Inject constructor(
     fun updateRideTitle(newTitle: String) {
         val trimmed = newTitle.trim()
         if (trimmed.isBlank()) return
+        val targetRideId = _uiState.value.ride?.id ?: rideId
 
         viewModelScope.launch {
-            val result = rideRepository.updateRideTitle(rideId, trimmed)
+            val result = rideRepository.updateRideTitle(targetRideId, trimmed)
             if (result.isSuccess) {
                 _uiState.update { state ->
                     state.copy(

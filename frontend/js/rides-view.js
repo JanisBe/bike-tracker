@@ -25,6 +25,9 @@ const btnMobileEdit = document.getElementById("btn-mobile-edit");
 const btnDeleteRide = document.getElementById("btn-delete-ride");
 const btnMobileDelete = document.getElementById("btn-mobile-delete");
 const btnShareRide = document.getElementById("btn-share-ride");
+const btnImportRide = document.getElementById("btn-import-ride");
+const btnMobileImport = document.getElementById("btn-mobile-import");
+const btnImportSharedAction = document.getElementById("btn-import-shared-action");
 
 /**
  * Updates aggregate top stats banner
@@ -55,8 +58,9 @@ export function hideFloatingDetail() {
  * @param {Function} [options.onEditRide]
  * @param {Function} [options.onDeleteRide]
  * @param {Function} [options.onShareRide]
+ * @param {Function} [options.onImportRide]
  */
-export function showFloatingDetail(ride, {currentUser, onEditRide, onDeleteRide, onShareRide} = {}) {
+export function showFloatingDetail(ride, {currentUser, onEditRide, onDeleteRide, onShareRide, onImportRide} = {}) {
     if (!floatingDetail || !ride) return;
 
     const formattedDate = formatDate(ride.startTime);
@@ -95,6 +99,7 @@ export function showFloatingDetail(ride, {currentUser, onEditRide, onDeleteRide,
 
     const isOwner = currentUser && ride.userId === currentUser.uid;
     const isSharedOther = ride.isShared && !isOwner && !ride.isDemo;
+    const canImport = !isOwner && !ride.isDemo;
 
     if (btnEditRide) {
         btnEditRide.style.display = isSharedOther ? "none" : "inline-flex";
@@ -111,6 +116,19 @@ export function showFloatingDetail(ride, {currentUser, onEditRide, onDeleteRide,
     if (btnMobileDelete) {
         btnMobileDelete.style.display = isSharedOther ? "none" : "inline-flex";
         btnMobileDelete.setAttribute("title", `Usuń trening (${displayTitle})`);
+    }
+
+    if (btnImportRide) {
+        btnImportRide.style.display = canImport ? "inline-flex" : "none";
+        btnImportRide.onclick = () => onImportRide?.(ride);
+    }
+    if (btnMobileImport) {
+        btnMobileImport.style.display = canImport ? "inline-flex" : "none";
+        btnMobileImport.onclick = () => onImportRide?.(ride);
+    }
+    if (btnImportSharedAction) {
+        btnImportSharedAction.style.display = canImport ? "inline-flex" : "none";
+        btnImportSharedAction.onclick = () => onImportRide?.(ride);
     }
 
     if (btnDetailGpx) {
@@ -135,6 +153,7 @@ export function showFloatingDetail(ride, {currentUser, onEditRide, onDeleteRide,
  * @param {Function} options.onSelectRide
  * @param {Function} options.onDeleteRide
  * @param {Function} options.onOpenAuth
+ * @param {Function} [options.onImportRide]
  */
 export function renderRidesList(rides, {
     selectedRideId = null,
@@ -142,7 +161,8 @@ export function renderRidesList(rides, {
     searchInputValue = "",
     onSelectRide,
     onDeleteRide,
-    onOpenAuth
+    onOpenAuth,
+    onImportRide
 } = {}) {
     if (!ridesListContainer) return;
     ridesListContainer.innerHTML = "";
@@ -183,6 +203,9 @@ export function renderRidesList(rides, {
         const card = document.createElement("div");
         card.className = `ride-card ${ride.id === selectedRideId ? 'selected' : ''}`;
         card.id = `card-${ride.id}`;
+
+        const isOwner = currentUser && ride.userId === currentUser.uid;
+        const canImport = !isOwner && !ride.isDemo;
 
         const dateFormatted = formatDate(ride.startTime);
         const durationFormatted = formatDuration(ride.durationSeconds);
@@ -229,6 +252,11 @@ export function renderRidesList(rides, {
           <button class="btn-download-gpx" data-ride-id="${ride.id}" title="Pobierz plik GPX">
             <span>⬇</span> GPX
           </button>
+          ${ride.isShared && canImport ? `
+          <button class="btn-card-import" data-ride-id="${ride.id}" title="Zapisz ten trening w moich treningach">
+            <span>📥</span> Importuj
+          </button>
+          ` : ''}
           ${!ride.isShared ? `
           <button class="btn-card-delete" data-ride-id="${ride.id}" title="Usuń trening">
             <svg fill="none" height="13" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="13">
@@ -245,7 +273,7 @@ export function renderRidesList(rides, {
 
         // Click on card selects route on map
         card.addEventListener("click", (e) => {
-            if (e.target.closest(".btn-download-gpx") || e.target.closest(".btn-card-delete")) return;
+            if (e.target.closest(".btn-download-gpx") || e.target.closest(".btn-card-delete") || e.target.closest(".btn-card-import")) return;
             if (typeof onSelectRide === 'function') {
                 void onSelectRide(ride.id);
             }
@@ -259,6 +287,15 @@ export function renderRidesList(rides, {
                 console.error("Error downloading GPX:", err);
                 showToast("Nie udało się pobrać pliku GPX.", "error");
             });
+        });
+
+        // Import button click
+        const importBtn = card.querySelector(".btn-card-import");
+        importBtn?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (typeof onImportRide === 'function') {
+                onImportRide(ride);
+            }
         });
 
         // Delete button click

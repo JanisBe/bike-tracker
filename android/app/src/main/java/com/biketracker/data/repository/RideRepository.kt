@@ -45,6 +45,8 @@ interface RideRepository {
         locationName: String
     ): Result<String>
 
+    suspend fun importSharedRide(sharedRide: Ride): Result<String>
+
     suspend fun resolveLocation(lat: Double, lng: Double): String
     fun getRides(): Flow<List<Ride>>
     suspend fun getRide(rideId: String): Result<Ride>
@@ -280,4 +282,46 @@ class RideRepositoryImpl @Inject constructor(
         runCatching {
             ridesCollection.document(rideId).update("title", title).await()
         }
+
+    override suspend fun importSharedRide(sharedRide: Ride): Result<String> = runCatching {
+        val user = auth.currentUser ?: throw IllegalStateException("User not authenticated")
+        val rideRef = ridesCollection.document()
+        val newRideId = rideRef.id
+
+        // Fetch original GPX or generate fallback if not available
+        val originalGpx = getGpxContent(sharedRide.id).getOrNull()?.takeIf { it.isNotBlank() }
+        val gpxXml = originalGpx ?: run {
+            val coords = PolylineEncoder.decode(sharedRide.encodedPolyline)
+            if (coords.isNotEmpty()) {
+                val fallbackPoints = coords.mapIndexed { idx, (lat, lon) ->
+                    TrackPoint(
+                        latitude = lat,
+                        longitude = lon,
+                        elevation = 0.0,
+                        timestamp = sharedRide.startTime.time + (idx * 1000L),
+                        accuracy = null,
+                        speedKmh = sharedRide.avgSpeedKmh
+                    )
+                }
+                GpxGenerator.generate(fallbackPoints, sharedRide.title)
+            } else {
+                ""
+            }
+        }
+
+        val newRide = sharedRide.copy(
+            id = newRideId,
+            userId = user.uid
+        )
+
+        val batch = firestore.batch()
+        val gpxDocRef = rideRef.collection("details").document("gpx")
+
+        batch.set(rideRef, RideMapper.toFirestore(newRide))
+        batch.set(gpxDocRef, mapOf("gpxContent" to gpxXml, "userId" to user.uid))
+
+        batch.commit().await()
+
+        newRideId
+    }
 }

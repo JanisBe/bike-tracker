@@ -1,4 +1,4 @@
-import {fetchRideById, fetchRideProfile, fetchUserRides} from './ride-service.js';
+import {fetchRideById, fetchRideProfile, fetchUserRides, importSharedRide} from './ride-service.js';
 import {getUserProfile} from './user-service.js';
 import {
   clearScrubMarker,
@@ -77,7 +77,8 @@ function getRidesListOptions() {
     searchInputValue: searchInput ? searchInput.value : "",
     onSelectRide: (rideId) => selectRide(rideId),
     onDeleteRide: (ride) => openDeleteModal(ride),
-    onOpenAuth: (mode) => openAuthModal(mode)
+    onOpenAuth: (mode) => openAuthModal(mode),
+    onImportRide: (ride) => handleImportSharedRide(ride)
   };
 }
 
@@ -86,7 +87,8 @@ function getFloatingDetailOptions() {
     currentUser,
     onEditRide: (ride) => openEditTitleModal(ride, {currentUser, onRequireAuth: () => openAuthModal('login')}),
     onDeleteRide: (ride) => openDeleteModal(ride),
-    onShareRide: (ride, e) => handleShareClick(ride, e)
+    onShareRide: (ride, e) => handleShareClick(ride, e),
+    onImportRide: (ride) => handleImportSharedRide(ride)
   };
 }
 
@@ -175,6 +177,55 @@ export async function selectRide(rideId) {
     } catch (err) {
       console.warn("Failed to load profile points for ride:", err);
       profileChart.hide();
+    }
+  }
+}
+
+/**
+ * Imports a shared ride into the current user's profile and database.
+ * @param {Object} ride
+ */
+async function handleImportSharedRide(ride) {
+  if (!ride) return;
+  if (!currentUser) {
+    showToast("Zaloguj się, aby zapisać ten trening w swoich aktywnościach.", "info");
+    openAuthModal('login');
+    return;
+  }
+
+  const btnImportSharedAction = document.getElementById("btn-import-shared-action");
+  const originalActionHtml = btnImportSharedAction ? btnImportSharedAction.innerHTML : "";
+
+  try {
+    if (btnImportSharedAction) {
+      btnImportSharedAction.disabled = true;
+      btnImportSharedAction.style.opacity = "0.7";
+      btnImportSharedAction.innerHTML = `
+        <span class="btn-spinner" style="display:inline-block; width:16px; height:16px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></span>
+        <span>Zapisywanie w Twoich treningach...</span>
+      `;
+    }
+    showToast("Importowanie treningu do Twojego konta...", "info");
+
+    const newRide = await importSharedRide(ride, currentUser.uid);
+
+    // Remove old shared ride placeholder from allRides if it was there
+    allRides = allRides.filter(r => r.id !== ride.id && r.id !== newRide.id);
+    allRides = [newRide, ...allRides];
+
+    refreshRidesView();
+    updateUrlWithRideId(newRide.id);
+    await selectRide(newRide.id);
+
+    showToast("Trening został pomyślnie zapisany w Twoich treningach! 🎉", "success");
+  } catch (err) {
+    console.error("Failed to import shared ride:", err);
+    showToast(`Błąd importu treningu: ${err.message || err}`, "error");
+  } finally {
+    if (btnImportSharedAction) {
+      btnImportSharedAction.disabled = false;
+      btnImportSharedAction.style.opacity = "1";
+      btnImportSharedAction.innerHTML = originalActionHtml;
     }
   }
 }
