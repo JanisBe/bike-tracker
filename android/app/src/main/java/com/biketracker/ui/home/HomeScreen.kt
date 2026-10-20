@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.biketracker.BuildConfig
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.Ride
 import com.biketracker.domain.util.CalorieCalculator
@@ -123,6 +124,7 @@ fun HomeScreen(
     var editTitleText by remember { mutableStateOf("") }
     var rideToDelete by remember { mutableStateOf<Ride?>(null) }
     var showActivityPickerSheet by remember { mutableStateOf(false) }
+    var showChangelogSheet by remember { mutableStateOf(false) }
 
     val gpxPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -324,6 +326,28 @@ fun HomeScreen(
                             rideToDelete = ride
                         }
                     )
+                }
+            }
+
+            // Changelog Link Footer
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, bottom = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TextButton(
+                        onClick = { showChangelogSheet = true },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Bike Tracker v${BuildConfig.VERSION_NAME} • Changelog",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }
@@ -633,6 +657,13 @@ fun HomeScreen(
                 )
             }
         }
+    }
+
+    // Modal Bottom Sheet for Changelog
+    if (showChangelogSheet) {
+        ChangelogBottomSheet(
+            onDismiss = { showChangelogSheet = false }
+        )
     }
 }
 

@@ -130,6 +130,13 @@
       <div aria-label="Lista treningów" class="rides-list" id="rides-list" role="region">
         <!-- Rendered dynamically by app.js -->
       </div>
+
+      <!-- App Footer with Changelog Link -->
+      <footer class="sidebar-footer">
+        <button aria-label="Zobacz historię zmian programu" class="btn-changelog" id="btn-changelog" title="Zobacz historię zmian" type="button">
+          Bike Tracker v1.1.0 • Changelog
+        </button>
+      </footer>
     </aside>
 
       <!-- Map Area / Detail View -->
@@ -783,6 +790,35 @@
                       </button>
                   </div>
               </form>
+          </div>
+      </div>
+
+      <!-- Changelog Modal Dialog -->
+      <div class="modal-overlay" id="changelog-modal" style="display: none;">
+          <div aria-labelledby="changelog-modal-title" aria-modal="true"
+               class="auth-card changelog-card" role="dialog">
+              <button aria-label="Zamknij" class="btn-modal-close" id="btn-changelog-close"
+                      title="Zamknij">✕
+              </button>
+
+              <div class="auth-header">
+                  <div class="auth-logo">📜</div>
+                  <h2 class="auth-title" id="changelog-modal-title">Historia zmian</h2>
+                  <p class="auth-subtitle">Nowości i aktualizacje w Bike Tracker</p>
+              </div>
+
+              <div class="changelog-content" id="changelog-content">
+                  <div class="changelog-loading">
+                      <span class="btn-spinner"></span>
+                      <span>Wczytywanie historii zmian...</span>
+                  </div>
+              </div>
+
+              <div class="modal-button-row" style="margin-top: 18px;">
+                  <button class="btn-modal-cancel" id="btn-changelog-dismiss" style="width: 100%;" type="button">
+                      Zamknij
+                  </button>
+              </div>
           </div>
       </div>
   </div>

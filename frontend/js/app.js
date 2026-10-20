@@ -36,6 +36,7 @@ import {
   openDeleteModal
 } from './modals/delete-ride-modal.js';
 import {closeUserProfileModal, initUserProfileModal, isUserProfileModalOpen} from './modals/user-profile-modal.js';
+import {closeChangelogModal, initChangelogModal, isChangelogModalOpen} from './modals/changelog-modal.js';
 
 // Application State
 let allRides = [];
@@ -364,6 +365,8 @@ async function initApp() {
     onRequireAuth: () => openAuthModal('login')
   });
 
+  initChangelogModal();
+
   // 5. Setup UI Event Listeners
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
@@ -419,6 +422,7 @@ async function initApp() {
       if (isDeleteRideModalOpen()) closeDeleteModal();
       if (isUserProfileModalOpen()) closeUserProfileModal();
       if (isImportGpxModalOpen()) closeImportGpxModal();
+      if (isChangelogModalOpen()) closeChangelogModal();
     }
   });
 
