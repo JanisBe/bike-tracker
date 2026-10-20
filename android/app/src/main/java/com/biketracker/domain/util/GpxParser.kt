@@ -74,9 +74,11 @@ object GpxParser {
                                 currentTag.equals("name", ignoreCase = true) && gpxName == null -> {
                                     gpxName = text
                                 }
+
                                 currentTag.equals("ele", ignoreCase = true) -> {
                                     currentEle = text.toDoubleOrNull()
                                 }
+
                                 currentTag.equals("time", ignoreCase = true) -> {
                                     currentTime = parseIsoTimestamp(text)
                                 }
@@ -139,7 +141,11 @@ object GpxParser {
         startTime: Date
     ): String {
         val trimmed = gpxName?.trim()
-        if (!trimmed.isNullOrBlank() && !trimmed.startsWith("202") && !trimmed.equals("track", ignoreCase = true) && !trimmed.equals("activity", ignoreCase = true)) {
+        if (!trimmed.isNullOrBlank() && !trimmed.startsWith("202") && !trimmed.equals(
+                "track",
+                ignoreCase = true
+            ) && !trimmed.equals("activity", ignoreCase = true)
+        ) {
             return trimmed
         }
         val cal = Calendar.getInstance().apply { time = startTime }
@@ -153,7 +159,7 @@ object GpxParser {
         return if (locationName.isNotBlank()) {
             "$prefix – $locationName"
         } else {
-            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale("pl", "PL"))
+            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.forLanguageTag("pl-PL"))
             "$prefix • ${dateFormat.format(startTime)}"
         }
     }

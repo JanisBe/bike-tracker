@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="cycling"
+        android:enabled="true"
+        android:icon="@drawable/ic_bike"
+        android:shortcutShortLabel="@string/shortcut_cycling_short"
+        android:shortcutLongLabel="@string/shortcut_cycling_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.biketracker"
+            android:targetClass="com.biketracker.MainActivity">
+            <extra
+                android:name="activityType"
+                android:value="cycling" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="walking"
+        android:enabled="true"
+        android:icon="@drawable/ic_walk"
+        android:shortcutShortLabel="@string/shortcut_walking_short"
+        android:shortcutLongLabel="@string/shortcut_walking_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.biketracker"
+            android:targetClass="com.biketracker.MainActivity">
+            <extra
+                android:name="activityType"
+                android:value="walking" />
+        </intent>
+    </shortcut>
+</shortcuts>

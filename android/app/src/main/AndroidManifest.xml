@@ -50,6 +50,10 @@
                     android:scheme="https" />
             </intent-filter>
 
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -58,6 +62,12 @@
 
                 <data
                     android:host="ride"
+                    android:scheme="biketracker" />
+                <data
+                    android:host="track"
+                    android:scheme="biketracker" />
+                <data
+                    android:host="tracking"
                     android:scheme="biketracker" />
             </intent-filter>
         </activity>

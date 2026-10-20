@@ -10,6 +10,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import android.widget.Toast
+import com.biketracker.data.model.ActivityType
 import com.biketracker.data.repository.AuthRepository
 import com.biketracker.service.LocationTrackingService
 import com.biketracker.ui.navigation.NavGraph
@@ -26,6 +28,10 @@ class MainActivity : ComponentActivity() {
     lateinit var authRepository: AuthRepository
 
     private var onNewIntentAction: ((Intent) -> Unit)? = null
+
+    companion object {
+        const val EXTRA_ACTIVITY_TYPE = "activityType"
+    }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -58,9 +64,41 @@ class MainActivity : ComponentActivity() {
                     fun handleIntent(targetIntent: Intent?) {
                         if (targetIntent == null) return
 
+                        val shortcutActivityType = targetIntent.getStringExtra(EXTRA_ACTIVITY_TYPE)
+                            ?: targetIntent.data?.let { uri ->
+                                if (uri.scheme == "biketracker" && (uri.host == "track" || uri.host == "tracking")) {
+                                    uri.getQueryParameter("activityType")
+                                } else null
+                            }
+
                         if (LocationTrackingService.isTracking.value) {
                             navController.navigate(Screen.Tracking.route) {
                                 launchSingleTop = true
+                            }
+                            if (!shortcutActivityType.isNullOrBlank()) {
+                                targetIntent.removeExtra(EXTRA_ACTIVITY_TYPE)
+                                Toast.makeText(
+                                    this@MainActivity,
+                                    getString(R.string.toast_tracking_already_active),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            return
+                        }
+
+                        if (!shortcutActivityType.isNullOrBlank()) {
+                            targetIntent.removeExtra(EXTRA_ACTIVITY_TYPE)
+                            if (targetIntent.data?.scheme == "biketracker" && (targetIntent.data?.host == "track" || targetIntent.data?.host == "tracking")) {
+                                targetIntent.data = null
+                            }
+                            if (authRepository.currentUser != null) {
+                                val validatedType = ActivityType.fromId(shortcutActivityType).id
+                                navController.navigate(Screen.Tracking.createRoute(validatedType)) {
+                                    popUpTo(Screen.Home.route) {
+                                        inclusive = false
+                                    }
+                                    launchSingleTop = true
+                                }
                             }
                             return
                         }
@@ -78,6 +116,7 @@ class MainActivity : ComponentActivity() {
                                 ?: data.lastPathSegment?.takeIf { it != "ride" && it != "bike-tracker" }
 
                             if (!rideId.isNullOrBlank()) {
+                                targetIntent.data = null
                                 navController.navigate(Screen.RideDetail.createRoute(rideId)) {
                                     launchSingleTop = true
                                 }

@@ -461,18 +461,33 @@ fun HomeScreen(
                     ) {
                         Column {
                             Text("Dystans", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                            Text("%.2f km".format(importPreview.distanceKm), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = OrangeAccent)
+                            Text(
+                                "%.2f km".format(importPreview.distanceKm),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = OrangeAccent
+                            )
                         }
                         Column {
                             val durHours = importPreview.durationSeconds / 3600
                             val durMins = (importPreview.durationSeconds % 3600) / 60
                             val durText = if (durHours > 0) "${durHours}h ${durMins}m" else "${durMins}m"
                             Text("Czas trwania", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                            Text(durText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TealAccent)
+                            Text(
+                                durText,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TealAccent
+                            )
                         }
                         Column {
                             Text("Śr. prędkość", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                            Text("%.1f km/h".format(importPreview.avgSpeedKmh), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Text(
+                                "%.1f km/h".format(importPreview.avgSpeedKmh),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
                         }
                     }
 
@@ -514,7 +529,11 @@ fun HomeScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Zapisywanie treningu...", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                            Text(
+                                "Zapisywanie treningu...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextSecondary
+                            )
                         }
                     }
                 }
@@ -708,7 +727,7 @@ fun StatsHeaderCard(
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
     ) {
 
-    Row(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -892,7 +911,7 @@ fun RideCard(
     ride: Ride,
     onClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy • HH:mm", Locale("pl", "PL"))
+    val dateFormat = SimpleDateFormat("EEE, dd MMM yyyy • HH:mm", Locale.forLanguageTag("pl-PL"))
     val formattedDate = dateFormat.format(ride.startTime)
 
     val minutes = ride.durationSeconds / 60

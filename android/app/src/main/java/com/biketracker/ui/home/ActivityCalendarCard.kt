@@ -104,14 +104,11 @@ fun ActivityCalendarCard(
 
     // Polish month-year header formatter (e.g. "Wrzesień 2026")
     val monthTitle = remember(currentMonth) {
-        val formatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale("pl", "PL"))
+        val formatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale.forLanguageTag("pl-PL"))
         val raw = currentMonth.format(formatter)
         raw.replaceFirstChar {
             if (it.isLowerCase()) it.titlecase(
-                Locale(
-                    "pl",
-                    "PL"
-                )
+                Locale.forLanguageTag("pl-PL")
             ) else it.toString()
         }
     }
@@ -333,7 +330,7 @@ fun ActivityCalendarCard(
             if (selectedDate != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 val dateFormatted = remember(selectedDate) {
-                    val fmt = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale("pl", "PL"))
+                    val fmt = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.forLanguageTag("pl-PL"))
                     selectedDate.format(fmt)
                 }
                 val ridesOnDate = ridesByDate[selectedDate]?.size ?: 0

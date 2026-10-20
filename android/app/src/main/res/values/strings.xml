@@ -19,5 +19,12 @@
     <string name="notification_ride_saved_title">✅ Trening zapisany</string>
     <string name="notification_ride_saved_desc">Twój trening rowerowy został pomyślnie zapisany w chmurze.</string>
     <string name="notification_ride_save_failed">❌ Nie udało się zapisać treningu.</string>
+    <!-- App Shortcuts -->
+    <string name="shortcut_cycling_short">Trening rower</string>
+    <string name="shortcut_cycling_long">Rozpocznij trening rowerowy</string>
+    <string name="shortcut_walking_short">Trening pieszy</string>
+    <string name="shortcut_walking_long">Rozpocznij trening pieszy</string>
+    <string name="toast_tracking_already_active">Trening jest już w toku</string>
 </resources>
+
 
