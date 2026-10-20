@@ -12,6 +12,7 @@ import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
 import com.biketracker.data.repository.MapPreferencesRepository
+import com.biketracker.data.repository.PowerSaveRepository
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.service.LocationTrackingService
 import com.biketracker.ui.map.MapBaseSource
@@ -37,7 +38,8 @@ data class TrackingUiState(
 class TrackingViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val rideRepository: RideRepository,
-    private val mapPreferencesRepository: MapPreferencesRepository
+    private val mapPreferencesRepository: MapPreferencesRepository,
+    private val powerSaveRepository: PowerSaveRepository
 ) : ViewModel() {
 
     val mapBaseSource: StateFlow<MapBaseSource> = mapPreferencesRepository.baseSourceFlow
@@ -132,7 +134,16 @@ class TrackingViewModel @Inject constructor(
         }
     }
 
+    fun onPowerSavePromptShown() {
+        powerSaveRepository.onPowerSavePromptShown()
+    }
+
+    fun onWorkoutFinished() {
+        powerSaveRepository.onWorkoutFinished()
+    }
+
     fun startTracking(waitForGps: Boolean = false, activityType: String = ActivityType.CYCLING.id) {
+        powerSaveRepository.onWorkoutStarted()
         val intent = Intent(context, LocationTrackingService::class.java).apply {
             action = LocationTrackingService.ACTION_START
             putExtra(LocationTrackingService.EXTRA_WAIT_FOR_GPS, waitForGps)

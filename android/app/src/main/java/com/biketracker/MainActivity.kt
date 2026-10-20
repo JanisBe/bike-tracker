@@ -2,18 +2,23 @@ package com.biketracker
 
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import android.widget.Toast
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.repository.AuthRepository
+import com.biketracker.data.repository.PowerSaveRepository
 import com.biketracker.service.LocationTrackingService
+import com.biketracker.ui.components.RestorePowerSaveDialog
 import com.biketracker.ui.navigation.NavGraph
 import com.biketracker.ui.navigation.Screen
 import com.biketracker.ui.theme.BikeTrackerTheme
@@ -26,6 +31,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var authRepository: AuthRepository
+
+    @Inject
+    lateinit var powerSaveRepository: PowerSaveRepository
 
     private var onNewIntentAction: ((Intent) -> Unit)? = null
 
@@ -60,6 +68,7 @@ class MainActivity : ComponentActivity() {
                     color = DarkBackground
                 ) {
                     val navController = rememberNavController()
+                    val shouldPromptRestorePowerSave by powerSaveRepository.shouldPromptRestoreFlow.collectAsStateWithLifecycle()
 
                     fun handleIntent(targetIntent: Intent?) {
                         if (targetIntent == null) return
@@ -135,6 +144,24 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = startDestination
                     )
+
+                    if (shouldPromptRestorePowerSave) {
+                        RestorePowerSaveDialog(
+                            onRestore = {
+                                powerSaveRepository.dismissRestorePrompt()
+                                try {
+                                    startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
+                                } catch (e: Exception) {
+                                    try {
+                                        startActivity(Intent(Settings.ACTION_SETTINGS))
+                                    } catch (ignored: Exception) {}
+                                }
+                            },
+                            onDismiss = {
+                                powerSaveRepository.dismissRestorePrompt()
+                            }
+                        )
+                    }
                 }
             }
         }

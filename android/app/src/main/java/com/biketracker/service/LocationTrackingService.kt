@@ -23,6 +23,7 @@ import com.biketracker.R
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.model.SatelliteInfo
 import com.biketracker.data.model.TrackPoint
+import com.biketracker.data.repository.PowerSaveRepository
 import com.biketracker.data.repository.RideRepository
 import com.biketracker.data.repository.UserRepository
 import com.biketracker.domain.util.CalorieCalculator
@@ -53,6 +54,9 @@ class LocationTrackingService : Service() {
 
     @Inject
     lateinit var userRepository: UserRepository
+
+    @Inject
+    lateinit var powerSaveRepository: PowerSaveRepository
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationManager: LocationManager
@@ -326,6 +330,7 @@ class LocationTrackingService : Service() {
         _satelliteInfo.value = SatelliteInfo()
 
         if (pointsToSave.size < 2) {
+            powerSaveRepository.onWorkoutFinished()
             releaseWakeLock()
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
@@ -358,6 +363,7 @@ class LocationTrackingService : Service() {
             } catch (e: Exception) {
                 showRideSaveFailedNotification()
             } finally {
+                powerSaveRepository.onWorkoutFinished()
                 releaseWakeLock()
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
@@ -405,6 +411,8 @@ class LocationTrackingService : Service() {
 
     private fun startTracking(waitForGps: Boolean = false) {
         if (_isTracking.value) return
+
+        powerSaveRepository.onWorkoutStarted()
 
         _trackPoints.value = emptyList()
         _currentDistanceKm.value = 0.0
@@ -457,6 +465,7 @@ class LocationTrackingService : Service() {
     }
 
     private fun stopTracking() {
+        powerSaveRepository.onWorkoutFinished()
         _isTracking.value = false
         _isWaitingForGps.value = false
         _isPaused.value = false

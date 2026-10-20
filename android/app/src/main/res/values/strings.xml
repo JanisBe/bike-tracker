@@ -25,6 +25,11 @@
     <string name="shortcut_walking_short">Trening pieszy</string>
     <string name="shortcut_walking_long">Rozpocznij trening pieszy</string>
     <string name="toast_tracking_already_active">Trening jest już w toku</string>
+    <!-- Power Save Restore Dialog -->
+    <string name="dialog_restore_power_save_title">Włączyć tryb oszczędzania energii?</string>
+    <string name="dialog_restore_power_save_desc">Przed rozpoczęciem treningu wyłączono tryb oszczędzania energii. Czy chcesz włączyć go z powrotem w ustawieniach telefonu?</string>
+    <string name="dialog_restore_power_save_confirm">Włącz w ustawieniach</string>
+    <string name="dialog_restore_power_save_dismiss">Nie teraz</string>
 </resources>
 
 

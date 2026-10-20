@@ -202,6 +202,7 @@ fun TrackingScreen(
             hasEverTracked = true
         } else if (hasEverTracked && !uiState.isSaving && uiState.savedRideId == null) {
             // Tracking ended externally (e.g. Stop button in notification)
+            viewModel.onWorkoutFinished()
             onNavigateBack()
         }
     }
@@ -211,6 +212,7 @@ fun TrackingScreen(
             permissionLauncher.launch(permissionsToRequest)
         } else if (!isTracking && !hasInitiatedStart && !hasEverTracked) {
             if (isPowerSaveMode && !powerSaverWarningDismissed) {
+                viewModel.onPowerSavePromptShown()
                 showPowerSaverDialog = true
             } else {
                 showPowerSaverDialog = false
@@ -246,6 +248,7 @@ fun TrackingScreen(
 
     LaunchedEffect(uiState.savedRideId) {
         uiState.savedRideId?.let { rideId ->
+            viewModel.onWorkoutFinished()
             onRideSaved(rideId)
         }
     }
@@ -933,6 +936,7 @@ fun TrackingScreen(
                         // Button 1: Settings
                         Button(
                             onClick = {
+                                viewModel.onPowerSavePromptShown()
                                 try {
                                     context.startActivity(Intent(Settings.ACTION_BATTERY_SAVER_SETTINGS))
                                 } catch (e: Exception) {
@@ -1157,6 +1161,7 @@ fun TrackingScreen(
                                 onClick = {
                                     showGpsWarningDialog = false
                                     if (isTracking) {
+                                        viewModel.onWorkoutFinished()
                                         viewModel.stopTrackingWithoutSaving()
                                     }
                                     onNavigateBack()
@@ -1229,6 +1234,7 @@ fun TrackingScreen(
                         Button(
                             onClick = {
                                 showFinishDialog = false
+                                viewModel.onWorkoutFinished()
                                 viewModel.stopTrackingWithoutSaving()
                                 onNavigateBack()
                             },
@@ -1248,6 +1254,7 @@ fun TrackingScreen(
                             TextButton(
                                 onClick = {
                                     showFinishDialog = false
+                                    viewModel.onWorkoutFinished()
                                     viewModel.stopTrackingWithoutSaving()
                                     onNavigateBack()
                                 }
