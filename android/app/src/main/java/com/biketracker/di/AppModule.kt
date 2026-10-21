@@ -1,5 +1,7 @@
 package com.biketracker.di
 
+import com.biketracker.data.repository.AppUpdateRepository
+import com.biketracker.data.repository.AppUpdateRepositoryImpl
 import com.biketracker.data.repository.AuthRepository
 import com.biketracker.data.repository.AuthRepositoryImpl
 import com.biketracker.data.repository.MapPreferencesRepository
@@ -55,4 +57,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPowerSaveRepository(impl: PowerSaveRepositoryImpl): PowerSaveRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAppUpdateRepository(impl: AppUpdateRepositoryImpl): AppUpdateRepository
 }

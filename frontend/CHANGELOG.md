@@ -2,6 +2,14 @@
 
 Wszystkie istotne zmiany i nowości w projekcie Bike Tracker (wersja Android oraz Web).
 
+## [1.2.0] - 2026-10-21
+
+### Dodano
+- **Wykrywanie i instalacja aktualizacji w aplikacji (In-App Updates):** Automatyczne wykrywanie nowych wydań APK na GitHub Releases przy każdym uruchomieniu aplikacji Android.
+- **Wygodny instalator aktualizacji:** Możliwość pobrania paczki APK z dynamicznym paskiem postępu pobierania oraz bezpośrednie wywołanie instalatora systemowego Androida.
+- **Elastyczne opcje dla użytkownika:** Możliwość pobrania i zainstalowania, odłożenia decyzji („Pomiń”) lub trwałego zignorowania danej wersji („Nie proponuj ponownie”), dopóki nie pojawi się nowsze wydanie.
+- **Inteligentne porównywanie wersji:** Obsługa wydań z tagami semantycznymi (SemVer) oraz wydań z kanału `latest` na podstawie identyfikatorów commitów Git (`commit sha`) i znaczników czasu.
+
 ## [1.1.0] - 2026-10-20
 
 ### Dodano

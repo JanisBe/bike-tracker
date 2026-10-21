@@ -14,15 +14,19 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import android.widget.Toast
+import androidx.activity.viewModels
 import com.biketracker.data.model.ActivityType
 import com.biketracker.data.repository.AuthRepository
 import com.biketracker.data.repository.PowerSaveRepository
 import com.biketracker.service.LocationTrackingService
+import com.biketracker.ui.components.AppUpdateDialog
 import com.biketracker.ui.components.RestorePowerSaveDialog
 import com.biketracker.ui.navigation.NavGraph
 import com.biketracker.ui.navigation.Screen
 import com.biketracker.ui.theme.BikeTrackerTheme
 import com.biketracker.ui.theme.DarkBackground
+import com.biketracker.ui.update.AppUpdateViewModel
+import com.biketracker.ui.update.UpdateUiState
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -34,6 +38,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var powerSaveRepository: PowerSaveRepository
+
+    private val appUpdateViewModel: AppUpdateViewModel by viewModels()
 
     private var onNewIntentAction: ((Intent) -> Unit)? = null
 
@@ -69,6 +75,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val shouldPromptRestorePowerSave by powerSaveRepository.shouldPromptRestoreFlow.collectAsStateWithLifecycle()
+                    val updateUiState by appUpdateViewModel.uiState.collectAsStateWithLifecycle()
 
                     fun handleIntent(targetIntent: Intent?) {
                         if (targetIntent == null) return
@@ -134,6 +141,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     LaunchedEffect(Unit) {
+                        appUpdateViewModel.checkForUpdates()
                         handleIntent(intent)
                         onNewIntentAction = { newIntent ->
                             handleIntent(newIntent)
@@ -144,6 +152,29 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         startDestination = startDestination
                     )
+
+                    val currentUpdateState = updateUiState
+                    if (currentUpdateState is UpdateUiState.UpdateAvailable) {
+                        AppUpdateDialog(
+                            updateInfo = currentUpdateState.updateInfo,
+                            downloadState = currentUpdateState.downloadState,
+                            onDownload = {
+                                appUpdateViewModel.startDownload(
+                                    updateInfo = currentUpdateState.updateInfo,
+                                    context = this@MainActivity
+                                )
+                            },
+                            onInstall = {
+                                appUpdateViewModel.installApk(this@MainActivity)
+                            },
+                            onSkip = {
+                                appUpdateViewModel.dismissForSession()
+                            },
+                            onIgnore = {
+                                appUpdateViewModel.ignoreThisVersion(currentUpdateState.updateInfo.versionIdentifier)
+                            }
+                        )
+                    }
 
                     if (shouldPromptRestorePowerSave) {
                         RestorePowerSaveDialog(

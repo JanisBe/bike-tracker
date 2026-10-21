@@ -30,6 +30,18 @@
     <string name="dialog_restore_power_save_desc">Przed rozpoczęciem treningu wyłączono tryb oszczędzania energii. Czy chcesz włączyć go z powrotem w ustawieniach telefonu?</string>
     <string name="dialog_restore_power_save_confirm">Włącz w ustawieniach</string>
     <string name="dialog_restore_power_save_dismiss">Nie teraz</string>
+    <!-- App Update Dialog -->
+    <string name="dialog_update_title">Dostępna nowa wersja</string>
+    <string name="dialog_update_version">Wersja: %1$s</string>
+    <string name="dialog_update_size">Rozmiar pliku: %1$s</string>
+    <string name="dialog_update_downloading">Pobieranie aktualizacji: %1$d%%</string>
+    <string name="dialog_update_downloading_indeterminate">Pobieranie aktualizacji...</string>
+    <string name="dialog_update_downloaded">Pobrano pomyślnie. Za chwilę otworzy się instalator.</string>
+    <string name="dialog_update_download_action">Pobierz i zainstaluj</string>
+    <string name="dialog_update_install_action">Zainstaluj teraz</string>
+    <string name="dialog_update_retry_action">Spróbuj ponownie</string>
+    <string name="dialog_update_skip_action">Pomiń</string>
+    <string name="dialog_update_ignore_action">Nie proponuj ponownie</string>
 </resources>
 
 

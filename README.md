@@ -40,6 +40,7 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
 - 📅 **Kalendarz aktywności** – miesięczny kalendarz z zaznaczonymi dniami treningowymi i podsumowaniami
 - 💾 **Zapis do Firestore** – atomowy zapis dokumentu trasy i subkolekcji `details/gpx` w Firebase
 - 📤 **Eksport i import GPX** – pobieranie oraz import plików GPX
+- 🔄 **Aktualizacje w aplikacji (Self-Updater)** – automatyczne sprawdzanie wydań GitHub Releases przy starcie z możliwością pobrania APK, bezpośredniej instalacji, pominięcia lub trwałego ignorowania wersji
 - 🤖 **Automatyczne wydania APK** – GitHub Actions automatycznie buduje i publikuje plik `.apk` w GitHub Releases
 
 ### Stos technologiczny
@@ -59,11 +60,11 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
 
 ```
 ├── BikeTrackerApp.kt       # Klasa Application (inicjalizacja Hilt i osmdroid)
-├── MainActivity.kt         # Punkt wejścia UI
+├── MainActivity.kt         # Punkt wejścia UI (routing, obsługa intentów i aktualizacji)
 ├── data/
-│   ├── model/              # Modele danych (TrackPoint, SatelliteInfo, UserProfile, …)
+│   ├── model/              # Modele danych (TrackPoint, SatelliteInfo, UserProfile, AppUpdateInfo, …)
 │   ├── mapper/             # Mapowanie między modelami a Firestore
-│   └── repository/         # RideRepository, UserRepository, MapPreferencesRepository
+│   └── repository/         # RideRepository, UserRepository, MapPreferencesRepository, AppUpdateRepository
 ├── domain/
 │   └── util/               # Narzędzia domenowe (GpxGenerator, GpxParser, CalorieCalculator)
 ├── di/                     # Moduły wstrzykiwania zależności Hilt
@@ -76,19 +77,22 @@ Natywna aplikacja Android napisana w **Kotlin** z wykorzystaniem **Jetpack Compo
     ├── map/                # Definicje źródeł map, nakładki szlaków, arkusz wyboru warstw
     ├── profile/            # Profil użytkownika, waga, preferencje powiadomień
     ├── login/              # Logowanie Google i Email/Hasło
+    ├── update/             # ViewModel aktualizatora aplikacji
+    ├── components/         # Komponenty współdzielone (AppUpdateDialog, RestorePowerSaveDialog)
     ├── navigation/         # Graf nawigacji Compose
     └── theme/              # Kolory, typografia, kształty Material 3 (ciemny motyw)
 ```
 
 ### Uprawnienia wymagane przez aplikację
 
-| Uprawnienie                   | Powód                                  |
-|-------------------------------|----------------------------------------|
-| `ACCESS_FINE_LOCATION`        | Precyzyjne GPS                         |
-| `FOREGROUND_SERVICE_LOCATION` | Śledzenie w tle                        |
-| `WAKE_LOCK`                   | Utrzymanie CPU aktywnego podczas jazdy |
-| `POST_NOTIFICATIONS`          | Powiadomienia treningowe (Android 13+) |
-| `VIBRATE`                     | Sygnały o utracie/odzyskaniu GPS       |
+| Uprawnienie                   | Powód                                                 |
+|-------------------------------|-------------------------------------------------------|
+| `ACCESS_FINE_LOCATION`        | Precyzyjne GPS                                        |
+| `FOREGROUND_SERVICE_LOCATION` | Śledzenie w tle                                       |
+| `WAKE_LOCK`                   | Utrzymanie CPU aktywnego podczas jazdy                |
+| `POST_NOTIFICATIONS`          | Powiadomienia treningowe (Android 13+)                |
+| `VIBRATE`                     | Sygnały o utracie/odzyskaniu GPS                      |
+| `REQUEST_INSTALL_PACKAGES`    | Instalacja aktualizacji aplikacji z GitHub Releases   |
 
 ---
 
