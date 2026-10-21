@@ -1,7 +1,7 @@
 package com.biketracker
 
 import android.app.Application
-import android.preference.PreferenceManager
+import android.content.Context
 import dagger.hilt.android.HiltAndroidApp
 import org.osmdroid.config.Configuration
 
@@ -11,9 +11,10 @@ class BikeTrackerApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Configure osmdroid user agent for OSM tile servers
+        // Configure osmdroid user agent and preferences for OSM tile servers
+        val defaultPreferences = getSharedPreferences("${packageName}_preferences", Context.MODE_PRIVATE)
         Configuration.getInstance().apply {
-            load(applicationContext, PreferenceManager.getDefaultSharedPreferences(applicationContext))
+            load(applicationContext, defaultPreferences)
             userAgentValue = packageName
         }
     }
