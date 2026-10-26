@@ -1,11 +1,11 @@
 /* ==========================================================================
-   Application Layout & Sidebar Styles
+   Application Layout & Sidebar Styles - Darkroom Restyle
    ========================================================================== */
 
 /* App Container */
 .app-container {
     display: flex;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     position: relative;
     overflow: hidden;
@@ -16,45 +16,43 @@
     width: 440px;
     min-width: 380px;
     height: 100%;
-    background: var(--bg-card);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border-right: 1px solid var(--border-subtle);
+    background: var(--color-paper-2);
+    border-right: var(--rule-hair) solid var(--color-rule);
     display: flex;
     flex-direction: column;
-    z-index: 1000;
+    z-index: var(--z-dropdown);
     box-shadow: var(--shadow-card);
-    transition: transform 0.3s ease;
+    transition: transform var(--dur-short) var(--ease-out);
 }
 
 /* Sidebar Header */
 .sidebar-header {
-    padding: 24px 24px 16px;
-    border-bottom: 1px solid var(--border-subtle);
+    padding: var(--space-lg) var(--space-lg) var(--space-md);
+    border-bottom: var(--rule-hair) solid var(--color-rule);
 }
 
 .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 
 .brand-icon {
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, var(--accent-orange), #FF8E53);
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    background: var(--color-accent);
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 16px var(--accent-orange-glow);
+    box-shadow: none;
 }
 
 .brand-icon svg {
-    width: 26px;
-    height: 26px;
-    fill: var(--bg-dark);
+    width: 24px;
+    height: 24px;
+    fill: var(--color-accent-ink);
 }
 
 .brand-info {
@@ -63,43 +61,42 @@
 }
 
 .brand-title {
-    font-family: var(--font-heading);
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: -0.5px;
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 400;
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-display);
+    color: var(--color-ink);
 }
 
 .brand-subtitle {
-    font-size: 13px;
-    color: var(--text-muted);
+    font-size: var(--text-xs);
+    color: var(--color-muted);
 }
 
 .btn-apk-download {
     margin-left: auto;
-    background: rgba(46, 204, 113, 0.12);
-    border: 1px solid rgba(46, 204, 113, 0.35);
-    color: var(--accent-green);
-    font-family: var(--font-heading);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 6px 10px;
-    border-radius: 8px;
+    background: var(--color-success-bg);
+    border: var(--rule-hair) solid var(--color-success-border);
+    color: var(--color-success);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    padding: var(--space-2xs) var(--space-xs);
+    border-radius: var(--radius-sm);
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2xs);
     white-space: nowrap;
-    transition: all 0.2s ease;
-    letter-spacing: 0.3px;
+    transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
 }
 
 .btn-apk-download:hover {
-    background: rgba(46, 204, 113, 0.24);
-    border-color: var(--accent-green);
-    box-shadow: 0 0 12px rgba(46, 204, 113, 0.4);
-    transform: translateY(-1px);
-    color: #2ecc71;
+    background: var(--color-paper-3);
+    border-color: var(--color-success);
+    color: var(--color-success);
 }
 
 .btn-apk-download svg {
@@ -108,19 +105,17 @@
 
 /* User Profile Bar in Sidebar */
 .user-profile-bar {
-    margin: 10px 0 14px 0;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
+    margin: var(--space-xs) 0 var(--space-sm) 0;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-paper-3);
+    border: var(--rule-hair) solid var(--color-rule);
+    border-radius: var(--radius-sm);
 }
 
 .user-info {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-xs);
 }
 
 .user-info .user-avatar,
@@ -129,25 +124,23 @@
 }
 
 .user-avatar {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-orange), #9B51E0);
-    color: #FFF;
-    font-weight: 700;
-    font-size: 13px;
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    font-weight: 600;
+    font-size: var(--text-xs);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: opacity var(--dur-micro) var(--ease-out);
 }
 
 .user-avatar:hover {
-    transform: scale(1.05);
-    box-shadow: 0 3px 12px rgba(255, 107, 53, 0.5);
+    opacity: 0.85;
 }
 
 .user-avatar img {
@@ -161,26 +154,25 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    transition: opacity 0.2s ease;
 }
 
 .user-text:hover .user-name {
-    color: var(--accent-orange);
+    color: var(--color-accent);
 }
 
 .user-name {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-main);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-ink);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transition: color 0.2s ease;
+    transition: color var(--dur-micro) var(--ease-out);
 }
 
 .user-email {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: var(--text-xs);
+    color: var(--color-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -189,57 +181,54 @@
 .user-bar-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2xs);
     flex-shrink: 0;
 }
 
 .btn-user-import-gpx {
-    background: rgba(46, 204, 113, 0.12);
-    border: 1px solid rgba(46, 204, 113, 0.35);
-    color: var(--accent-green);
-    font-family: var(--font-heading);
-    font-size: 11px;
+    background: var(--color-success-bg);
+    border: var(--rule-hair) solid var(--color-success-border);
+    color: var(--color-success);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
     font-weight: 600;
-    padding: 6px 9px;
-    border-radius: 8px;
+    padding: var(--space-2xs) var(--space-xs);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 5px;
-    transition: all 0.2s ease;
+    gap: var(--space-2xs);
+    transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
     flex-shrink: 0;
 }
 
 .btn-user-import-gpx:hover {
-    background: rgba(46, 204, 113, 0.24);
-    border-color: var(--accent-green);
-    box-shadow: 0 0 10px rgba(46, 204, 113, 0.35);
-    color: #fff;
-    transform: translateY(-1px);
+    background: var(--color-paper-3);
+    border-color: var(--color-success);
+    color: var(--color-success);
 }
 
 .btn-user-import-gpx:active {
-    transform: scale(0.95);
+    transform: translateY(1px);
 }
 
 .btn-logout {
-    background: rgba(255, 71, 87, 0.12);
-    border: 1px solid rgba(255, 71, 87, 0.3);
-    color: var(--accent-red);
-    padding: 6px;
-    border-radius: 8px;
+    background: var(--color-error-bg);
+    border: var(--rule-hair) solid var(--color-error-border);
+    color: var(--color-error);
+    padding: var(--space-2xs);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
     flex-shrink: 0;
 }
 
 .btn-logout:hover {
-    background: rgba(255, 71, 87, 0.25);
-    border-color: var(--accent-red);
-    transform: translateY(-1px);
+    background: var(--color-paper-3);
+    border-color: var(--color-error);
 }
 
 .user-guest {
@@ -248,33 +237,33 @@
 
 .btn-login-open {
     width: 100%;
-    background: rgba(255, 107, 53, 0.12);
-    border: 1px solid rgba(255, 107, 53, 0.35);
-    color: var(--accent-orange);
-    font-family: var(--font-heading);
-    font-size: 12px;
+    background: var(--color-accent-bg);
+    border: var(--rule-hair) solid var(--color-accent-deep);
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
     font-weight: 600;
-    padding: 7px 12px;
-    border-radius: 8px;
+    padding: var(--space-2xs) var(--space-sm);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    transition: all 0.2s ease;
+    gap: var(--space-xs);
+    transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
 }
 
 .btn-login-open:hover {
-    background: rgba(255, 107, 53, 0.22);
-    border-color: var(--accent-orange);
-    box-shadow: 0 0 12px var(--accent-orange-glow);
+    background: var(--color-paper-3);
+    border-color: var(--color-accent);
 }
 
 /* Sidebar Footer (Version & Changelog) */
 .sidebar-footer {
-    padding: 10px 20px 14px;
-    border-top: 1px solid var(--border-subtle);
-    background: rgba(11, 11, 26, 0.4);
+    padding: var(--space-xs) var(--space-lg);
+    border-top: var(--rule-hair) solid var(--color-rule);
+    background: var(--color-paper-2);
+    color: var(--color-muted);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -283,28 +272,27 @@
 
 .btn-changelog {
     background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    font-size: 11px;
+    border: var(--rule-hair) solid transparent;
+    color: var(--color-muted);
+    font-size: var(--text-xs);
     font-family: var(--font-body);
     font-weight: 500;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 12px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    letter-spacing: 0.2px;
+    gap: var(--space-2xs);
+    padding: var(--space-2xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
 }
 
 .btn-changelog:hover {
-    color: var(--accent-orange);
-    background: rgba(255, 107, 53, 0.08);
-    border-color: rgba(255, 107, 53, 0.2);
+    color: var(--color-accent);
+    background: var(--color-paper-3);
+    border-color: var(--color-rule);
 }
 
 .btn-changelog:active {
-    transform: scale(0.97);
+    transform: translateY(1px);
 }
-

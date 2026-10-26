@@ -2,6 +2,20 @@
 
 Wszystkie istotne zmiany i nowości w projekcie Bike Tracker (wersja Android oraz Web).
 
+## [1.3.0] - 2026-10-26
+
+### Dodano
+- **Nowy motyw graficzny Darkroom (Aesthetics & Design System):** Autorska oprawa wizualna aplikacji webowej odchodząca od generycznych niebiesko-szarych szablonów na rzecz ciepłej czerni odbitkowej (`oklch(12.5% 0.008 55)`), struktury papieru fotograficznego oraz bursztynowych akcentów telemetrycznych (amber safelight).
+- **Nowa typografia i wektorowe ikony:** Wdrożenie krojów Sofia Sans Extra Condensed (wyraziste nagłówki i metryki) oraz Barlow (treść i dane telemetryczne), a także zastąpienie znaków emoji ostrymi, skalowalnymi ikonami SVG.
+- **Scentralizowany system tokenów (`tokens.css`):** Spójna skala odstępów (oparta na siatce 4px), typografia, tokeny semantyczne dla aktywności i stanów interfejsu oraz pełna zgodność wsteczna zmiennych stylów.
+
+### Zmieniono
+- **Domyślny podkład mapy:** Ustawiono klasyczną, jasną wersję OpenStreetMap (Standardowa) jako domyślny styl mapy z intuicyjną etykietą „Jasna” w selektorze warstw.
+
+### Poprawiono
+- **Hierarchia warstw z-index na mapie:** Wyeliminowano błąd przykrywania panelu szczegółów treningu przez ładujące się kafelki mapy Leaflet (`tile-pane`) dzięki dostosowaniu skali z-index do architektury warstw Leaflet.
+- **Rozmieszczenie elementów sterujących mapy:** Rozwiązano problem kolizji panelu szczegółów treningu z selektorem źródeł mapy (`map-layer-control`) — panel szczegółów został odsunięty poniżej przycisku, a menu wyboru mapy zyskało wyższy priorytet wyświetlania (`z-index: 1100`), co zapewnia pełną czytelność obu kontrolek.
+
 ## [1.2.0] - 2026-10-21
 
 ### Dodano

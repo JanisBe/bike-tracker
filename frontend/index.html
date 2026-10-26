@@ -6,7 +6,7 @@
   <title>Bike Tracker • Trasy rowerowe i telemetria GPX</title>
   <meta content="Aplikacja do śledzenia treningów rowerowych i interaktywna mapa tras z pobieraniem plików GPX."
         name="description">
-  <meta name="theme-color" content="#0B0B1A">
+  <meta name="theme-color" content="#1c1613">
 
   <!-- Open Graph -->
   <meta content="Bike Tracker • Trasy rowerowe" property="og:title">
@@ -14,16 +14,16 @@
         property="og:description">
   <meta property="og:type" content="website">
 
-  <!-- Google Fonts: Outfit (headings) & Inter (body) -->
+  <!-- Google Fonts: Sofia Sans Extra Condensed & Barlow (Darkroom system) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Sofia+Sans+Extra+Condensed:wght@200;400;600&display=swap" rel="stylesheet">
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
   <!-- Custom Styles -->
-    <link href="css/style.css?v=5" rel="stylesheet">
+    <link href="css/style.css?v=7" rel="stylesheet">
 </head>
 <body>
 
@@ -33,7 +33,7 @@
       <div class="sidebar-header">
         <div class="brand">
           <div class="brand-icon">
-            <svg viewBox="0 0 24 24">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
               <path d="M15.5,5.5c1.1,0 2,-0.9 2,-2s-0.9,-2 -2,-2 -2,0.9 -2,2 0.9,2 2,2zM5,12c-2.8,0 -5,2.2 -5,5s2.2,5 5,5 5,-2.2 5,-5 -2.2,-5 -5,-5zM5,20.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5 3.5,1.6 3.5,3.5 -1.6,3.5 -3.5,3.5zM10.8,10.5l2.4,-2.4 1.8,1.8c1.3,1.3 3,2.1 4.9,2.1v-2c-1.4,0 -2.6,-0.6 -3.5,-1.5l-1.9,-1.9c-0.4,-0.4 -0.9,-0.6 -1.5,-0.6s-1.1,0.2 -1.5,0.6l-3.2,3.2c-0.4,0.4 -0.6,0.9 -0.6,1.4 0,0.6 0.2,1.1 0.6,1.5l3.2,3.2V20h2v-4.8l-2.7,-2.7zM19,12c-2.8,0 -5,2.2 -5,5s2.2,5 5,5 5,-2.2 5,-5 -2.2,-5 -5,-5zM19,20.5c-1.9,0 -3.5,-1.6 -3.5,-3.5s1.6,-3.5 3.5,-3.5 3.5,1.6 3.5,3.5 -1.6,3.5 -3.5,3.5z"/>
             </svg>
           </div>
@@ -46,7 +46,7 @@
              rel="noopener noreferrer"
              target="_blank"
              title="Pobierz aplikację na Androida (.apk)">
-            <svg fill="currentColor" height="15" viewBox="0 0 24 24" width="15">
+            <svg aria-hidden="true" fill="currentColor" height="15" viewBox="0 0 24 24" width="15">
               <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4482.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.996-3.4572c.1057-.1834.043-.4182-.1404-.5239-.183-.1057-.4179-.0434-.5236.14l-2.0252 3.5076C15.65 8.3516 13.89 8 12 8c-1.89 0-3.65.3516-5.1883.9879L4.7865 5.4803c-.1057-.1834-.3406-.2457-.5236-.14-.1834.1057-.2461.3405-.1404.5239l1.996 3.4572C2.688 11.2338 0 15.3438 0 20.083h24c0-4.7392-2.688-8.8492-6.1185-10.7616"/>
             </svg>
             <span>Pobierz APK</span>
@@ -82,7 +82,7 @@
               </div>
               <div class="user-guest" id="user-guest">
                   <button class="btn-login-open" id="btn-login-open">
-                      <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16">
+                      <svg aria-hidden="true" fill="currentColor" height="16" viewBox="0 0 24 24" width="16">
                           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                       </svg>
                       <span>Zaloguj się</span>
@@ -219,7 +219,7 @@
                           <polyline points="2 17 12 22 22 17"></polyline>
                           <polyline points="2 12 12 17 22 12"></polyline>
                       </svg>
-                      <span class="map-layer-badge" id="map-layer-badge">Ciemna</span>
+                      <span class="map-layer-badge" id="map-layer-badge">Jasna</span>
                       <svg class="icon-layer-chevron" fill="none" height="13" stroke="currentColor"
                            stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                            viewBox="0 0 24 24" width="13">
@@ -238,7 +238,19 @@
                           <div class="layers-section-title">Podkład mapy</div>
                           <div class="layers-options-list" role="radiogroup">
                               <label class="layer-option">
-                                  <input checked name="basemap-option" type="radio" value="osm-dark">
+                                  <input checked name="basemap-option" type="radio" value="osm-standard">
+                                  <span class="layer-radio-custom"></span>
+                                  <div class="layer-info">
+                                      <div class="layer-name-row">
+                                          <span class="layer-name">OpenStreetMap</span>
+                                          <span class="layer-pill pill-standard">Jasna</span>
+                                      </div>
+                                      <span class="layer-tag">Klasyczny podkład OSM</span>
+                                  </div>
+                              </label>
+
+                              <label class="layer-option">
+                                  <input name="basemap-option" type="radio" value="osm-dark">
                                   <span class="layer-radio-custom"></span>
                                   <div class="layer-info">
                                       <div class="layer-name-row">
@@ -282,18 +294,6 @@
                                           <span class="layer-pill pill-ump">Polska</span>
                                       </div>
                                       <span class="layer-tag">Siatka dróg i szlaków UMP Polska</span>
-                                  </div>
-                              </label>
-
-                              <label class="layer-option">
-                                  <input name="basemap-option" type="radio" value="osm-standard">
-                                  <span class="layer-radio-custom"></span>
-                                  <div class="layer-info">
-                                      <div class="layer-name-row">
-                                          <span class="layer-name">OpenStreetMap</span>
-                                          <span class="layer-pill pill-standard">Jasna</span>
-                                      </div>
-                                      <span class="layer-tag">Klasyczny podkład OSM</span>
                                   </div>
                               </label>
                           </div>
@@ -364,7 +364,7 @@
                   <div class="detail-header">
                       <div class="detail-header-info">
                           <h2 class="detail-title" id="detail-title">Wybrany trening</h2>
-                          <div class="detail-subtitle" id="detail-date">—</div>
+                          <div class="detail-subtitle" id="detail-date">--</div>
                       </div>
                       <div class="detail-header-actions">
                           <button aria-label="Edytuj nazwę treningu" class="btn-edit-ride"
@@ -423,33 +423,33 @@
                   <div class="detail-grid">
                       <div class="detail-item-box">
                           <div class="detail-item-label">Dystans</div>
-                          <div class="detail-item-val" id="detail-dist">—</div>
+                          <div class="detail-item-val" id="detail-dist">--</div>
                       </div>
                       <div class="detail-item-box">
                           <div class="detail-item-label">Czas trwania</div>
-                          <div class="detail-item-val" id="detail-dur">—</div>
+                          <div class="detail-item-val" id="detail-dur">--</div>
                       </div>
                       <div class="detail-item-box">
                           <div class="detail-item-label">Śr. prędkość</div>
-                          <div class="detail-item-val" id="detail-avg">—</div>
+                          <div class="detail-item-val" id="detail-avg">--</div>
                       </div>
                       <div class="detail-item-box">
                           <div class="detail-item-label">Prędkość maks.</div>
-                          <div class="detail-item-val" id="detail-max">—</div>
+                          <div class="detail-item-val" id="detail-max">--</div>
                       </div>
                       <div class="detail-item-box">
                           <div class="detail-item-label">Przewyższenie</div>
-                          <div class="detail-item-val" id="detail-ele">—</div>
+                          <div class="detail-item-val" id="detail-ele">--</div>
                       </div>
                       <div class="detail-item-box">
                           <div class="detail-item-label">Spalone kalorie</div>
-                          <div class="detail-item-val" id="detail-calories">—</div>
+                          <div class="detail-item-val" id="detail-calories">--</div>
                       </div>
                   </div>
 
                   <button class="btn-import-shared-action" id="btn-import-shared-action" type="button"
-                          style="display: none; width: 100%; justify-content: center; padding: 10px; font-size: 13px; font-weight: 600; margin-bottom: 8px;">
-                      <svg class="icon-import" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16">
+                          style="display: none; width: 100%; justify-content: center; padding: 10px; font-size: 13px; font-weight: 600; margin-bottom: 8px; white-space: nowrap;">
+                      <svg aria-hidden="true" class="icon-import" fill="none" height="16" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16">
                           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                           <polyline points="17 21 17 13 7 13 7 21"></polyline>
                           <polyline points="7 3 7 8 15 8"></polyline>
@@ -459,7 +459,7 @@
 
                   <button class="btn-download-gpx" id="btn-detail-gpx"
                           style="width: 100%; justify-content: center; padding: 10px; font-size: 13px;">
-                      <span>⬇</span> Pobierz pełny plik GPX
+                      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Pobierz pełny plik GPX
                   </button>
               </div>
 
@@ -471,8 +471,8 @@
                     <!-- Live Scrub Tooltip Banner -->
                     <div class="profile-scrub-tooltip" id="profile-scrub-tooltip" style="display: none;">
                         <span class="scrub-badge scrub-dist" id="scrub-dist">0.0 km</span>
-                        <span class="scrub-badge scrub-speed" id="scrub-speed">⚡ 0.0 km/h</span>
-                        <span class="scrub-badge scrub-ele" id="scrub-ele">⛰️ 0 m</span>
+                        <span class="scrub-badge scrub-speed" id="scrub-speed">0.0 km/h</span>
+                        <span class="scrub-badge scrub-ele" id="scrub-ele">0 m</span>
                     </div>
                 </div>
 
@@ -513,7 +513,7 @@
               <button aria-label="Zamknij" class="btn-modal-close" id="btn-auth-close" title="Zamknij">✕</button>
 
               <div class="auth-header">
-                  <div class="auth-logo">🚴</div>
+                  <div class="auth-logo"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="18.5" cy="17.5" r="3.5"></circle><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 9l3-3 3 3"></path><path d="M12 17.5V14l4-4h3"></path></svg></div>
                   <h2 class="auth-title" id="auth-modal-title">Bike Tracker</h2>
                   <p class="auth-subtitle" id="auth-modal-subtitle">Zaloguj się, aby wyświetlić swoje treningi</p>
               </div>
@@ -526,13 +526,13 @@
 
               <!-- Error Alert Box -->
               <div class="auth-alert" id="auth-alert" style="display: none;">
-                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                   <span class="auth-alert-msg" id="auth-alert-msg"></span>
               </div>
 
               <!-- Google Sign In Button -->
               <button class="btn-google-auth" id="btn-google-auth" type="button">
-                  <svg class="google-icon" height="18" viewBox="0 0 24 24" width="18">
+                  <svg aria-hidden="true" class="google-icon" height="18" viewBox="0 0 24 24" width="18">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                             fill="#4285F4"/>
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
@@ -546,7 +546,7 @@
               </button>
 
               <div class="auth-divider">
-                  <span>LUB ADRES E-MAIL</span>
+                  <span>lub adres e-mail</span>
               </div>
 
               <!-- Email / Password Form -->
@@ -578,7 +578,7 @@
               </button>
 
               <div class="auth-header">
-                  <div class="auth-logo">✏️</div>
+                  <div class="auth-logo"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg></div>
                   <h2 class="auth-title" id="edit-title-modal-title">Edytuj nazwę treningu</h2>
                   <p class="auth-subtitle" id="edit-title-modal-subtitle">Wprowadź nową nazwę dla
                       wybranego przejazdu</p>
@@ -586,7 +586,7 @@
 
               <!-- Error Alert Box -->
               <div class="auth-alert" id="edit-title-alert" style="display: none;">
-                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                   <span class="auth-alert-msg" id="edit-title-alert-msg"></span>
               </div>
 
@@ -594,7 +594,7 @@
                   <div class="form-group">
                       <label for="edit-title-input">Nazwa treningu</label>
                       <input autocomplete="off" id="edit-title-input" maxlength="60"
-                             placeholder="np. Bulwary Wiślane 🚴" required type="text">
+                             placeholder="np. Bulwary Wiślane" required type="text">
                   </div>
                   <div class="modal-button-row">
                       <button class="btn-modal-cancel" id="btn-edit-title-cancel" type="button">
@@ -620,14 +620,14 @@
               </button>
 
               <div class="auth-header">
-                  <div class="auth-logo">📥</div>
+                  <div class="auth-logo"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg></div>
                   <h2 class="auth-title" id="import-gpx-modal-title">Zaimportuj trasę GPX</h2>
                   <p class="auth-subtitle">Podsumowanie pliku i potwierdzenie zapisu</p>
               </div>
 
               <!-- Error Alert Box -->
               <div class="auth-alert" id="import-gpx-alert" style="display: none;">
-                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                   <span class="auth-alert-msg" id="import-gpx-alert-msg"></span>
               </div>
 
@@ -656,7 +656,7 @@
               </div>
 
               <div class="import-meta-info" id="import-meta-info">
-                  <span id="import-preview-location">📍 Lokalizacja: Trwa ustalanie...</span>
+                  <span id="import-preview-location"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>Lokalizacja: Trwa ustalanie…</span>
               </div>
 
               <form class="auth-form" id="import-gpx-form">
@@ -689,19 +689,19 @@
               </button>
 
               <div class="auth-header">
-                  <div class="auth-logo">🗑️</div>
+                  <div class="auth-logo"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></div>
                   <h2 class="auth-title" id="delete-ride-modal-title">Usunąć trening?</h2>
                   <p class="auth-subtitle">Spowoduje to trwałe usunięcie tego treningu oraz jego danych GPX.</p>
               </div>
 
               <div class="delete-ride-preview" id="delete-ride-preview">
-                  <div class="delete-ride-title" id="delete-ride-preview-title">...</div>
-                  <div class="delete-ride-subtitle" id="delete-ride-preview-subtitle">...</div>
+                  <div class="delete-ride-title" id="delete-ride-preview-title">…</div>
+                  <div class="delete-ride-subtitle" id="delete-ride-preview-subtitle">…</div>
               </div>
 
               <!-- Error Alert Box -->
               <div class="auth-alert" id="delete-ride-alert" style="display: none;">
-                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                   <span class="auth-alert-msg" id="delete-ride-alert-msg"></span>
               </div>
 
@@ -726,7 +726,7 @@
               </button>
 
               <div class="auth-header">
-                  <div class="auth-logo">👤</div>
+                  <div class="auth-logo"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
                   <h2 class="auth-title" id="user-profile-modal-title">Profil użytkownika</h2>
                   <p class="auth-subtitle" id="user-profile-modal-subtitle">Parametry fizyczne oraz ustawienia filtrów
                       GPS</p>
@@ -734,7 +734,7 @@
 
               <!-- Alert Box -->
               <div class="auth-alert" id="profile-alert" style="display: none;">
-                  <span class="auth-alert-icon">⚠️</span>
+                  <span class="auth-alert-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></span>
                   <span class="auth-alert-msg" id="profile-alert-msg"></span>
               </div>
 
@@ -757,7 +757,7 @@
                       <div class="form-group">
                           <label for="profile-weight">Waga (kg)</label>
                           <div class="input-with-icon">
-                              <span class="input-prefix-icon">🏋️</span>
+                              <span class="input-prefix-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"></path></svg></span>
                               <input id="profile-weight" max="250" min="30" placeholder="75.0" required step="0.5"
                                      type="number">
                           </div>
@@ -765,7 +765,7 @@
                       <div class="form-group">
                           <label for="profile-height">Wzrost (cm)</label>
                           <div class="input-with-icon">
-                              <span class="input-prefix-icon">📏</span>
+                              <span class="input-prefix-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0Z"></path><path d="m14.5 12.5 2-2M11.5 9.5l2-2M8.5 6.5l2-2M17.5 15.5l2-2"></path></svg></span>
                               <input id="profile-height" max="250" min="100" placeholder="175" required step="1"
                                      type="number">
                           </div>
@@ -774,7 +774,7 @@
 
                   <!-- MET Info Hint -->
                   <div class="profile-info-hint">
-                      <span class="info-icon">ℹ️</span>
+                      <span class="info-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg></span>
                       <p>Dane posłużą do wzoru MET wyliczającego spalone kalorie w zależności od typu aktywności (Rower
                           vs Spacer).</p>
                   </div>
@@ -782,7 +782,7 @@
                   <!-- Stationary Drift Filters Section -->
                   <div class="profile-section-card">
                       <div class="profile-section-header">
-                          <span class="section-icon">⚡</span>
+                          <span class="section-icon"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
                           <span class="section-title">Wykrywanie postoju (filtr dryfu GPS)</span>
                       </div>
                       <p class="section-desc">Poniżej tego progu prędkość zerowana jest do 0.0 km/h, aby uniknąć
@@ -791,7 +791,7 @@
                       <!-- Cycling Slider -->
                       <div class="slider-group">
                           <div class="slider-label-row">
-                              <span class="slider-label">🚴 Próg dla roweru</span>
+                              <span class="slider-label"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><circle cx="5.5" cy="17.5" r="3.5"></circle><circle cx="18.5" cy="17.5" r="3.5"></circle><path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-3 11.5L9 9l3-3 3 3"></path><path d="M12 17.5V14l4-4h3"></path></svg>Próg dla roweru</span>
                               <span class="slider-badge slider-badge-orange" id="val-cycling-threshold">1.5 km/h</span>
                           </div>
                           <input class="threshold-slider slider-orange" id="profile-cycling-threshold" max="3.0"
@@ -801,7 +801,7 @@
                       <!-- Walking Slider -->
                       <div class="slider-group">
                           <div class="slider-label-row">
-                              <span class="slider-label">🚶 Próg dla spaceru / marszu</span>
+                              <span class="slider-label"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;"><path d="M13 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-2 7 2-4 3 2v4M9 13l2-2 3 4 2 5M10 21l2-4"></path></svg>Próg dla spaceru / marszu</span>
                               <span class="slider-badge slider-badge-teal" id="val-walking-threshold">0.5 km/h</span>
                           </div>
                           <input class="threshold-slider slider-teal" id="profile-walking-threshold" max="1.5"
@@ -832,7 +832,7 @@
               </button>
 
               <div class="auth-header">
-                  <div class="auth-logo">📜</div>
+                  <div class="auth-logo"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 9H8M16 13H8M16 17H8"></path></svg></div>
                   <h2 class="auth-title" id="changelog-modal-title">Historia zmian</h2>
                   <p class="auth-subtitle">Nowości i aktualizacje w Bike Tracker</p>
               </div>
@@ -840,7 +840,7 @@
               <div class="changelog-content" id="changelog-content">
                   <div class="changelog-loading">
                       <span class="btn-spinner"></span>
-                      <span>Wczytywanie historii zmian...</span>
+                      <span>Wczytywanie historii zmian…</span>
                   </div>
               </div>
 

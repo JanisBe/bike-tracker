@@ -6,7 +6,7 @@ let markersLayer = null;
 let allRoutesLayerGroup = null;
 
 let currentBaseLayer = null;
-let currentBaseMapKey = 'osm-dark';
+let currentBaseMapKey = 'osm-standard';
 const activeOverlayLayers = new Map();
 
 export const BASEMAPS = {
@@ -53,7 +53,7 @@ export const BASEMAPS = {
   },
   'osm-standard': {
     name: 'OpenStreetMap (Standardowa)',
-    badge: 'OSM Jasna',
+    badge: 'Jasna',
     url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     options: {
       maxZoom: 19,
@@ -114,6 +114,7 @@ export function setBaseMap(key) {
   currentBaseLayer.bringToBack();
 
   try {
+    localStorage.setItem('bike_tracker_basemap_v2', key);
     localStorage.setItem('bike_tracker_basemap', key);
   } catch (err) {
     console.warn('Unable to persist basemap preference:', err);
@@ -286,12 +287,12 @@ export function initMap(containerId = "map") {
   // Add zoom control on top right
   L.control.zoom({ position: "topright" }).addTo(mapInstance);
 
-  // Load saved preferences or defaults
-  let savedBaseMap = 'osm-dark';
+  // Load saved preferences or defaults (defaults to light OSM)
+  let savedBaseMap = 'osm-standard';
   let savedOverlays = [];
   try {
-    const basemapPref = localStorage.getItem('bike_tracker_basemap');
-    if (basemapPref && BASEMAPS[basemapPref]) {
+    const basemapPref = localStorage.getItem('bike_tracker_basemap_v2') || localStorage.getItem('bike_tracker_basemap');
+    if (basemapPref && basemapPref !== 'osm-dark' && BASEMAPS[basemapPref]) {
       savedBaseMap = basemapPref;
     }
     const overlaysPref = localStorage.getItem('bike_tracker_overlays');

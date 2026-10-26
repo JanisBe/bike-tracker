@@ -27,6 +27,7 @@ bike_tracker_app/build/
 bike_tracker_app/android/.gradle/
 bike_tracker_app/android/local.properties
 android/.gradle/
+android/.kotlin/
 android/local.properties
 android/**/build/
 
@@ -34,3 +35,4 @@ android/**/build/
 .agents/
 .pi/
 skills-lock.json
+.hallmark

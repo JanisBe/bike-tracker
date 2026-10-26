@@ -237,7 +237,7 @@ export class ProfileChart {
         if (this.scrubSpeed) {
             if (this.showSpeed) {
                 this.scrubSpeed.style.display = 'inline-flex';
-                this.scrubSpeed.textContent = `⚡ ${pt.speedKmh.toFixed(1)} km/h`;
+                this.scrubSpeed.textContent = `${pt.speedKmh.toFixed(1)} km/h`;
             } else {
                 this.scrubSpeed.style.display = 'none';
             }
@@ -245,7 +245,7 @@ export class ProfileChart {
         if (this.scrubEle) {
             if (this.showElevation) {
                 this.scrubEle.style.display = 'inline-flex';
-                this.scrubEle.textContent = `⛰️ ${Math.round(pt.elevationM)} m`;
+                this.scrubEle.textContent = `${Math.round(pt.elevationM)} m`;
             } else {
                 this.scrubEle.style.display = 'none';
             }

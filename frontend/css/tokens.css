@@ -1,0 +1,87 @@
+:root {
+  color-scheme: dark;
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --color-error: oklch(72% 0.15 27); --color-error-bg: oklch(22% 0.05 27); --color-error-border: oklch(45% 0.12 27);
+  --color-success: oklch(76% 0.13 150); --color-success-bg: oklch(22% 0.05 150); --color-success-border: oklch(45% 0.1 150);
+  --container: 1440px; --gutter: 64px; --gap-columns: 32px; --section-gap-s: 120px; --section-gap: 144px; --section-gap-l: 176px;
+  --z-base: 1; --z-raised: 10; --z-map-control: 800; --z-sticky: 850; --z-sticky-nav: 900; --z-map-overlay: 1000; --z-dropdown: 1100; --z-modal: 2000; --z-toast: 3000; --z-tooltip: 3100;
+  
+  /* Darkroom theme tokens: warm print-black, fibre-white, amber safelight */
+  --color-paper: oklch(12.5% 0.008 55);
+  --color-paper-2: oklch(16% 0.009 55);
+  --color-paper-3: oklch(20.5% 0.01 55);
+  --color-paper-overlay: oklch(10% 0.006 55 / 0.88);
+  --color-ink: oklch(92% 0.012 78);
+  --color-ink-2: oklch(80% 0.012 75);
+  --color-muted: oklch(64% 0.012 65);
+  --color-dim: oklch(48% 0.01 55);
+  --color-rule: oklch(29% 0.01 55);
+  --color-rule-subtle: oklch(22% 0.008 55);
+  
+  --color-accent: oklch(73% 0.15 58);
+  --color-accent-deep: oklch(50% 0.11 52);
+  --color-accent-ink: oklch(12.5% 0.008 55);
+  --color-accent-bg: oklch(22% 0.04 58);
+  --color-focus: oklch(73% 0.15 58);
+
+  --font-display: "Sofia Sans Extra Condensed", ui-sans-serif, sans-serif;
+  --font-body: "Barlow", ui-sans-serif, sans-serif;
+  --font-outlier: var(--font-body);
+  --radius-card: 0;
+  --radius-sm: 2px;
+  --radius-pill: 2px;
+  --rule-hair: 1px;
+  --shadow-card: 0 4px 16px oklch(5% 0.005 55 / 0.5);
+  --shadow-popover: 0 12px 32px oklch(5% 0.005 55 / 0.7);
+  --tracking-display: -0.005em;
+  --display-weight: 400;
+  --grain: 0.07;
+
+  /* Mapped project properties for full backwards-compatibility without blue/grey AI look */
+  --bg-dark: var(--color-paper);
+  --bg-card: var(--color-paper-2);
+  --bg-card-hover: var(--color-paper-3);
+  --bg-card-selected: var(--color-accent-bg);
+  --accent-orange: var(--color-accent);
+  --accent-orange-glow: oklch(73% 0.15 58 / 0.25);
+  --accent-cyan: oklch(75% 0.08 190);
+  --accent-cyan-glow: oklch(75% 0.08 190 / 0.2);
+  --color-telemetry-alt: oklch(75% 0.08 190);
+  --color-telemetry-alt-bg: oklch(22% 0.03 190);
+  --color-telemetry-alt-border: oklch(40% 0.06 190);
+  --color-telemetry-alt-ink: oklch(85% 0.06 190);
+  --color-telemetry-alt-bright: oklch(90% 0.08 190);
+  --color-telemetry-alt-active: oklch(60% 0.08 190);
+  --accent-green: var(--color-success);
+  --accent-red: var(--color-error);
+  --text-main: var(--color-ink);
+  --text-muted: var(--color-ink-2);
+  --text-dim: var(--color-muted);
+  --border-subtle: var(--color-rule);
+  --border-active: var(--color-accent);
+  --glass-blur: none;
+
+  /* Pill & layer badge semantic tokens */
+  --color-pill-dark-bg: var(--color-paper-3);
+  --color-pill-dark-text: var(--color-ink-2);
+  --color-pill-cycling-bg: oklch(22% 0.03 190);
+  --color-pill-cycling-border: oklch(40% 0.06 190);
+  --color-pill-cycling-text: oklch(85% 0.06 190);
+  --color-pill-topo-bg: oklch(22% 0.03 150);
+  --color-pill-topo-border: oklch(40% 0.06 150);
+  --color-pill-topo-text: oklch(85% 0.06 150);
+  --color-pill-ump-bg: var(--color-accent-bg);
+  --color-pill-ump-border: var(--color-accent-deep);
+  --color-pill-ump-text: var(--color-accent);
+  --color-pill-hiking-bg: oklch(22% 0.04 45);
+  --color-pill-hiking-border: oklch(42% 0.07 45);
+  --color-pill-hiking-text: oklch(82% 0.08 45);
+  --color-pill-mtb-bg: oklch(22% 0.04 320);
+  --color-pill-mtb-border: oklch(42% 0.07 320);
+  --color-pill-mtb-text: oklch(82% 0.08 320);
+}
+

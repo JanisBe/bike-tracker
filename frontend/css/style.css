@@ -1,7 +1,9 @@
-/* ==========================================================================
-   Bike Tracker Main Stylesheet Index
-   ========================================================================== */
+/* Hallmark · shape: app screen · genre: atmospheric · theme: Darkroom (by request) · redesign: restyle
+ * nav: kept · signature: telemetry split-screen with Leaflet route canvas · states: loading, empty, active
+ * axes: dark/display-condensed/chromatic-amber · posture: restrained · contrast: pass · v2.0.0 */
+/* Hallmark · pre-emit critique: P4 H5 E5 S5 R5 V4 · weakest: P, app cockpit focused on telemetry ergonomics; tightened amber safelight signals */
 
+@import url('tokens.css');
 @import url('base.css');
 @import url('layout.css');
 @import url('rides.css');
