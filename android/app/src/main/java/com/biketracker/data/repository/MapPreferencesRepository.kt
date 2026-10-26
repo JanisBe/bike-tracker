@@ -35,7 +35,7 @@ class MapPreferencesRepositoryImpl @Inject constructor(
     override val activeOverlaysFlow: StateFlow<Set<MapOverlaySource>> = _activeOverlaysFlow.asStateFlow()
 
     private fun loadBaseSource(): MapBaseSource {
-        val saved = prefs.getString(KEY_BASE_SOURCE, MapBaseSource.OSM_DARK.id)
+        val saved = prefs.getString(KEY_BASE_SOURCE, MapBaseSource.OSM_STANDARD.id)
         return MapBaseSource.fromId(saved)
     }
 

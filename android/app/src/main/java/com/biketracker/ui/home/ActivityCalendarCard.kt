@@ -29,12 +29,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DateRange
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -137,7 +137,7 @@ fun ActivityCalendarCard(
                     modifier = Modifier.clickable { isCollapsed = !isCollapsed }
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DateRange,
+                        imageVector = Icons.Rounded.DateRange,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(20.dp)
@@ -159,7 +159,7 @@ fun ActivityCalendarCard(
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
                             contentDescription = "Poprzedni miesiąc",
                             tint = TextSecondary,
                             modifier = Modifier.size(20.dp)
@@ -191,7 +191,7 @@ fun ActivityCalendarCard(
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                             contentDescription = "Następny miesiąc",
                             tint = TextSecondary,
                             modifier = Modifier.size(20.dp)
@@ -204,7 +204,7 @@ fun ActivityCalendarCard(
                         modifier = Modifier.size(32.dp)
                     ) {
                         Icon(
-                            imageVector = if (isCollapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                            imageVector = if (isCollapsed) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
                             contentDescription = if (isCollapsed) "Rozwiń kalendarz" else "Zwiń kalendarz",
                             tint = TextSecondary,
                             modifier = Modifier.size(20.dp)
@@ -377,7 +377,7 @@ fun ActivityCalendarCard(
                                 modifier = Modifier.padding(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Close,
+                                    imageVector = Icons.Rounded.Close,
                                     contentDescription = "Wyczyść filtr",
                                     tint = TextSecondary,
                                     modifier = Modifier.size(16.dp)

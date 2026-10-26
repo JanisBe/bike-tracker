@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -101,7 +101,7 @@ fun LoginScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
+                    imageVector = Icons.AutoMirrored.Rounded.DirectionsBike,
                     contentDescription = null,
                     tint = OrangeAccent,
                     modifier = Modifier.size(44.dp)
@@ -117,7 +117,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Rejestruj treningi • Generuj GPX • Śledź postępy",
+                text = "Precyzyjny zapis tras rowerowych i pieszych",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
@@ -132,7 +132,7 @@ fun LoginScreen(
                     viewModel.clearError()
                 },
                 label = { Text("E-mail") },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Rounded.Person, contentDescription = null) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
@@ -153,7 +153,7 @@ fun LoginScreen(
                     viewModel.clearError()
                 },
                 label = { Text("Hasło") },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),

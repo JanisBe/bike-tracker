@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.rounded.CloudDownload
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -73,7 +73,7 @@ fun AppUpdateDialog(
         },
         icon = {
             Icon(
-                imageVector = Icons.Default.SystemUpdate,
+                imageVector = Icons.Rounded.SystemUpdate,
                 contentDescription = null,
                 tint = TealAccent,
                 modifier = Modifier.size(36.dp)
@@ -173,7 +173,7 @@ fun AppUpdateDialog(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.CloudDownload,
+                                    imageVector = Icons.Rounded.CloudDownload,
                                     contentDescription = null,
                                     tint = DarkBackground,
                                     modifier = Modifier.size(18.dp)

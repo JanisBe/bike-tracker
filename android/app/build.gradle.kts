@@ -14,8 +14,8 @@ android {
         applicationId = "com.biketracker"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
 
         val gitCommitSha = try {
             providers.exec {

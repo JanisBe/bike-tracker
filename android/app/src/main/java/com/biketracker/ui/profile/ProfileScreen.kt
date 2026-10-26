@@ -22,19 +22,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Height
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.LocationOff
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Vibration
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.FitnessCenter
+import androidx.compose.material.icons.rounded.Height
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -128,7 +128,7 @@ fun ProfileScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Wróć",
                             tint = TextPrimary
                         )
@@ -216,7 +216,7 @@ fun ProfileScreen(
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Icons.Default.Person,
+                                    imageVector = Icons.Rounded.Person,
                                     contentDescription = null,
                                     tint = OrangeAccent,
                                     modifier = Modifier.size(28.dp)
@@ -300,14 +300,14 @@ fun ProfileScreen(
                             val isFemale = uiState.gender.equals("female", ignoreCase = true)
 
                             GenderOptionChip(
-                                label = "Mężczyzna ♂",
+                                label = "Mężczyzna",
                                 isSelected = isMale,
                                 onClick = { viewModel.onGenderSelected("male") },
                                 modifier = Modifier.weight(1f)
                             )
 
                             GenderOptionChip(
-                                label = "Kobieta ♀",
+                                label = "Kobieta",
                                 isSelected = isFemale,
                                 onClick = { viewModel.onGenderSelected("female") },
                                 modifier = Modifier.weight(1f)
@@ -325,7 +325,7 @@ fun ProfileScreen(
                                 label = { Text("Waga (kg)") },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.FitnessCenter,
+                                        imageVector = Icons.Rounded.FitnessCenter,
                                         contentDescription = null,
                                         tint = OrangeAccent,
                                         modifier = Modifier.size(18.dp)
@@ -350,7 +350,7 @@ fun ProfileScreen(
                                 label = { Text("Wzrost (cm)") },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Default.Height,
+                                        imageVector = Icons.Rounded.Height,
                                         contentDescription = null,
                                         tint = TealAccent,
                                         modifier = Modifier.size(18.dp)
@@ -382,7 +382,7 @@ fun ProfileScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Info,
+                                    imageVector = Icons.Rounded.Info,
                                     contentDescription = null,
                                     tint = OrangeAccent,
                                     modifier = Modifier.size(18.dp)
@@ -417,7 +417,7 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Speed,
+                                imageVector = Icons.Rounded.Speed,
                                 contentDescription = null,
                                 tint = OrangeAccent,
                                 modifier = Modifier.size(20.dp)
@@ -440,7 +440,7 @@ fun ProfileScreen(
 
                         // Cycling Threshold Slider
                         ThresholdSliderItem(
-                            icon = Icons.AutoMirrored.Filled.DirectionsBike,
+                            icon = Icons.AutoMirrored.Rounded.DirectionsBike,
                             label = "Próg dla roweru",
                             currentValue = uiState.cyclingThreshold,
                             valueRange = 0.8f..3.0f,
@@ -450,7 +450,7 @@ fun ProfileScreen(
 
                         // Walking Threshold Slider
                         ThresholdSliderItem(
-                            icon = Icons.AutoMirrored.Filled.DirectionsWalk,
+                            icon = Icons.AutoMirrored.Rounded.DirectionsWalk,
                             label = "Próg dla spaceru / marszu",
                             currentValue = uiState.walkingThreshold,
                             valueRange = 0.2f..1.5f,
@@ -478,7 +478,7 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.LocationOff,
+                                imageVector = Icons.Rounded.LocationOff,
                                 contentDescription = null,
                                 tint = OrangeAccent,
                                 modifier = Modifier.size(20.dp)
@@ -501,7 +501,7 @@ fun ProfileScreen(
 
                         // Vibration switch
                         SettingsSwitchItem(
-                            icon = Icons.Default.Vibration,
+                            icon = Icons.Rounded.Vibration,
                             title = "Wibracje",
                             description = "Wibracja telefonu przy zerwaniu sygnału GPS",
                             checked = uiState.gpsLostVibration,
@@ -511,7 +511,7 @@ fun ProfileScreen(
 
                         // Notification switch
                         SettingsSwitchItem(
-                            icon = Icons.Default.Notifications,
+                            icon = Icons.Rounded.Notifications,
                             title = "Powiadomienia",
                             description = "Powiadomienie na pasku stanu przy utracie GPS",
                             checked = uiState.gpsLostNotification,
@@ -539,7 +539,7 @@ fun ProfileScreen(
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Rounded.Check,
                             contentDescription = null,
                             tint = DarkBackground,
                             modifier = Modifier.size(20.dp)
@@ -554,7 +554,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // 5. Sign Out Button
+                // 6. Sign Out Button
                 OutlinedButton(
                     onClick = { showSignOutDialog = true },
                     modifier = Modifier
@@ -565,7 +565,7 @@ fun ProfileScreen(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        imageVector = Icons.AutoMirrored.Rounded.ExitToApp,
                         contentDescription = null,
                         tint = ErrorRed,
                         modifier = Modifier.size(18.dp)

@@ -18,6 +18,12 @@ enum class MapBaseSource(
     val badge: String,
     val subtitle: String
 ) {
+    OSM_STANDARD(
+        id = "osm-standard",
+        displayName = "OpenStreetMap",
+        badge = "Jasna",
+        subtitle = "Klasyczny podkład OSM"
+    ),
     OSM_DARK(
         id = "osm-dark",
         displayName = "OpenStreetMap",
@@ -41,17 +47,11 @@ enum class MapBaseSource(
         displayName = "UMP-pcPL",
         badge = "Polska",
         subtitle = "Siatka dróg i szlaków UMP Polska"
-    ),
-    OSM_STANDARD(
-        id = "osm-standard",
-        displayName = "OpenStreetMap",
-        badge = "Jasna",
-        subtitle = "Klasyczny podkład OSM"
     );
 
     companion object {
         fun fromId(id: String?): MapBaseSource {
-            return entries.firstOrNull { it.id == id } ?: OSM_DARK
+            return entries.firstOrNull { it.id == id } ?: OSM_STANDARD
         }
     }
 }

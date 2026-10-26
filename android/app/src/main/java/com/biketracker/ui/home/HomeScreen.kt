@@ -29,21 +29,21 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import android.widget.Toast
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FileUpload
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Straighten
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Card
@@ -96,6 +96,10 @@ import com.biketracker.ui.theme.DarkSurfaceVariant
 import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
+import com.biketracker.ui.theme.TelemetryLabel
+import com.biketracker.ui.theme.TelemetryValueLarge
+import com.biketracker.ui.theme.TelemetryValueMedium
+import com.biketracker.ui.theme.TelemetryValueSmall
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
@@ -164,7 +168,7 @@ fun HomeScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
+                            imageVector = Icons.AutoMirrored.Rounded.DirectionsBike,
                             contentDescription = null,
                             tint = OrangeAccent,
                             modifier = Modifier.size(28.dp)
@@ -181,14 +185,14 @@ fun HomeScreen(
                 actions = {
                     IconButton(onClick = { showImportLinkDialog = true }) {
                         Icon(
-                            imageVector = Icons.Default.Link,
+                            imageVector = Icons.Rounded.Link,
                             contentDescription = "Otwórz trening z linku",
                             tint = OrangeAccent
                         )
                     }
                     IconButton(onClick = { gpxPickerLauncher.launch("*/*") }) {
                         Icon(
-                            imageVector = Icons.Default.FileUpload,
+                            imageVector = Icons.Rounded.FileUpload,
                             contentDescription = "Importuj GPX",
                             tint = TealAccent
                         )
@@ -202,7 +206,7 @@ fun HomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Person,
+                                imageVector = Icons.Rounded.Person,
                                 contentDescription = "Mój profil",
                                 tint = OrangeAccent,
                                 modifier = Modifier.size(20.dp)
@@ -222,7 +226,7 @@ fun HomeScreen(
                 modifier = Modifier.size(64.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Add,
+                    imageVector = Icons.Rounded.Add,
                     contentDescription = "Rozpocznij trening",
                     modifier = Modifier.size(32.dp)
                 )
@@ -302,7 +306,7 @@ fun HomeScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.DirectionsBike,
+                                imageVector = Icons.AutoMirrored.Rounded.DirectionsBike,
                                 contentDescription = null,
                                 tint = TextSecondary.copy(alpha = 0.4f),
                                 modifier = Modifier.size(64.dp)
@@ -471,7 +475,7 @@ fun HomeScreen(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Link,
+                        imageVector = Icons.Rounded.Link,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(24.dp)
@@ -565,7 +569,7 @@ fun HomeScreen(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.FileUpload,
+                        imageVector = Icons.Rounded.FileUpload,
                         contentDescription = null,
                         tint = TealAccent,
                         modifier = Modifier.size(24.dp)
@@ -621,11 +625,23 @@ fun HomeScreen(
                     }
 
                     if (importPreview.locationName.isNotBlank()) {
-                        Text(
-                            text = "📍 ${importPreview.locationName}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Place,
+                                contentDescription = null,
+                                tint = OrangeAccent,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = importPreview.locationName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
                     }
 
                     OutlinedTextField(
@@ -742,7 +758,7 @@ fun HomeScreen(
                 ActivityOptionCard(
                     title = "Rower",
                     subtitle = "Rejestruj prędkość (km/h), dystans i trasę rowerową",
-                    icon = Icons.AutoMirrored.Filled.DirectionsBike,
+                    icon = Icons.AutoMirrored.Rounded.DirectionsBike,
                     accentColor = OrangeAccent,
                     onClick = {
                         showActivityPickerSheet = false
@@ -753,7 +769,7 @@ fun HomeScreen(
                 ActivityOptionCard(
                     title = "Spacer / Marsz",
                     subtitle = "Rejestruj trasę, prędkość (km/h) i tempo (min/km)",
-                    icon = Icons.AutoMirrored.Filled.DirectionsWalk,
+                    icon = Icons.AutoMirrored.Rounded.DirectionsWalk,
                     accentColor = TealAccent,
                     onClick = {
                         showActivityPickerSheet = false
@@ -862,26 +878,27 @@ fun StatsHeaderCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurface)
     ) {
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceAround
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             HeaderStatItem(
-                label = "Treningi", value = totalRides.toString(),
-                icon = Icons.AutoMirrored.Filled.DirectionsBike
+                label = "Treningi",
+                value = totalRides.toString(),
+                icon = Icons.AutoMirrored.Rounded.DirectionsBike
             )
             HeaderStatItem(
                 label = "Dystans",
                 value = "%.1f km".format(totalDistanceKm),
-                icon = Icons.Default.Straighten
+                icon = Icons.Rounded.Straighten
             )
             HeaderStatItem(
                 label = "Czas",
                 value = "%.1f h".format(totalHours),
-                icon = Icons.Default.Schedule
+                icon = Icons.Rounded.Schedule
             )
         }
     }
@@ -900,17 +917,16 @@ fun HeaderStatItem(
             tint = OrangeAccent,
             modifier = Modifier.size(22.dp)
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = TelemetryValueLarge,
             color = TextPrimary
         )
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontSize = 12.sp,
+            text = label.uppercase(),
+            style = TelemetryLabel,
             color = TextSecondary
         )
     }
@@ -957,7 +973,7 @@ fun SwipeableRideCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Edit,
+                    imageVector = Icons.Rounded.Edit,
                     contentDescription = "Edytuj nazwę",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -981,7 +997,7 @@ fun SwipeableRideCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Rounded.Delete,
                     contentDescription = "Usuń trening",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
@@ -1057,7 +1073,7 @@ fun RideCard(
     val isWalking = ride.activityType == ActivityType.WALKING.id
     val defaultTitle = if (isWalking) "Spacer" else "Trening rowerowy"
     val activityIcon =
-        if (isWalking) Icons.AutoMirrored.Filled.DirectionsWalk else Icons.AutoMirrored.Filled.DirectionsBike
+        if (isWalking) Icons.AutoMirrored.Rounded.DirectionsWalk else Icons.AutoMirrored.Rounded.DirectionsBike
     val activityColor = if (isWalking) TealAccent else OrangeAccent
     val displayTitle = ride.title.ifBlank { ride.locationName.ifBlank { defaultTitle } }
 
@@ -1081,7 +1097,7 @@ fun RideCard(
                     tint = activityColor,
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = displayTitle,
                     style = MaterialTheme.typography.titleMedium,
@@ -1113,7 +1129,7 @@ fun RideCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Place,
+                            imageVector = Icons.Rounded.Place,
                             contentDescription = null,
                             tint = OrangeAccent,
                             modifier = Modifier.size(12.dp)
@@ -1131,7 +1147,7 @@ fun RideCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1140,7 +1156,7 @@ fun RideCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Straighten,
+                        imageVector = Icons.Rounded.Straighten,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(20.dp)
@@ -1148,15 +1164,14 @@ fun RideCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "%.2f km".format(ride.distanceKm),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = TelemetryValueLarge,
                         color = TextPrimary
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
+                        imageVector = Icons.Rounded.Schedule,
                         contentDescription = null,
                         tint = TealAccent,
                         modifier = Modifier.size(18.dp)
@@ -1164,8 +1179,7 @@ fun RideCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = durationStr,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
+                        style = TelemetryValueMedium,
                         color = TextPrimary
                     )
                 }
@@ -1184,13 +1198,13 @@ fun RideCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(DarkSurfaceVariant, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.Speed,
+                        Icons.Rounded.Speed,
                         contentDescription = null,
                         tint = TextSecondary,
                         modifier = Modifier.size(15.dp)
@@ -1198,15 +1212,14 @@ fun RideCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Śr.: %.1f km/h".format(ride.avgSpeedKmh),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
-                        fontSize = 12.sp
+                        style = TelemetryValueSmall,
+                        color = TextSecondary
                     )
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.LocalFireDepartment,
+                        Icons.Rounded.LocalFireDepartment,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(15.dp)
@@ -1214,17 +1227,15 @@ fun RideCard(
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
                         text = "$caloriesKcal kcal",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
+                        style = TelemetryValueSmall,
+                        color = TextPrimary
                     )
                 }
 
                 ride.elevationGain?.let { ele ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.AutoMirrored.Filled.TrendingUp,
+                            Icons.AutoMirrored.Rounded.TrendingUp,
                             contentDescription = null,
                             tint = TealAccent,
                             modifier = Modifier.size(15.dp)
@@ -1232,9 +1243,8 @@ fun RideCard(
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "↑ %.0f m".format(ele),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary,
-                            fontSize = 12.sp
+                            style = TelemetryValueSmall,
+                            color = TextSecondary
                         )
                     }
                 }

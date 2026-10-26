@@ -24,23 +24,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.BookmarkAdd
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Straighten
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.rounded.BookmarkAdd
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.Place
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Straighten
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -87,10 +88,16 @@ import com.biketracker.ui.map.applyMapConfiguration
 import com.biketracker.ui.theme.CardBorder
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
+import com.biketracker.ui.theme.DarkSurfaceVariant
 import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.SuccessGreen
 import com.biketracker.ui.theme.TealAccent
+import com.biketracker.ui.theme.TelemetryDisplay
+import com.biketracker.ui.theme.TelemetryLabel
+import com.biketracker.ui.theme.TelemetryValueLarge
+import com.biketracker.ui.theme.TelemetryValueMedium
+import com.biketracker.ui.theme.TelemetryValueSmall
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -136,7 +143,7 @@ fun RideDetailScreen(
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = "Wróć",
                                 tint = TextPrimary
                             )
@@ -145,7 +152,7 @@ fun RideDetailScreen(
                     actions = {
                         IconButton(onClick = { viewModel.shareRideLink() }) {
                             Icon(
-                                imageVector = Icons.Default.Share,
+                                imageVector = Icons.Rounded.Share,
                                 contentDescription = "Udostępnij link do treningu",
                                 tint = OrangeAccent
                             )
@@ -157,14 +164,14 @@ fun RideDetailScreen(
                                 showEditTitleDialog = true
                             }) {
                                 Icon(
-                                    imageVector = Icons.Default.Edit,
+                                    imageVector = Icons.Rounded.Edit,
                                     contentDescription = "Edytuj nazwę treningu",
                                     tint = OrangeAccent
                                 )
                             }
                             IconButton(onClick = { showDeleteDialog = true }) {
                                 Icon(
-                                    imageVector = Icons.Default.Delete,
+                                    imageVector = Icons.Rounded.Delete,
                                     contentDescription = "Usuń",
                                     tint = ErrorRed
                                 )
@@ -190,7 +197,7 @@ fun RideDetailScreen(
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = Icons.Default.BookmarkAdd,
+                                        imageVector = Icons.Rounded.BookmarkAdd,
                                         contentDescription = "Zapisz w moich treningach",
                                         tint = SuccessGreen
                                     )
@@ -279,7 +286,7 @@ fun RideDetailScreen(
                                     .border(1.dp, CardBorder, CircleShape)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Layers,
+                                    imageVector = Icons.Rounded.Layers,
                                     contentDescription = "Źródła mapy i szlaki",
                                     tint = OrangeAccent,
                                     modifier = Modifier.size(20.dp)
@@ -296,7 +303,7 @@ fun RideDetailScreen(
                                     .border(1.dp, CardBorder, CircleShape)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Fullscreen,
+                                    imageVector = Icons.Rounded.Fullscreen,
                                     contentDescription = "Pełny ekran",
                                     tint = TextPrimary,
                                     modifier = Modifier.size(22.dp)
@@ -314,7 +321,7 @@ fun RideDetailScreen(
                         val isWalking = ride.activityType == ActivityType.WALKING.id
                         val defaultTitle = if (isWalking) "Spacer" else "Trening rowerowy"
                         val activityIcon =
-                            if (isWalking) Icons.AutoMirrored.Filled.DirectionsWalk else Icons.AutoMirrored.Filled.DirectionsBike
+                            if (isWalking) Icons.AutoMirrored.Rounded.DirectionsWalk else Icons.AutoMirrored.Rounded.DirectionsBike
                         val activityColor = if (isWalking) TealAccent else OrangeAccent
                         val displayTitle =
                             ride.title.ifBlank { ride.locationName.ifBlank { defaultTitle } }
@@ -347,7 +354,7 @@ fun RideDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Place,
+                                    imageVector = Icons.Rounded.Place,
                                     contentDescription = null,
                                     tint = OrangeAccent,
                                     modifier = Modifier.size(16.dp)
@@ -383,7 +390,7 @@ fun RideDetailScreen(
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Link,
+                                    imageVector = Icons.Rounded.Link,
                                     contentDescription = null,
                                     tint = SuccessGreen,
                                     modifier = Modifier.size(14.dp)
@@ -411,103 +418,310 @@ fun RideDetailScreen(
                             Spacer(modifier = Modifier.height(14.dp))
                         }
 
-                        // Big Stats Cards
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            DetailMetricCard(
-                                modifier = Modifier.weight(1f),
-                                label = "Dystans",
-                                value = "%.2f km".format(ride.distanceKm),
-                                icon = Icons.Default.Straighten,
-                                tint = OrangeAccent
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            val minutes = ride.durationSeconds / 60
-                            val seconds = ride.durationSeconds % 60
-                            DetailMetricCard(
-                                modifier = Modifier.weight(1f),
-                                label = "Czas trwania",
-                                value = "%02d:%02d".format(minutes, seconds),
-                                icon = Icons.Default.Schedule,
-                                tint = TealAccent
-                            )
+                        // Tier 1: Hero Performance Telemetry (Distance & Duration)
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Primary Hero: Distance
+                                Column(modifier = Modifier.weight(1.15f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Straighten,
+                                            contentDescription = null,
+                                            tint = OrangeAccent,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "DYSTANS",
+                                            style = TelemetryLabel,
+                                            color = TextSecondary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(verticalAlignment = Alignment.Bottom) {
+                                        Text(
+                                            text = "%.2f".format(ride.distanceKm),
+                                            style = TelemetryDisplay,
+                                            color = TextPrimary
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "km",
+                                            style = TelemetryValueSmall,
+                                            color = OrangeAccent,
+                                            modifier = Modifier.padding(bottom = 6.dp)
+                                        )
+                                    }
+                                }
+
+                                // Hairline divider
+                                Box(
+                                    modifier = Modifier
+                                        .height(44.dp)
+                                        .width(1.dp)
+                                        .background(CardBorder)
+                                )
+
+                                // Primary Duration
+                                val minutes = ride.durationSeconds / 60
+                                val seconds = ride.durationSeconds % 60
+                                val durationText = "%02d:%02d".format(minutes, seconds)
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 18.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Schedule,
+                                            contentDescription = null,
+                                            tint = TealAccent,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "CZAS TRWANIA",
+                                            style = TelemetryLabel,
+                                            color = TextSecondary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = durationText,
+                                        style = TelemetryValueLarge,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            val avgSpeedOrPaceValue = if (isWalking && showPaceInDetail) {
-                                if (ride.avgSpeedKmh > 0.5) {
-                                    val paceSec = (3600.0 / ride.avgSpeedKmh).roundToLong()
-                                    "%d:%02d min/km".format(paceSec / 60, paceSec % 60)
-                                } else "--:--"
-                            } else {
-                                "%.1f km/h".format(ride.avgSpeedKmh)
-                            }
-                            val avgSpeedOrPaceLabel = if (isWalking) {
-                                if (showPaceInDetail) "Śr. tempo (stuknij: km/h)" else "Śr. prędkość (stuknij: tempo)"
-                            } else {
-                                "Śr. prędkość"
-                            }
-
-                            DetailMetricCard(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .then(
-                                        if (isWalking) {
-                                            Modifier.clickable {
-                                                showPaceInDetail = !showPaceInDetail
-                                            }
-                                        } else Modifier
-                                    ),
-                                label = avgSpeedOrPaceLabel,
-                                value = avgSpeedOrPaceValue,
-                                icon = Icons.Default.Speed,
-                                tint = activityColor
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            DetailMetricCard(
-                                modifier = Modifier.weight(1f),
-                                label = "Maks. prędkość",
-                                value = "%.1f km/h".format(ride.maxSpeedKmh),
-                                icon = Icons.Default.Speed,
-                                tint = TextPrimary
-                            )
+                        // Tier 2: Speed & Pace Dynamic Telemetry Block
+                        val avgSpeedOrPaceValue = if (isWalking && showPaceInDetail) {
+                            if (ride.avgSpeedKmh > 0.5) {
+                                val paceSec = (3600.0 / ride.avgSpeedKmh).roundToLong()
+                                "%d:%02d min/km".format(paceSec / 60, paceSec % 60)
+                            } else "--:--"
+                        } else {
+                            "%.1f km/h".format(ride.avgSpeedKmh)
+                        }
+                        val avgSpeedOrPaceLabel = if (isWalking) {
+                            if (showPaceInDetail) "ŚREDNIE TEMPO" else "ŚREDNIA PRĘDKOŚĆ"
+                        } else {
+                            "ŚREDNIA PRĘDKOŚĆ"
                         }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-                            val caloriesKcal = ride.caloriesKcal ?: CalorieCalculator.calculateCalories(
-                                activityType = ride.activityType,
-                                avgSpeedKmh = ride.avgSpeedKmh,
-                                durationSeconds = ride.durationSeconds,
-                                elevationGainMeters = ride.elevationGain
-                            )
-
-                            if (ride.elevationGain != null) {
-                                Row(modifier = Modifier.fillMaxWidth()) {
-                                    DetailMetricCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = "Spalone kalorie",
-                                        value = "$caloriesKcal kcal",
-                                        icon = Icons.Default.LocalFireDepartment,
-                                        tint = OrangeAccent
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    DetailMetricCard(
-                                        modifier = Modifier.weight(1f),
-                                        label = "Przewyższenie",
-                                        value = "↑ %.0f m".format(ride.elevationGain),
-                                        icon = Icons.AutoMirrored.Filled.TrendingUp,
-                                        tint = TealAccent
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(18.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Average Speed / Pace with Clickable toggle if walking
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1.15f)
+                                        .then(
+                                            if (isWalking) {
+                                                Modifier.clickable {
+                                                    showPaceInDetail = !showPaceInDetail
+                                                }
+                                            } else Modifier
+                                        )
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Speed,
+                                            contentDescription = null,
+                                            tint = activityColor,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = avgSpeedOrPaceLabel,
+                                            style = TelemetryLabel,
+                                            color = TextSecondary
+                                        )
+                                        if (isWalking) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.Rounded.SwapVert,
+                                                contentDescription = "Przełącz tempo/prędkość",
+                                                tint = activityColor,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = avgSpeedOrPaceValue,
+                                        style = TelemetryValueLarge,
+                                        color = TextPrimary
                                     )
                                 }
-                            } else {
-                                DetailMetricCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    label = "Spalone kalorie",
-                                    value = "$caloriesKcal kcal",
-                                    icon = Icons.Default.LocalFireDepartment,
-                                    tint = OrangeAccent
-                            )
+
+                                // Hairline divider
+                                Box(
+                                    modifier = Modifier
+                                        .height(44.dp)
+                                        .width(1.dp)
+                                        .background(CardBorder)
+                                )
+
+                                // Max Speed
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 18.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.Speed,
+                                            contentDescription = null,
+                                            tint = TextSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "MAKSYMALNA",
+                                            style = TelemetryLabel,
+                                            color = TextSecondary
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "%.1f km/h".format(ride.maxSpeedKmh),
+                                        style = TelemetryValueMedium,
+                                        color = TextPrimary
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Tier 3: Physical Work & Geography Telemetry Strip
+                        val caloriesKcal = ride.caloriesKcal ?: CalorieCalculator.calculateCalories(
+                            activityType = ride.activityType,
+                            avgSpeedKmh = ride.avgSpeedKmh,
+                            durationSeconds = ride.durationSeconds,
+                            elevationGainMeters = ride.elevationGain
+                        )
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Calories
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .background(OrangeAccent.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.LocalFireDepartment,
+                                            contentDescription = null,
+                                            tint = OrangeAccent,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = "KALORIE",
+                                            style = TelemetryLabel,
+                                            color = TextSecondary
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "$caloriesKcal kcal",
+                                            style = TelemetryValueMedium,
+                                            color = TextPrimary
+                                        )
+                                    }
+                                }
+
+                                if (ride.elevationGain != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .height(32.dp)
+                                            .width(1.dp)
+                                            .background(CardBorder)
+                                    )
+
+                                    // Elevation Gain
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .padding(start = 14.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .background(TealAccent.copy(alpha = 0.12f), RoundedCornerShape(8.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                                                contentDescription = null,
+                                                tint = TealAccent,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = "PRZEWYŻSZENIE",
+                                                style = TelemetryLabel,
+                                                color = TextSecondary
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = "↑ %.0f m".format(ride.elevationGain),
+                                                style = TelemetryValueMedium,
+                                                color = TextPrimary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -537,7 +751,7 @@ fun RideDetailScreen(
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = Icons.Default.BookmarkAdd,
+                                        imageVector = Icons.Rounded.BookmarkAdd,
                                         contentDescription = null,
                                         tint = DarkBackground
                                     )
@@ -570,7 +784,7 @@ fun RideDetailScreen(
                                 )
                             } else {
                                 Icon(
-                                    Icons.Default.Share,
+                                    Icons.Rounded.Share,
                                     contentDescription = null,
                                     tint = DarkBackground
                                 )
@@ -727,7 +941,7 @@ fun RideDetailScreen(
                             .border(1.dp, CardBorder, CircleShape)
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Zamknij pełny ekran",
                             tint = TextPrimary,
                             modifier = Modifier.size(20.dp)
@@ -743,7 +957,7 @@ fun RideDetailScreen(
                                 .border(1.dp, CardBorder, CircleShape)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Layers,
+                                imageVector = Icons.Rounded.Layers,
                                 contentDescription = "Źródła mapy i szlaki",
                                 tint = OrangeAccent,
                                 modifier = Modifier.size(20.dp)
@@ -758,7 +972,7 @@ fun RideDetailScreen(
                                 .border(1.dp, CardBorder, CircleShape)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.FullscreenExit,
+                                imageVector = Icons.Rounded.FullscreenExit,
                                 contentDescription = "Zmniejsz mapę",
                                 tint = TextPrimary,
                                 modifier = Modifier.size(24.dp)
@@ -805,17 +1019,15 @@ fun DetailMetricCard(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    fontSize = 12.sp
+                    text = label.uppercase(),
+                    style = TelemetryLabel,
+                    color = TextSecondary
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+                style = TelemetryValueLarge,
                 color = TextPrimary
             )
         }
@@ -827,7 +1039,7 @@ private class ScrubMarker(mapView: MapView) : Marker(mapView)
 @Composable
 fun DetailOsmMapView(
     coordinates: List<Pair<Double, Double>>,
-    baseSource: MapBaseSource = MapBaseSource.OSM_DARK,
+    baseSource: MapBaseSource = MapBaseSource.OSM_STANDARD,
     activeOverlays: Set<MapOverlaySource> = emptySet(),
     selectedPoint: Pair<Double, Double>? = null,
     modifier: Modifier = Modifier

@@ -17,6 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.HistoryEdu
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -119,11 +121,20 @@ fun ChangelogBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "📜",
-                        fontSize = 24.sp,
-                        modifier = Modifier.padding(end = 10.dp)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(36.dp)
+                            .background(OrangeAccent.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.HistoryEdu,
+                            contentDescription = null,
+                            tint = OrangeAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                     Column {
                         Text(
                             text = "Historia zmian",
@@ -142,7 +153,7 @@ fun ChangelogBottomSheet(
 
                 IconButton(onClick = onDismiss) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = Icons.Rounded.Close,
                         contentDescription = "Zamknij",
                         tint = TextSecondary
                     )

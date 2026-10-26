@@ -5,12 +5,15 @@ Wszystkie istotne zmiany i nowości w projekcie Bike Tracker (wersja Android ora
 ## [1.3.0] - 2026-10-26
 
 ### Dodano
-- **Nowy motyw graficzny Darkroom (Aesthetics & Design System):** Autorska oprawa wizualna aplikacji webowej odchodząca od generycznych niebiesko-szarych szablonów na rzecz ciepłej czerni odbitkowej (`oklch(12.5% 0.008 55)`), struktury papieru fotograficznego oraz bursztynowych akcentów telemetrycznych (amber safelight).
-- **Nowa typografia i wektorowe ikony:** Wdrożenie krojów Sofia Sans Extra Condensed (wyraziste nagłówki i metryki) oraz Barlow (treść i dane telemetryczne), a także zastąpienie znaków emoji ostrymi, skalowalnymi ikonami SVG.
+- **Nowy motyw graficzny Darkroom (Aesthetics & Design System - Web):** Autorska oprawa wizualna aplikacji webowej odchodząca od generycznych niebiesko-szarych szablonów na rzecz ciepłej czerni odbitkowej (`oklch(12.5% 0.008 55)`), struktury papieru fotograficznego oraz bursztynowych akcentów telemetrycznych (amber safelight).
+- **Nowa typografia i wektorowe ikony (Web):** Wdrożenie krojów Sofia Sans Extra Condensed (wyraziste nagłówki i metryki) oraz Barlow (treść i dane telemetryczne), a także zastąpienie znaków emoji ostrymi, skalowalnymi ikonami SVG.
 - **Scentralizowany system tokenów (`tokens.css`):** Spójna skala odstępów (oparta na siatce 4px), typografia, tokeny semantyczne dla aktywności i stanów interfejsu oraz pełna zgodność wsteczna zmiennych stylów.
+- **Sportowa typografia telemetryczna (Android):** Wdrożenie cyfr tabelarycznych (`fontFeatureSettings = "tnum"`) dla licznika prędkościomierza, tempa, czasu trwania, dystansu i wskaźnika tooltipu na wykresie wysokości, całkowicie eliminujące mikro-drgania układu podczas dynamicznych zmian liczb.
+- **3-poziomowa hierarchia sportowa (Android):** Przebudowa ekranu szczegółów treningu z dawnej siatki 2×3 na strukturę z wyrazistym blokiem Hero (Dystans + Czas), blokiem prędkości/tempa oraz kompaktowym paskiem pracy fizycznej (Kalorie + Przewyższenie).
+- **Spłaszczone panele i wektorowe ikony (Android):** Eliminacja cieni kart i zbędnych zagnieżdżeń na rzecz lekkich paneli `Surface` z obramowaniem `1.dp`, usunięcie surowych emotikonów oraz pełna migracja do spójnych ikon `Icons.Rounded.*` i `Icons.AutoMirrored.Rounded.*`.
 
 ### Zmieniono
-- **Domyślny podkład mapy:** Ustawiono klasyczną, jasną wersję OpenStreetMap (Standardowa) jako domyślny styl mapy z intuicyjną etykietą „Jasna” w selektorze warstw.
+- **Domyślny podkład mapy (Web & Android):** Ustawiono klasyczną, jasną wersję OpenStreetMap (Standardowa) jako domyślny podkład mapy w aplikacji webowej oraz w natywnej aplikacji mobilnej Android (`MapBaseSource.OSM_STANDARD`).
 
 ### Poprawiono
 - **Hierarchia warstw z-index na mapie:** Wyeliminowano błąd przykrywania panelu szczegółów treningu przez ładujące się kafelki mapy Leaflet (`tile-pane`) dzięki dostosowaniu skali z-index do architektury warstw Leaflet.

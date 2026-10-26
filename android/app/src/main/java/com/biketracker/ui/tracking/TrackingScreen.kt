@@ -30,25 +30,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.DirectionsBike
-import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.FullscreenExit
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.LocationOff
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Sensors
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.DirectionsBike
+import androidx.compose.material.icons.automirrored.rounded.DirectionsWalk
+import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.LocalFireDepartment
+import androidx.compose.material.icons.rounded.LocationOff
+import androidx.compose.material.icons.rounded.MyLocation
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Sensors
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.rounded.Straighten
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -109,6 +109,11 @@ import com.biketracker.ui.theme.ErrorRed
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.SuccessGreen
 import com.biketracker.ui.theme.TealAccent
+import com.biketracker.ui.theme.TelemetryHero
+import com.biketracker.ui.theme.TelemetryLabel
+import com.biketracker.ui.theme.TelemetryValueLarge
+import com.biketracker.ui.theme.TelemetryValueMedium
+import com.biketracker.ui.theme.TelemetryValueSmall
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import kotlinx.coroutines.launch
@@ -285,7 +290,7 @@ fun TrackingScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = if (isWalking) Icons.AutoMirrored.Filled.DirectionsWalk else Icons.AutoMirrored.Filled.DirectionsBike,
+                            imageVector = if (isWalking) Icons.AutoMirrored.Rounded.DirectionsWalk else Icons.AutoMirrored.Rounded.DirectionsBike,
                             contentDescription = null,
                             tint = primaryAccent,
                             modifier = Modifier.size(24.dp)
@@ -316,7 +321,7 @@ fun TrackingScreen(
                         }
                     }) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Wróć",
                             tint = TextPrimary
                         )
@@ -333,7 +338,7 @@ fun TrackingScreen(
                         modifier = Modifier.padding(end = 16.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Sensors,
+                            imageVector = Icons.Rounded.Sensors,
                             contentDescription = "Satelity GPS",
                             tint = iconColor,
                             modifier = Modifier.size(16.dp)
@@ -392,7 +397,7 @@ fun TrackingScreen(
                                 .border(1.dp, CardBorder, CircleShape)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Layers,
+                                imageVector = Icons.Rounded.Layers,
                                 contentDescription = "Źródła mapy i szlaki",
                                 tint = OrangeAccent,
                                 modifier = Modifier.size(20.dp)
@@ -409,7 +414,7 @@ fun TrackingScreen(
                                 .border(1.dp, CardBorder, CircleShape)
                         ) {
                             Icon(
-                                imageVector = if (isMapFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                imageVector = if (isMapFullscreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
                                 contentDescription = if (isMapFullscreen) "Zmniejsz mapę" else "Pełny ekran",
                                 tint = TextPrimary,
                                 modifier = Modifier.size(22.dp)
@@ -435,7 +440,7 @@ fun TrackingScreen(
                                 )
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MyLocation,
+                                imageVector = Icons.Rounded.MyLocation,
                                 contentDescription = if (isAutoCenter) "Śledzenie pozycji aktywne (kliknij, aby wyłączyć)" else "Wyśrodkuj na mojej pozycji",
                                 tint = if (isAutoCenter) OrangeAccent else TextSecondary,
                                 modifier = Modifier.size(20.dp)
@@ -459,7 +464,7 @@ fun TrackingScreen(
 
                 // Live Stats & Controls Panel (Bottom 45%)
                 if (!isMapFullscreen) {
-                    Card(
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(0.45f)
@@ -469,7 +474,7 @@ fun TrackingScreen(
                                 RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
                             ),
                         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                        color = DarkSurface
                     ) {
                         Column(
                             modifier = Modifier
@@ -496,9 +501,9 @@ fun TrackingScreen(
                                     "Szukanie satelitów GPS..."
                                 }
 
-                                Card(
+                                Surface(
                                     modifier = Modifier.fillMaxWidth(),
-                                    colors = CardDefaults.cardColors(containerColor = DarkSurfaceVariant),
+                                    color = DarkSurfaceVariant,
                                     shape = RoundedCornerShape(14.dp),
                                     border = BorderStroke(1.dp, CardBorder)
                                 ) {
@@ -520,7 +525,7 @@ fun TrackingScreen(
                                             ) {
                                                 if (satelliteInfo.isGoodSignal) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Sensors,
+                                                        imageVector = Icons.Rounded.Sensors,
                                                         contentDescription = null,
                                                         tint = SuccessGreen,
                                                         modifier = Modifier.size(18.dp)
@@ -625,7 +630,7 @@ fun TrackingScreen(
                                             modifier = Modifier.weight(1f, fill = false)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.BatteryAlert,
+                                                imageVector = Icons.Rounded.BatteryAlert,
                                                 contentDescription = null,
                                                 tint = OrangeAccent,
                                                 modifier = Modifier.size(16.dp)
@@ -688,8 +693,7 @@ fun TrackingScreen(
                                 ) {
                                     Text(
                                         text = speedOrPaceValue,
-                                        fontSize = 56.sp,
-                                        fontWeight = FontWeight.ExtraBold,
+                                        style = TelemetryHero,
                                         color = TextPrimary
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -706,7 +710,7 @@ fun TrackingScreen(
                                         if (isWalking) {
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Icon(
-                                                imageVector = Icons.Default.SwapVert,
+                                                imageVector = Icons.Rounded.SwapVert,
                                                 contentDescription = "Przełącz na tempo/prędkość",
                                                 tint = primaryAccent.copy(alpha = 0.8f),
                                                 modifier = Modifier.size(18.dp)
@@ -740,19 +744,19 @@ fun TrackingScreen(
                                 }
 
                                 LiveStatItem(
-                                    icon = Icons.Default.Straighten,
+                                    icon = Icons.Rounded.Straighten,
                                     label = "Dystans",
                                     value = "%.2f km".format(currentDistanceKm),
                                     tint = primaryAccent
                                 )
                                 LiveStatItem(
-                                    icon = Icons.Default.Schedule,
+                                    icon = Icons.Rounded.Schedule,
                                     label = "Czas",
                                     value = durationStr,
                                     tint = TealAccent
                                 )
                                 LiveStatItem(
-                                    icon = Icons.Default.LocalFireDepartment,
+                                    icon = Icons.Rounded.LocalFireDepartment,
                                     label = "Kalorie",
                                     value = "$caloriesBurned kcal",
                                     tint = OrangeAccent
@@ -774,14 +778,14 @@ fun TrackingScreen(
                                             "--:--"
                                         }
                                     LiveStatItem(
-                                        icon = Icons.Default.Speed,
+                                        icon = Icons.Rounded.Speed,
                                         label = "Śr. tempo",
                                         value = avgPaceStr,
                                         tint = primaryAccent
                                     )
                                 } else {
                                     LiveStatItem(
-                                        icon = Icons.Default.Speed,
+                                        icon = Icons.Rounded.Speed,
                                         label = "Śr. prędkość",
                                         value = "%.1f km/h".format(averageSpeedKmh),
                                         tint = primaryAccent
@@ -809,7 +813,7 @@ fun TrackingScreen(
                                     )
                                 ) {
                                     Icon(
-                                        imageVector = if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                        imageVector = if (isPaused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause,
                                         contentDescription = if (isPaused) "Wznów" else "Wstrzymaj",
                                         tint = DarkBackground,
                                         modifier = Modifier.size(32.dp)
@@ -827,7 +831,7 @@ fun TrackingScreen(
                                     colors = ButtonDefaults.buttonColors(containerColor = TealAccent)
                                 ) {
                                     Icon(
-                                        Icons.Default.Check,
+                                        Icons.Rounded.Check,
                                         contentDescription = null,
                                         tint = DarkBackground
                                     )
@@ -878,7 +882,7 @@ fun TrackingScreen(
                 },
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.BatteryAlert,
+                        imageVector = Icons.Rounded.BatteryAlert,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(36.dp)
@@ -913,7 +917,7 @@ fun TrackingScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.BatteryAlert,
+                                    imageVector = Icons.Rounded.BatteryAlert,
                                     contentDescription = null,
                                     tint = OrangeAccent,
                                     modifier = Modifier.size(18.dp)
@@ -952,7 +956,7 @@ fun TrackingScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Settings,
+                                imageVector = Icons.Rounded.Settings,
                                 contentDescription = null,
                                 tint = DarkBackground,
                                 modifier = Modifier.size(18.dp)
@@ -1017,7 +1021,7 @@ fun TrackingScreen(
                 },
                 icon = {
                     Icon(
-                        imageVector = if (!isLocationEnabled) Icons.Default.LocationOff else Icons.Default.Sensors,
+                        imageVector = if (!isLocationEnabled) Icons.Rounded.LocationOff else Icons.Rounded.Sensors,
                         contentDescription = null,
                         tint = OrangeAccent,
                         modifier = Modifier.size(36.dp)
@@ -1076,7 +1080,7 @@ fun TrackingScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Sensors,
+                                        imageVector = Icons.Rounded.Sensors,
                                         contentDescription = null,
                                         tint = if (satelliteInfo.used >= 4) SuccessGreen else OrangeAccent,
                                         modifier = Modifier.size(18.dp)
@@ -1122,7 +1126,7 @@ fun TrackingScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Sensors,
+                                    imageVector = Icons.Rounded.Sensors,
                                     contentDescription = null,
                                     tint = DarkBackground,
                                     modifier = Modifier.size(18.dp)
@@ -1316,21 +1320,19 @@ fun LiveStatItem(
                 imageVector = icon,
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(14.dp)
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                fontSize = 12.sp
+                text = label.uppercase(),
+                style = TelemetryLabel,
+                color = TextSecondary
             )
         }
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = TelemetryValueMedium,
             color = TextPrimary
         )
     }
@@ -1372,7 +1374,7 @@ private class TrackingMapView(
 @Composable
 fun TrackingOsmMapView(
     trackPoints: List<TrackPoint>,
-    baseSource: MapBaseSource = MapBaseSource.OSM_DARK,
+    baseSource: MapBaseSource = MapBaseSource.OSM_STANDARD,
     activeOverlays: Set<MapOverlaySource> = emptySet(),
     isAutoCenter: Boolean = true,
     onUserPan: () -> Unit = {},

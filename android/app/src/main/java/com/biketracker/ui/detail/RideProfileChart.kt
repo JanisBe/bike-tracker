@@ -20,7 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -51,6 +53,7 @@ import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.DarkSurfaceVariant
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
+import com.biketracker.ui.theme.TelemetryValueSmall
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import kotlin.math.roundToInt
@@ -200,7 +203,7 @@ fun RideProfileChart(
                         ) {
                             Text(
                                 text = "%.2f km".format(pt.distanceKm),
-                                fontWeight = FontWeight.Bold,
+                                style = TelemetryValueSmall,
                                 fontSize = 12.sp,
                                 color = TextPrimary
                             )
@@ -208,16 +211,16 @@ fun RideProfileChart(
                             if (showSpeed) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = Icons.Default.Speed,
+                                        imageVector = Icons.Rounded.Speed,
                                         contentDescription = null,
                                         tint = OrangeAccent,
-                                        modifier = Modifier.size(13.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = "%.1f km/h".format(pt.speedKmh),
+                                        style = TelemetryValueSmall,
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
                                         color = OrangeAccent
                                     )
                                 }
@@ -226,16 +229,16 @@ fun RideProfileChart(
                             if (showElevation) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                                        imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                         contentDescription = null,
                                         tint = TealAccent,
-                                        modifier = Modifier.size(13.dp)
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
                                     Text(
                                         text = "%.0f m".format(pt.elevationM),
+                                        style = TelemetryValueSmall,
                                         fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
                                         color = TealAccent
                                     )
                                 }

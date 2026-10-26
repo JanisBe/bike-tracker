@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatteryAlert
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.rounded.BatteryAlert
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -37,7 +37,7 @@ fun RestorePowerSaveDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                imageVector = Icons.Default.BatteryAlert,
+                imageVector = Icons.Rounded.BatteryAlert,
                 contentDescription = null,
                 tint = OrangeAccent,
                 modifier = Modifier.size(36.dp)
@@ -66,7 +66,7 @@ fun RestorePowerSaveDialog(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Settings,
+                        imageVector = Icons.Rounded.Settings,
                         contentDescription = null,
                         tint = DarkBackground,
                         modifier = Modifier.size(18.dp)
