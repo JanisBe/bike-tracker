@@ -2,6 +2,15 @@
 
 Wszystkie istotne zmiany i nowości w projekcie Bike Tracker (wersja Android oraz Web).
 
+## [1.3.1] - 2026-10-29
+
+### Dodano
+- **Natywny motyw Darkroom (Aesthetics & Design System - Android):** Pełna implementacja estetyki Darkroom w aplikacji Jetpack Compose — ciepła czerń węgla (`#141312`), kafelki przyrządowe (`#1A1817`), ciepła kość słoniowa (`#EDE8E1`) oraz sportowe akcenty bursztynowe (`#E58A2B`) i cyjanowe (`#38BDF8`), całkowicie eliminujące generyczny, fioletowo-niebieski motyw Material 3.
+- **Dedykowany kokpit telemetryczny na żywo (Android):** Reorganizacja ekranu rejestracji treningu w styl sportowego komputera rowerowego — wskaźnik prędkości z plakietką jednostki `KM/H`, 4 niezależne kafelki instrumentów telemetrycznych z obwódkami `1.dp` oraz ergonomiczny przycisk pauzy i zapisu.
+- **Przebudowany ekran logowania (Android):** Techniczny identyfikator `[ TELEMETRY · GPS COMPASS ]`, wyrazista typografia marki, minimalistyczne sloty formularza `6.dp` z obwódką hairline i ciemny przycisk logowania Google.
+- **Interaktywny profil trasy w trybie pełnoekranowym (Android):** Możliwość podglądu profilu wysokości i prędkości bezpośrednio na pełnym ekranie mapy w szczegółach treningu, z pełną synchronizacją punktu na trasie podczas przesuwania palcem po wykresie.
+- **Zwijany i rozwijany wykres profilu (Android):** Możliwość zwinięcia komponentu `RideProfileChart` do kompaktowego paska za pomocą strzałki w prawym górnym rogu z płynną animacją, zapewniająca maksymalną widoczność mapy zarówno w widoku pełnoekranowym, jak i standardowym.
+
 ## [1.3.0] - 2026-10-26
 
 ### Dodano

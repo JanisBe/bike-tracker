@@ -36,3 +36,5 @@ android/**/build/
 .pi/
 skills-lock.json
 .hallmark
+# Screenshots
+screenshots/
