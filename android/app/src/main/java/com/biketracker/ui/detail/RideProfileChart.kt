@@ -2,6 +2,7 @@ package com.biketracker.ui.detail
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.biketracker.data.model.RouteProfilePoint
 import com.biketracker.ui.theme.CardBorder
+import com.biketracker.ui.theme.CockpitTileBg
 import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.DarkSurfaceVariant
 import com.biketracker.ui.theme.OrangeAccent
@@ -83,9 +85,9 @@ fun RideProfileChart(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface)
+            .border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+        shape = RoundedCornerShape(6.dp),
+        colors = CardDefaults.cardColors(containerColor = CockpitTileBg)
     ) {
         Column(
             modifier = Modifier
@@ -194,7 +196,7 @@ fun RideProfileChart(
                     Surface(
                         color = DarkSurfaceVariant,
                         shape = RoundedCornerShape(8.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                        border = BorderStroke(1.dp, CardBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),

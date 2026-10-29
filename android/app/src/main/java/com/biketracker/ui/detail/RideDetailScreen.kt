@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import android.widget.Toast
 import androidx.compose.foundation.layout.width
@@ -980,6 +981,24 @@ fun RideDetailScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                         }
+                    }
+                }
+
+                // Bottom Profile Chart Overlay in Fullscreen Mode
+                if (uiState.profilePoints.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        RideProfileChart(
+                            points = uiState.profilePoints,
+                            onPointSelected = { pt ->
+                                selectedProfilePoint = pt
+                            }
+                        )
                     }
                 }
             }
