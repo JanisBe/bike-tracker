@@ -1,5 +1,15 @@
 package com.biketracker.ui.detail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
@@ -68,6 +78,7 @@ fun RideProfileChart(
 ) {
     if (points.size < 2) return
 
+    var isExpanded by rememberSaveable { mutableStateOf(true) }
     var showSpeed by remember { mutableStateOf(true) }
     var showElevation by remember { mutableStateOf(true) }
 
@@ -94,7 +105,7 @@ fun RideProfileChart(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header Row: Title + Interactive Legend
+            // Header Row: Title + Interactive Legend + Collapse/Expand Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -107,83 +118,112 @@ fun RideProfileChart(
                     color = TextPrimary
                 )
 
-                // Legend with clickable toggle buttons
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Speed Legend (Clickable)
-                    Surface(
-                        color = if (showSpeed) OrangeAccent.copy(alpha = 0.15f) else Color.Transparent,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable {
-                                if (showSpeed && !showElevation) {
-                                    showElevation = true
+                    if (isExpanded) {
+                        // Speed Legend (Clickable)
+                        Surface(
+                            color = if (showSpeed) OrangeAccent.copy(alpha = 0.15f) else Color.Transparent,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    if (showSpeed && !showElevation) {
+                                        showElevation = true
+                                    }
+                                    showSpeed = !showSpeed
                                 }
-                                showSpeed = !showSpeed
-                            }
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(
-                                        if (showSpeed) OrangeAccent else TextSecondary.copy(alpha = 0.35f),
-                                        CircleShape
-                                    )
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Prędkość",
-                                fontSize = 11.sp,
-                                color = if (showSpeed) OrangeAccent else TextSecondary.copy(alpha = 0.45f),
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (showSpeed) OrangeAccent else TextSecondary.copy(alpha = 0.35f),
+                                            CircleShape
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Prędkość",
+                                    fontSize = 11.sp,
+                                    color = if (showSpeed) OrangeAccent else TextSecondary.copy(alpha = 0.45f),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        // Elevation Legend (Clickable)
+                        Surface(
+                            color = if (showElevation) TealAccent.copy(alpha = 0.15f) else Color.Transparent,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    if (showElevation && !showSpeed) {
+                                        showSpeed = true
+                                    }
+                                    showElevation = !showElevation
+                                }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(
+                                            if (showElevation) TealAccent else TextSecondary.copy(alpha = 0.35f),
+                                            CircleShape
+                                        )
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Wysokość",
+                                    fontSize = 11.sp,
+                                    color = if (showElevation) TealAccent else TextSecondary.copy(alpha = 0.45f),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(6.dp))
                     }
 
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    // Elevation Legend (Clickable)
-                    Surface(
-                        color = if (showElevation) TealAccent.copy(alpha = 0.15f) else Color.Transparent,
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable {
-                                if (showElevation && !showSpeed) {
-                                    showSpeed = true
-                                }
-                                showElevation = !showElevation
+                    // Collapse / Expand Toggle Button in top-right corner
+                    IconButton(
+                        onClick = {
+                            isExpanded = !isExpanded
+                            if (!isExpanded) {
+                                activePoint = null
+                                scrubFraction = null
+                                onPointSelected(null)
                             }
+                        },
+                        modifier = Modifier.size(32.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(
-                                        if (showElevation) TealAccent else TextSecondary.copy(alpha = 0.35f),
-                                        CircleShape
-                                    )
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Wysokość",
-                                fontSize = 11.sp,
-                                color = if (showElevation) TealAccent else TextSecondary.copy(alpha = 0.45f),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Rounded.KeyboardArrowDown else Icons.Rounded.KeyboardArrowUp,
+                            contentDescription = if (isExpanded) "Zwiń wykres" else "Rozwiń wykres",
+                            tint = TextSecondary,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                exit = fadeOut(tween(150)) + shrinkVertically(tween(150))
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(10.dp))
 
             // Tooltip Banner for Scrubbed Values
             Box(
@@ -444,23 +484,25 @@ fun RideProfileChart(
                 }
             }
 
-            // Bottom X-Axis Distance Labels
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(text = "0 km", fontSize = 11.sp, color = TextSecondary)
-                Text(
-                    text = "%.1f km".format(totalDistance / 2),
-                    fontSize = 11.sp,
-                    color = TextSecondary
-                )
-                Text(
-                    text = "%.1f km".format(totalDistance),
-                    fontSize = 11.sp,
-                    color = TextSecondary,
-                    fontWeight = FontWeight.Bold
-                )
+                    // Bottom X-Axis Distance Labels
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "0 km", fontSize = 11.sp, color = TextSecondary)
+                        Text(
+                            text = "%.1f km".format(totalDistance / 2),
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                        Text(
+                            text = "%.1f km".format(totalDistance),
+                            fontSize = 11.sp,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }
