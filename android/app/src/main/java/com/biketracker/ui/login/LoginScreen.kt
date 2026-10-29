@@ -3,7 +3,9 @@ package com.biketracker.ui.login
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -29,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,19 +44,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.biketracker.ui.theme.BrandDisplay
 import com.biketracker.ui.theme.CardBorder
+import com.biketracker.ui.theme.DarkBackground
+import com.biketracker.ui.theme.DarkSurface
+import com.biketracker.ui.theme.DarkSurfaceVariant
 import com.biketracker.ui.theme.OrangeAccent
 import com.biketracker.ui.theme.TealAccent
+import com.biketracker.ui.theme.TechnicalTag
 import com.biketracker.ui.theme.TextPrimary
 import com.biketracker.ui.theme.TextSecondary
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -84,7 +96,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(DarkBackground)
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -93,33 +105,52 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // App Logo
+            // Technical Tag
+            Surface(
+                color = DarkSurface,
+                shape = RoundedCornerShape(4.dp),
+                border = BorderStroke(1.dp, CardBorder)
+            ) {
+                Text(
+                    text = "TELEMETRY · GPS COMPASS",
+                    style = TechnicalTag,
+                    color = OrangeAccent,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // App Emblem
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .background(OrangeAccent.copy(alpha = 0.15f), RoundedCornerShape(24.dp)),
+                    .size(76.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DarkSurface)
+                    .border(1.dp, OrangeAccent.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.DirectionsBike,
                     contentDescription = null,
                     tint = OrangeAccent,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(42.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Bike Tracker",
-                style = MaterialTheme.typography.headlineLarge,
+                text = "BIKE TRACKER",
+                style = BrandDisplay,
                 color = TextPrimary
             )
 
             Text(
                 text = "Precyzyjny zapis tras rowerowych i pieszych",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -138,9 +169,18 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = OrangeAccent,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                    unfocusedBorderColor = CardBorder,
+                    focusedContainerColor = DarkSurface,
+                    unfocusedContainerColor = DarkSurface,
+                    focusedLabelColor = OrangeAccent,
+                    unfocusedLabelColor = TextSecondary,
+                    focusedLeadingIconColor = OrangeAccent,
+                    unfocusedLeadingIconColor = TextSecondary,
+                    cursorColor = OrangeAccent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(6.dp)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -160,9 +200,18 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = OrangeAccent,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
+                    unfocusedBorderColor = CardBorder,
+                    focusedContainerColor = DarkSurface,
+                    unfocusedContainerColor = DarkSurface,
+                    focusedLabelColor = OrangeAccent,
+                    unfocusedLabelColor = TextSecondary,
+                    focusedLeadingIconColor = OrangeAccent,
+                    unfocusedLeadingIconColor = TextSecondary,
+                    cursorColor = OrangeAccent,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
                 ),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(6.dp)
             )
 
             uiState.errorMessage?.let { err ->
@@ -179,7 +228,7 @@ fun LoginScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator(color = OrangeAccent)
             } else {
-                // Email button
+                // Email submit button
                 Button(
                     onClick = {
                         if (isSignUpMode) {
@@ -191,13 +240,16 @@ fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent)
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OrangeAccent,
+                        contentColor = DarkBackground
+                    )
                 ) {
                     Text(
-                        text = if (isSignUpMode) "Zarejestruj się" else "Zaloguj się",
-                        color = MaterialTheme.colorScheme.background,
-                        fontWeight = FontWeight.Bold
+                        text = if (isSignUpMode) "ZAREJESTRUJ SIĘ" else "ZALOGUJ SIĘ",
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
                     )
                 }
 
@@ -228,7 +280,7 @@ fun LoginScreen(
                     HorizontalDivider(modifier = Modifier.weight(1f), color = CardBorder)
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // Google Sign In Button
                 Button(
@@ -239,17 +291,27 @@ fun LoginScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
+                        .height(50.dp)
+                        .border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+                    shape = RoundedCornerShape(6.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = androidx.compose.ui.graphics.Color.White,
-                        contentColor = androidx.compose.ui.graphics.Color.Black
+                        containerColor = DarkSurfaceVariant,
+                        contentColor = TextPrimary
                     )
                 ) {
-                    Text(
-                        text = "G  Zaloguj się przez Google",
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "G",
+                            fontWeight = FontWeight.Black,
+                            color = OrangeAccent,
+                            fontSize = 18.sp
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Zaloguj się przez Google",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -259,11 +321,18 @@ fun LoginScreen(
                     onClick = { viewModel.signInAnonymously() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, CardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = DarkSurface,
+                        contentColor = TextSecondary
+                    )
                 ) {
-                    Text(text = "Szybki start (Tryb gościa)")
+                    Text(
+                        text = "Szybki start (Tryb gościa)",
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
@@ -292,7 +361,7 @@ private suspend fun launchGoogleSignIn(context: Context, viewModel: LoginViewMod
         val result = credentialManager.getCredential(context = activity, request = request)
         val credential = result.credential
 
-        if (credential is androidx.credentials.CustomCredential &&
+        if (credential is CustomCredential &&
             credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
         ) {
             val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
@@ -300,7 +369,7 @@ private suspend fun launchGoogleSignIn(context: Context, viewModel: LoginViewMod
         } else {
             viewModel.onGoogleSignInError("Unexpected credential type: ${credential.type}")
         }
-    } catch (e: GetCredentialCancellationException) {
+    } catch (_: GetCredentialCancellationException) {
         // User cancelled, do nothing
     } catch (e: Exception) {
         viewModel.onGoogleSignInError(e.localizedMessage ?: e.message ?: "Google Sign-In failed")

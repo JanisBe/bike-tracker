@@ -739,7 +739,7 @@ fun HomeScreen(
                     color = TextSecondary.copy(alpha = 0.5f)
                 )
             },
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -798,8 +798,8 @@ fun ActivityOptionCard(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = DarkSurfaceVariant,
+        shape = RoundedCornerShape(6.dp),
+        color = DarkSurface,
         border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -817,7 +817,7 @@ fun ActivityOptionCard(
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(accentColor.copy(alpha = 0.15f), CircleShape),
+                        .background(DarkSurfaceVariant, RoundedCornerShape(4.dp)).border(1.dp, accentColor.copy(alpha = 0.5f), RoundedCornerShape(4.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -849,11 +849,11 @@ fun ActivityOptionCard(
 
             Surface(
                 color = accentColor,
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.padding(start = 12.dp)
             ) {
                 Text(
-                    text = "Wybierz",
+                    text = "WYBIERZ",
                     color = DarkBackground,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,

@@ -86,6 +86,8 @@ import com.biketracker.ui.map.MapLayersBottomSheet
 import com.biketracker.ui.map.MapOverlaySource
 import com.biketracker.ui.map.applyMapConfiguration
 import com.biketracker.ui.theme.CardBorder
+import com.biketracker.ui.theme.CockpitTileBg
+import com.biketracker.ui.theme.TechnicalTag
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.DarkSurfaceVariant
@@ -422,9 +424,9 @@ fun RideDetailScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                                .border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = CockpitTileBg)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -527,9 +529,9 @@ fun RideDetailScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                                .border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = CockpitTileBg)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -632,9 +634,9 @@ fun RideDetailScreen(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, CardBorder, RoundedCornerShape(16.dp)),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = DarkSurface)
+                                .border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+                            shape = RoundedCornerShape(6.dp),
+                            colors = CardDefaults.cardColors(containerColor = CockpitTileBg)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -740,7 +742,7 @@ fun RideDetailScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(52.dp),
-                                shape = RoundedCornerShape(14.dp),
+                                shape = RoundedCornerShape(6.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                                 enabled = !uiState.isImporting
                             ) {
@@ -773,7 +775,7 @@ fun RideDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(6.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = OrangeAccent),
                             enabled = !uiState.isSharing
                         ) {
@@ -856,7 +858,7 @@ fun RideDetailScreen(
                         }
                     },
                     containerColor = DarkSurface,
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(6.dp)
                 )
             }
 
@@ -1005,9 +1007,9 @@ fun DetailMetricCard(
     tint: androidx.compose.ui.graphics.Color
 ) {
     Card(
-        modifier = modifier.border(1.dp, CardBorder, RoundedCornerShape(14.dp)),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface)
+        modifier = modifier.border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+        shape = RoundedCornerShape(6.dp),
+        colors = CardDefaults.cardColors(containerColor = CockpitTileBg)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

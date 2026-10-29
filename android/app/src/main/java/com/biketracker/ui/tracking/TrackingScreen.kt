@@ -102,6 +102,8 @@ import com.biketracker.ui.map.MapLayersBottomSheet
 import com.biketracker.ui.map.MapOverlaySource
 import com.biketracker.ui.map.applyMapConfiguration
 import com.biketracker.ui.theme.CardBorder
+import com.biketracker.ui.theme.CockpitTileBg
+import com.biketracker.ui.theme.TechnicalTag
 import com.biketracker.ui.theme.DarkBackground
 import com.biketracker.ui.theme.DarkSurface
 import com.biketracker.ui.theme.DarkSurfaceVariant
@@ -471,9 +473,9 @@ fun TrackingScreen(
                             .border(
                                 1.dp,
                                 CardBorder,
-                                RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                                RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
                             ),
-                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+                        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp),
                         color = DarkSurface
                     ) {
                         Column(
@@ -672,67 +674,81 @@ fun TrackingScreen(
                             }
                             val unitLabel = if (isPaceMode) "min/km" else "km/h"
 
-                            Column(
+                            Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .then(
                                         if (isWalking) {
                                             Modifier
-                                                .clip(RoundedCornerShape(12.dp))
+                                                .clip(RoundedCornerShape(6.dp))
                                                 .clickable {
                                                     showPaceInsteadOfSpeed = !showPaceInsteadOfSpeed
                                                 }
-                                                .padding(vertical = 4.dp)
                                         } else Modifier
                                     ),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                color = CockpitTileBg,
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, CardBorder)
                             ) {
-                                Row(
-                                    horizontalArrangement = Arrangement.Center,
-                                    verticalAlignment = Alignment.Bottom
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        text = speedOrPaceValue,
-                                        style = TelemetryHero,
-                                        color = TextPrimary
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(bottom = 10.dp)
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.Bottom
                                     ) {
                                         Text(
-                                            text = unitLabel,
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = primaryAccent
+                                            text = speedOrPaceValue,
+                                            style = TelemetryHero,
+                                            color = TextPrimary
                                         )
-                                        if (isWalking) {
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Icon(
-                                                imageVector = Icons.Rounded.SwapVert,
-                                                contentDescription = "Przełącz na tempo/prędkość",
-                                                tint = primaryAccent.copy(alpha = 0.8f),
-                                                modifier = Modifier.size(18.dp)
-                                            )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        ) {
+                                            Surface(
+                                                color = primaryAccent.copy(alpha = 0.15f),
+                                                shape = RoundedCornerShape(4.dp),
+                                                border = BorderStroke(1.dp, primaryAccent.copy(alpha = 0.4f))
+                                            ) {
+                                                Text(
+                                                    text = unitLabel.uppercase(),
+                                                    style = TechnicalTag,
+                                                    color = primaryAccent,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            if (isWalking) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Icon(
+                                                    imageVector = Icons.Rounded.SwapVert,
+                                                    contentDescription = "Przełącz na tempo/prędkość",
+                                                    tint = primaryAccent.copy(alpha = 0.8f),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         }
                                     }
-                                }
 
-                                if (isWalking) {
-                                    Text(
-                                        text = if (isPaceMode) "Stuknij, aby wyświetlić prędkość (km/h)" else "Stuknij, aby wyświetlić tempo (min/km)",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary.copy(alpha = 0.8f),
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
+                                    if (isWalking) {
+                                        Text(
+                                            text = if (isPaceMode) "Stuknij, aby wyświetlić prędkość (km/h)" else "Stuknij, aby wyświetlić tempo (min/km)",
+                                            fontSize = 11.sp,
+                                            color = TextSecondary.copy(alpha = 0.8f),
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        )
+                                    }
                                 }
                             }
 
                             // Secondary Stats Row (Distance, Time & Average Speed/Pace)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceAround
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 val hours = elapsedSeconds / 3600
                                 val minutes = (elapsedSeconds % 3600) / 60
@@ -744,18 +760,21 @@ fun TrackingScreen(
                                 }
 
                                 LiveStatItem(
+                                    modifier = Modifier.weight(1f),
                                     icon = Icons.Rounded.Straighten,
                                     label = "Dystans",
                                     value = "%.2f km".format(currentDistanceKm),
                                     tint = primaryAccent
                                 )
                                 LiveStatItem(
+                                    modifier = Modifier.weight(1f),
                                     icon = Icons.Rounded.Schedule,
                                     label = "Czas",
                                     value = durationStr,
                                     tint = TealAccent
                                 )
                                 LiveStatItem(
+                                    modifier = Modifier.weight(1f),
                                     icon = Icons.Rounded.LocalFireDepartment,
                                     label = "Kalorie",
                                     value = "$caloriesBurned kcal",
@@ -778,6 +797,7 @@ fun TrackingScreen(
                                             "--:--"
                                         }
                                     LiveStatItem(
+                                        modifier = Modifier.weight(1f),
                                         icon = Icons.Rounded.Speed,
                                         label = "Śr. tempo",
                                         value = avgPaceStr,
@@ -785,6 +805,7 @@ fun TrackingScreen(
                                     )
                                 } else {
                                     LiveStatItem(
+                                        modifier = Modifier.weight(1f),
                                         icon = Icons.Rounded.Speed,
                                         label = "Śr. prędkość",
                                         value = "%.1f km/h".format(averageSpeedKmh),
@@ -806,10 +827,13 @@ fun TrackingScreen(
                                     onClick = {
                                         if (isPaused) viewModel.resumeTracking() else viewModel.pauseTracking()
                                     },
-                                    modifier = Modifier.size(64.dp),
-                                    shape = CircleShape,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .border(1.dp, CardBorder, RoundedCornerShape(6.dp)),
+                                    shape = RoundedCornerShape(6.dp),
                                     colors = IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = if (isPaused) SuccessGreen else primaryAccent
+                                        containerColor = if (isPaused) SuccessGreen else primaryAccent,
+                                        contentColor = DarkBackground
                                     )
                                 ) {
                                     Icon(
@@ -826,9 +850,12 @@ fun TrackingScreen(
                                     modifier = Modifier
                                         .height(56.dp)
                                         .weight(1f)
-                                        .padding(start = 16.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = TealAccent)
+                                        .padding(start = 12.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = OrangeAccent,
+                                        contentColor = DarkBackground
+                                    )
                                 ) {
                                     Icon(
                                         Icons.Rounded.Check,
@@ -837,10 +864,11 @@ fun TrackingScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Zakończ i zapisz",
+                                        text = "ZAKOŃCZ I ZAPISZ",
                                         color = DarkBackground,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp
+                                        fontSize = 15.sp,
+                                        letterSpacing = 0.5.sp
                                     )
                                 }
                             }
@@ -1309,32 +1337,44 @@ fun TrackingScreen(
 
 @Composable
 fun LiveStatItem(
+    modifier: Modifier = Modifier,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     value: String,
     tint: androidx.compose.ui.graphics.Color
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
+    Surface(
+        modifier = modifier,
+        color = CockpitTileBg,
+        shape = RoundedCornerShape(6.dp),
+        border = BorderStroke(1.dp, CardBorder)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(12.dp)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = label.uppercase(),
+                    style = TelemetryLabel,
+                    color = TextSecondary,
+                    fontSize = 10.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = label.uppercase(),
-                style = TelemetryLabel,
-                color = TextSecondary
+                text = value,
+                style = TelemetryValueMedium,
+                color = TextPrimary
             )
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = value,
-            style = TelemetryValueMedium,
-            color = TextPrimary
-        )
     }
 }
 

@@ -18,6 +18,8 @@ private val DarkColorScheme = darkColorScheme(
     onSecondary = DarkBackground,
     onBackground = TextPrimary,
     onSurface = TextPrimary,
+    outline = CardBorder,
+    outlineVariant = CardBorderSubtle,
     error = ErrorRed,
     onError = TextPrimary
 )

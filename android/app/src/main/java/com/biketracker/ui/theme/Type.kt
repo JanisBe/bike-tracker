@@ -101,3 +101,19 @@ val TelemetryLabel = TextStyle(
     lineHeight = 14.sp,
     letterSpacing = 1.sp
 )
+
+val BrandDisplay = TextStyle(
+    fontFamily = FontFamily.Default,
+    fontWeight = FontWeight.Black,
+    fontSize = 26.sp,
+    lineHeight = 32.sp,
+    letterSpacing = 1.5.sp
+)
+
+val TechnicalTag = TextStyle(
+    fontFamily = FontFamily.Monospace,
+    fontWeight = FontWeight.Medium,
+    fontSize = 11.sp,
+    lineHeight = 14.sp,
+    letterSpacing = 0.5.sp
+)
